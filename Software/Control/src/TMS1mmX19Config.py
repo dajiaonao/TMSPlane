@@ -182,7 +182,12 @@ if __name__ == "__main__":
     ret = s.recv(4)
     print(":".join("{:02x}".format(ord(c)) for c in ret))
 # tms serial io
+
+### use the output of TMS1mmReg.get_config_vector to replace 0xb in below line 
+### Tune the 6 DAC parameters, each being a 16 bit number
+
     tms_sio_rw(s, cmd, 2, 0xb)
+
 # tms sdm idelay
     cmdStr  = cmd.write_register(14, 38<<8 | 1) # clk loopback
     cmdStr += cmd.send_pulse(1<<4)
