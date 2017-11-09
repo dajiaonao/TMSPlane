@@ -27,6 +27,8 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
 
+online = True
+
 class CommonData(object):
 
     def __init__(self, cmd, dataSocket=None, ctrlSocket=None, nSamples=16384, tms1mmReg=TMS1mmX19Config.TMS1mmReg()):
@@ -37,6 +39,7 @@ class CommonData(object):
         # number of chips
         self.nCh = 19
         self.nAdcCh = 20
+        self.currentCh = 0
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
         # adc sampling interval in us
@@ -90,11 +93,13 @@ class DataPanelGUI(object):
         self.dataPlotsFigure = Figure(figsize=dataFigSize, dpi=72)
         self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
         # x-axis is shared
-        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(self.nCh, 1, self.nCh, xlabel='t [us]', ylabel='[V]')
-        self.dataPlotsSubplots = [self.dataPlotsFigure.add_subplot(self.nCh, 1, i+1, sharex=dataPlotsSubplotN)
-                                  for i in xrange(self.nCh-1)]
-        for a in self.dataPlotsSubplots:
-            artist.setp(a.get_xticklabels(), visible=False)
+#         dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(self.nCh, 1, self.nCh, xlabel='t [us]', ylabel='[V]')
+        dataPlotsSubplotN = self.dataPlotsFigure.add_subplot(1, 1, 1, xlabel='t [us]', ylabel='[V]')
+        self.dataPlotsSubplots = []
+#         self.dataPlotsSubplots = [self.dataPlotsFigure.add_subplot(self.nCh, 1, i+1, sharex=dataPlotsSubplotN)
+#                                   for i in xrange(self.nCh-1)]
+#         for a in self.dataPlotsSubplots:
+#             artist.setp(a.get_xticklabels(), visible=False)
         self.dataPlotsSubplots.append(dataPlotsSubplotN)
         self.dataPlotsCanvas = FigureCanvasTkAgg(self.dataPlotsFigure, master=self.dataPlotsFrame)
         self.dataPlotsCanvas.show()
@@ -125,13 +130,34 @@ class DataPanelGUI(object):
     def get_and_plot_data(self):
         # reset data fifo
         print("in get_and_plot_data")
-        self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+        if online: self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         time.sleep(0.1)
-        buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        self.demux_fifodata(buf, self.cd.adcData)
+        if online:
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            self.demux_fifodata(buf, self.cd.adcData)
         self.plot_data()
 
     def plot_data(self):
+        print("going to plot sensor", self.cd.currentCh)
+        for a in self.dataPlotsSubplots:
+            a.cla()
+        a = self.dataPlotsSubplots[-1]
+        a.set_xlabel(u't [us]')
+        a.set_ylabel('[V]')
+        nSamples = len(self.cd.adcData[0])
+        x = [self.cd.adcDt * i for i in xrange(nSamples)]
+
+        a.locator_params(axis='y', tight=True, nbins=4)
+        a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
+        a.set_xlim([0.0, self.cd.adcDt * nSamples])
+
+        a.step(x, self.cd.adcData[self.cd.currentCh], where='post')
+        a.set_ylim([0.98,1.15])
+
+        self.dataPlotsCanvas.show()
+        self.dataPlotsToolbar.update()
+
+    def plot_data2(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
         for a in self.dataPlotsSubplots:
             a.cla()
@@ -281,6 +307,8 @@ class ControlPanelGUI(object):
     def select_current_sensor(self, *args):
         with self.cd.cv:
             self.cd.currentSensor = self.sensorSelVar.get()
+            print("sensor", self.cd.currentSensor)
+            self.cd.currentCh = self.cd.currentSensor
             # load Vcodes for the specific sensor
             for i in xrange(self.nVolts):
                 self.voltsSetCodeVars[i].set(self.cd.sensorVcodes[self.cd.currentSensor][i])
@@ -357,29 +385,30 @@ class SensorConfig(threading.Thread):
                                                 adc_clk_src_sel     << 2 |
                                                 tms_sdm_clk_src_sel << 1 |
                                                 tms_pwr_on)
-        self.s.sendall(cmdStr)
+        if online: self.s.sendall(cmdStr)
         time.sleep(0.001)
         # tms sdm idelay
         cmdStr  = self.cd.cmd.write_register(14, 38<<8 | 1) # clk loopback
         cmdStr += self.cd.cmd.send_pulse(1<<4)
         cmdStr += self.cd.cmd.write_register(14, 0<<8 | 0)
         cmdStr += self.cd.cmd.send_pulse(1<<4)
-        self.s.sendall(cmdStr)
+        if online: self.s.sendall(cmdStr)
         # adc idelay
         cmdStr  = self.cd.cmd.write_register(14, 20<<8 | 1) # clk loopback
         cmdStr += self.cd.cmd.send_pulse(1<<5)
         cmdStr += self.cd.cmd.write_register(14, 19<<8 | 0)
         cmdStr += self.cd.cmd.send_pulse(1<<5)
-        self.s.sendall(cmdStr)
-        # DAC provided ref voltages
-        self.s.sendall(self.dac8568.turn_on_2V5_ref())
-        self.s.sendall(self.dac8568.set_voltage(0, 1.207))
-        self.s.sendall(self.dac8568.set_voltage(1, 1.024))
-        self.s.sendall(self.dac8568.set_voltage(2, 1.65))
-        time.sleep(0.001)
-        for c,l in self.tms1mmX19chainSensors.iteritems():
-            self.update_sensor(l[0])
-        time.sleep(0.001)
+        if online:
+            self.s.sendall(cmdStr)
+            # DAC provided ref voltages
+            self.s.sendall(self.dac8568.turn_on_2V5_ref())
+            self.s.sendall(self.dac8568.set_voltage(0, 1.207))
+            self.s.sendall(self.dac8568.set_voltage(1, 1.024))
+            self.s.sendall(self.dac8568.set_voltage(2, 1.65))
+            time.sleep(0.001)
+            for c,l in self.tms1mmX19chainSensors.iteritems():
+                self.update_sensor(l[0])
+            time.sleep(0.001)
 
     def get_config_vector_for_sensor(self, iSensor):
         x2gain = 2
@@ -426,9 +455,9 @@ class SensorConfig(threading.Thread):
         print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-            TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+            if online: TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
         # tms reset and load register
-        self.s.sendall(self.cd.cmd.send_pulse(1<<0))
+        if online: self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 
     def get_inputs(self):
         return
@@ -442,11 +471,11 @@ if __name__ == "__main__":
 
     dataIpPort = args.data_ip_port.split(':')
     sD = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    sD.connect((dataIpPort[0],int(dataIpPort[1])))
+    if online: sD.connect((dataIpPort[0],int(dataIpPort[1])))
 
     ctrlIpPort = args.control_ip_port.split(':')
     sC = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
+    if online: sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
 
     cmd = Cmd()
     cd = CommonData(cmd, dataSocket=sD, ctrlSocket=sC)
