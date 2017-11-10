@@ -27,7 +27,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
 
-online = True
+online = False
 
 class CommonData(object):
 
@@ -45,6 +45,7 @@ class CommonData(object):
         # adc sampling interval in us
         self.adcDt = 0.2
         self.adcData = [[0 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
+        self.adcData0 = [[i*0.0001 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
         # size equals FPGA internal data fifo size
         self.sampleBuf = bytearray(4 * self.nWords)
         # number of voltages in a sensor to control
@@ -132,6 +133,8 @@ class DataPanelGUI(object):
         print("in get_and_plot_data")
         if online: self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         time.sleep(0.1)
+        self.cd.adcData0 = self.cd.adcData
+        
         if online:
             buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
             self.demux_fifodata(buf, self.cd.adcData)
@@ -150,9 +153,12 @@ class DataPanelGUI(object):
         a.locator_params(axis='y', tight=True, nbins=4)
         a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
         a.set_xlim([0.0, self.cd.adcDt * nSamples])
+        
+
+        a.step(x, self.cd.adcData0[self.cd.currentCh], where='post', color='lightcoral')
 
         a.step(x, self.cd.adcData[self.cd.currentCh], where='post')
-        a.set_ylim([0.98,1.15])
+#         a.set_ylim([0.98,1.15])
 
         self.dataPlotsCanvas.show()
         self.dataPlotsToolbar.update()
