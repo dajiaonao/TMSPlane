@@ -27,7 +27,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
 
-online = False
+online = True
 
 class CommonData(object):
 
@@ -155,10 +155,10 @@ class DataPanelGUI(object):
         a.set_xlim([0.0, self.cd.adcDt * nSamples])
         
 
-        a.step(x, self.cd.adcData0[self.cd.currentCh], where='post', color='lightcoral')
+#         a.step(x, self.cd.adcData0[self.cd.currentCh], where='post', color='lightcoral')
 
         a.step(x, self.cd.adcData[self.cd.currentCh], where='post')
-#         a.set_ylim([0.98,1.15])
+#         a.set_ylim([0.97,1.03])
 
         self.dataPlotsCanvas.show()
         self.dataPlotsToolbar.update()
@@ -176,7 +176,7 @@ class DataPanelGUI(object):
         a.set_ylabel('[V]')
         nSamples = len(self.cd.adcData[0])
         x = [self.cd.adcDt * i for i in xrange(nSamples)]
-        print(x if len(x)<10 else x[:10])
+#         print(x if len(x)<10 else x[:10])
         for i in xrange(len(self.dataPlotsSubplots)):
             a = self.dataPlotsSubplots[i]
             a.locator_params(axis='y', tight=True, nbins=4)
@@ -211,7 +211,7 @@ class DataPanelGUI(object):
                 # convert to actual volts
                 ary[j][i] = v * adcLSB + adcVoffset
 
-        print(ary[:5])
+#         print(ary[:5])
         return ary
 
 class ControlPanelGUI(object):
