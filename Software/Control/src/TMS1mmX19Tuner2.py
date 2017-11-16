@@ -11,6 +11,7 @@ import copy
 import socket
 import argparse
 from command import *
+from sigproc import *
 import TMS1mmX19Config
 
 if sys.version_info[0] < 3:
@@ -31,8 +32,8 @@ online = True
 
 class CommonData(object):
 
-    def __init__(self, cmd, dataSocket=None, ctrlSocket=None, nSamples=16384, tms1mmReg=TMS1mmX19Config.TMS1mmReg()):
-
+    def __init__(self, cmd=Cmd(), dataSocket=None, ctrlSocket=None, nSamples=16384,
+                 tms1mmReg=TMS1mmX19Config.TMS1mmReg(), sigproc=None):
         self.cmd = cmd
         self.dataSocket = dataSocket
         self.ctrlSocket = ctrlSocket
@@ -44,12 +45,14 @@ class CommonData(object):
         self.currentCh = 0
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
+        # signal processor
+        if (not sigproc):
+            self.sigproc = SigProc(self.nSamples, self.nAdcCh, self.nCh, self.adcSdmCycRatio)
         # adc sampling interval in us
         self.adcDt = 0.2
         self.adcData0 = [[i*0.0001 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
-        self.adcData = [[0 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
-        self.sdmData = [[0 for i in xrange(self.nSamples*self.adcSdmCycRatio)]
-                           for j in xrange(self.nCh*2)]
+        self.adcData = self.sigproc.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
+        self.sdmData = self.sigproc.generate_sdmDataBuf() # ((ctypes.c_byte * (self.nSamples*self.adcSdmCycRatio)) * (self.nCh*2))()
         # size equals FPGA internal data fifo size
         self.sampleBuf = bytearray(4 * self.nWords)
         # number of voltages in a sensor to control
@@ -154,8 +157,9 @@ class DataPanelGUI(object):
         
         if online:
             buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-            self.demux_fifodata(buf, self.cd.adcData)
+            self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
         self.plot_data()
+        self.cd.sigproc.save_data(self.cd.dataFName, self.cd.adcData, self.cd.sdmData)
 
     def plot_data(self):
         print("going to plot sensor", self.cd.currentCh)

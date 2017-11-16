@@ -79,6 +79,12 @@ class CommonData(object):
         self.sensorVcodes = [[v for v in self.inputVcodes] for i in xrange(self.nCh)]
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
+    def fetch(self):
+        self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
+        time.sleep(0.1)
+
+        buf = self.cmd.acquire_from_datafifo(self.dataSocket, self.nWords, self.sampleBuf)
+        self.sigproc.demux_fifodata(buf, self.adcData, self.sdmData)
 
 class DataPanelGUI(object):
 

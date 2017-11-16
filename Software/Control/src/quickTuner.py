@@ -4,11 +4,11 @@ from TMS1mmX19Tuner import CommonData, SensorConfig
 from command import *
 from math import sqrt
 from rootUtil import waitRootCmdX
-from ROOT import *
+from ROOT import TGraph
 from array import array
-import sys
+import sys, time
 
-isDebug = True
+isDebug = False
 
 
 def checkNSeq(d, n, i, v):
@@ -16,7 +16,7 @@ def checkNSeq(d, n, i, v):
     for j in range(n, n+i):
         if j>nd or j<0: return False
 
-class sigInfo:
+class SigInfo:
     def __init__(self, data=None):
         self.resp = [] # [(t0, dT, tM, A),]
         if data:
@@ -26,6 +26,7 @@ class sigInfo:
             self.bkgVar = None
             self.quality = None
     def extract(self, data):
+        self.resp = []
         nData = len(data)
         muS = 0
         var2S = 0
@@ -77,7 +78,8 @@ class sigInfo:
             elif iStart is None and data2[i] is None:
                 iStart = i
         ### remove low quality peaks
-        self.quality = max([abs(x[3]) for x in self.resp])
+        if len(self.resp) > 0:
+            self.quality = max([abs(x[3]) for x in self.resp])
 #         mx = max(self.resp, key=lambda p:abs(p[3]))
 #         self.resp = [x for x in self.resp if abs(x[3])>0.3*mx[3]]
 #         print mx
@@ -89,7 +91,9 @@ class sigInfo:
 
         x = [0.2*i for i in range(nData)]
         g0 = TGraph(nData, array('d',x), array('d',data))
-        g0.Draw()
+        g0.Draw("AP")
+        g0.GetHistogram().GetYaxis().SetTitle("V_{out} [V]")
+        g0.GetHistogram().GetXaxis().SetTitle("t [#mus]")
 
         g1 = TGraph(nData, array('d',[x[0]*0.2 for x in enumerate(data2) if x[1] is not None]), array('d',[x[1] for x in enumerate(data2) if x[1] is not None]))
         g1.SetMarkerColor(2)
@@ -100,6 +104,7 @@ class sigInfo:
 class QuickTuner:
     def __init__(self, mode=0):
         self.mode = mode # 0: normal, 1: testing
+        self.sensorConfig = None
 
         self.setup()
 
@@ -124,7 +129,7 @@ class QuickTuner:
         cd.sdmMode = 0
         cd.bufferTest = 0
 
-#         sensorConfig = SensorConfig(cd)
+        self.sensorConfig = SensorConfig(cd)
         pass
 
     def get_score(self, data):
@@ -184,78 +189,31 @@ class QuickTuner:
 
         return score;
 
-    def assess(self, pars):
-        ### send the parameters
-        if mode==0: self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
-        time.sleep(0.1)
+    def assess(self, inputVs=[1.379, 1.546, 1.626, 1.169, 1.357, 2.458], isensor=None):
+        cd = self.sensorConfig.cd
+
+        if isensor is None: isensor = cd.currentSensor
+        else: cd.currentSensor = isensor
+
+        cd.sensorVcodes[isensor] = [cd.tms1mmReg.dac_volt2code(v) for v in inputVs] #FIXME: other list need to be syncronized.
+        self.sensorConfig.update_sensor(isensor) 
 
         ### save old data
-        for i in range(len(self.cd.adcData)):
-            for j in range(len(self.cd.adcData[i])):
-                self.cd.adcData0[i][j] = self.cd.adcData[i][j]
+#         for i in range(len(cd.adcData)):
+#             for j in range(len(cd.adcData[i])):
+#                 cd.adcData0[i][j] = cd.adcData[i][j]
        
         ### get new data
-        if online:
-            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-            self.demux_fifodata(buf, self.cd.adcData)
-
+        a1 = SigInfo()
+        if self.mode==0:
+            for i in range(5):
+                cd.fetch()
+                a1.extract(cd.adcData[isensor])
 
         ### evaluate the score
-        get_score(self.cd.adcData)
+#         get_score(self.cd.adcData)
 
         pass
-
-    def demux_fifodata(self, fData, adcData=None, sdmData=None, adcVoffset=1.024, adcLSB=62.5e-6):
-        wWidth = 512
-        bytesPerSample = wWidth / 8
-        if type(fData[0]) == str:
-            fD = bytearray(fData)
-        else:
-            fD = fData
-        if len(fD) % bytesPerSample != 0:
-            print ("empty fD")
-            return []
-        nSamples = len(fD) / bytesPerSample
-        if adcData == None:
-            adcData = [[0 for i in xrange(nSamples)] for j in xrange(self.nAdcCh)]
-        if sdmData == None:
-            sdmData = [[0 for i in xrange(nSamples*self.adcSdmCycRatio)]
-                          for j in xrange(self.nSdmCh*2)]
-        for i in xrange(nSamples):
-            for j in xrange(self.nAdcCh):
-                idx0 = bytesPerSample - 1 - j*2
-                v = ( fD[i * bytesPerSample + idx0 - 1] << 8
-                    | fD[i * bytesPerSample + idx0])
-                # convert to signed int
-                v = (v ^ 0x8000) - 0x8000
-                # convert to actual volts
-
-                adcData[j][i] = v * adcLSB + adcVoffset
-            b0 = self.nAdcCh*2
-            for j in xrange(self.adcSdmCycRatio*self.nSdmCh*2):
-                bi = bytesPerSample - 1 - b0 - int(j / 8)
-                bs = j % 8
-                ss = int(j / (self.nSdmCh*2))
-                ch = j % (self.nSdmCh*2)
-                sdmData[ch][i*self.adcSdmCycRatio + ss] = (fD[i * bytesPerSample + bi] >> bs) & 0x1
-        #
-        return adcData
-
-    def save_data(self, fNames):
-        with open(fNames[0], 'w') as fp:
-            fp.write("# 5Msps ADC\n")
-            nSamples = len(self.cd.adcData[0])
-            for i in xrange(nSamples):
-                for j in xrange(len(self.cd.adcData)):
-                    fp.write(" {:9.6f}".format(self.cd.adcData[j][i]))
-                fp.write("\n")
-        with open(fNames[1], 'w') as fp:
-            fp.write("# 25Msps SDM\n")
-            nSamples = len(self.cd.sdmData[0])
-            for i in xrange(nSamples):
-                for j in xrange(len(self.cd.sdmData)):
-                    fp.write(" {:1d}".format(self.cd.sdmData[j][i]))
-                fp.write("\n")
 
     def tune(self, chan):
         ## give a set of parameters and get a quantity of goodness
@@ -278,13 +236,14 @@ class QuickTuner:
         ichan = 5 if len(sys.argv)<2 else int(sys.argv[1])
         with open('adc_test.dat') as f1:
             dat1 = [float(l.split()[ichan]) for l in f1.readlines() if l.find('#')==-1]
-        a1 = sigInfo(dat1)
+        a1 = SigInfo(dat1)
 #         self.get_score(dat1)
 #         self.check(dat1)
 
 def test():
-    qt1 = QuickTuner(mode=1)
-    qt1.test()
+    qt1 = QuickTuner(mode=0)
+    qt1.assess([1.029,1.106,1.676,1.169,0.8,2.99],5)
+#     qt1.test()
 
 if __name__ == '__main__':
     test()
