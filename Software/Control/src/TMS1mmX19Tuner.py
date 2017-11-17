@@ -82,9 +82,23 @@ class CommonData(object):
     def fetch(self):
         self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
         time.sleep(0.1)
+        print ('fetching data....')
 
         buf = self.cmd.acquire_from_datafifo(self.dataSocket, self.nWords, self.sampleBuf)
         self.sigproc.demux_fifodata(buf, self.adcData, self.sdmData)
+        print ("new data is read.")
+
+    def updatePars(self, iSensor=None, inputs=None):
+        if iSensor is not None: self.currentSensor = iSensor
+        if inputs is not None: self.inputVs = inputs
+
+        ### everything from inputVs
+        print ("-------------",self.currentSensor,"-------------")
+        self.inputVcodes = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
+        self.sensorVcodes[self.currentSensor] = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
+    def saveData(self,tag=""):
+        self.sigproc.save_data([tag + x for x in self.dataFName], self.adcData, self.sdmData)
+
 
 class DataPanelGUI(object):
 

@@ -25,6 +25,15 @@ class SigInfo:
             self.bkgMu = None
             self.bkgVar = None
             self.quality = None
+    def show(self, data):
+        x = [0.2*i for i in range(len(data))]
+        g0 = TGraph(len(data), array('d',x), array('d',data))
+        g0.Draw("AP")
+        g0.GetHistogram().GetYaxis().SetTitle("V_{out} [V]")
+        g0.GetHistogram().GetXaxis().SetTitle("t [#mus]")
+
+        waitRootCmdX()
+
     def extract(self, data):
         self.resp = []
         nData = len(data)
@@ -189,47 +198,65 @@ class QuickTuner:
 
         return score;
 
-    def assess(self, inputVs=[1.379, 1.546, 1.626, 1.169, 1.357, 2.458], isensor=None):
+    def assess(self,  isensor=None, inputVs=[1.379, 1.546, 1.626, 1.169, 1.357, 2.458]):
         cd = self.sensorConfig.cd
+        cd.updatePars(isensor, inputVs)
 
-        if isensor is None: isensor = cd.currentSensor
-        else: cd.currentSensor = isensor
-
-        cd.sensorVcodes[isensor] = [cd.tms1mmReg.dac_volt2code(v) for v in inputVs] #FIXME: other list need to be syncronized.
+        isensor = cd.currentSensor
         self.sensorConfig.update_sensor(isensor) 
 
-        ### save old data
-#         for i in range(len(cd.adcData)):
-#             for j in range(len(cd.adcData[i])):
-#                 cd.adcData0[i][j] = cd.adcData[i][j]
-       
+        ### Tips:
+        ## 1. Wait for a while to see the stable results, unless you want to catch the transation period
+        ## 2. grab the data for several times to see if it's stable already
+        ## 3. While checking the results, we can already aquire new data -- so put the tune code to a seperate thread?
+
         ### get new data
+        time.sleep(3)
         a1 = SigInfo()
         if self.mode==0:
-            for i in range(5):
+            x = "x"
+
+            ### loop until it becomes stable
+            while x != 'n':
                 cd.fetch()
-                a1.extract(cd.adcData[isensor])
+                a1.show(cd.adcData[isensor])
+                x = raw_input("n: for next point")
+            a1.extract(cd.adcData[isensor])
+
+#             for i in range(20):
+#                 cd.fetch()
+#                 cd.saveData('test{0:d}_'.format(i))
+# #                 a1.extract(cd.adcData[isensor])
+#                 a1.show(cd.adcData[isensor])
 
         ### evaluate the score
 #         get_score(self.cd.adcData)
 
-        pass
+        return a1.quality
 
     def tune(self, chan):
         ## give a set of parameters and get a quantity of goodness
         ### pass the parameters and get data
         ### assess the data -- what's good? What's better?
         ## Move the next set of parameters
+        cd = self.sensorConfig.cd
+        cd.currentSensor = chan
+        cd.inputVs = [1.029,1.106,1.676,1.169,0.8,2.99]
 
+        ax = []
+        for i in range(20):
+            cd.inputVs[0] = 1.029 - 0.1 + 0.01*i
+#             print cd.inputVs
+            ax.append((cd.inputVs[:], self.assess()))
+            print ax[-1]
+
+        for j in ax:
+            print j[0],':',j[1]
 
         ### do the tunes here
+        ## change the value and compare the quality
 
 
-
-        sensorConfig.cd.sD.close()
-        sensorConfig.cd.sC.close()
-
-        pass
     def test(self):
         print "testing"
         dat1 = None
@@ -242,7 +269,11 @@ class QuickTuner:
 
 def test():
     qt1 = QuickTuner(mode=0)
-    qt1.assess([1.029,1.106,1.676,1.169,0.8,2.99],5)
+    cd1 = qt1.sensorConfig.cd
+    cd1.inputVs = [1.029,1.106,1.676,1.169,0.8,2.99]
+    print qt1.sensorConfig.cd.inputVs
+#     qt1.assess()
+    qt1.tune(5)
 #     qt1.test()
 
 if __name__ == '__main__':

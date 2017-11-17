@@ -87,6 +87,7 @@ class DataPanelGUI(object):
     ##
     # @param [in] dataFigSize (w, h) in inches for the data plots figure assuming dpi=72
     def __init__(self, master, cd, dataFigSize=(13, 12.5)):
+        self.mode = 0
         self.master = master
         self.cd = cd
         self.nAdcCh = self.cd.nAdcCh
@@ -98,10 +99,10 @@ class DataPanelGUI(object):
         self.master.wm_protocol("WM_DELETE_WINDOW", self.quit)
 
         #
-        button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
+        button = tk.Button(master=self.master, text='Re-sample', command=self.re_sample)
 #         button.pack(side=tk.BOTTOM, fill=tk.X)
         button.pack(side=tk.LEFT, fill=tk.Y)
-        button2 = tk.Button(master=self.master, text='Auto-update', command=self.update_and_plot_data)
+        button2 = tk.Button(master=self.master, text='Auto-update', command=self.auto_update)
         button2.pack(side=tk.LEFT, fill=tk.Y)
 
         # frame for plotting
@@ -165,6 +166,9 @@ class DataPanelGUI(object):
         print("going to plot sensor", self.cd.currentCh)
         for a in self.dataPlotsSubplots:
             a.cla()
+            self.dataPlotsFigure.texts = []
+#             for txt in self.dataPlotsFigure.texts:
+#                 txt.set_visible(False)
         a = self.dataPlotsSubplots[-1]
         a.set_xlabel(u't [us]')
         a.set_ylabel('[V]')
@@ -179,14 +183,31 @@ class DataPanelGUI(object):
         a.step(x, self.cd.adcData0[self.cd.currentCh], where='post', color='lightcoral')
 
         a.step(x, self.cd.adcData[self.cd.currentCh], where='post')
+        dd1 = max(self.cd.adcData[self.cd.currentCh])-min(self.cd.adcData[self.cd.currentCh])
+        l1 = self.dataPlotsFigure.text(0.2, 0.92,'New:{0:.3f}'.format(dd1), ha='center', va='center', transform=a.transAxes)
+        l1.set_color('blue')
+
+        dd0 = max(self.cd.adcData0[self.cd.currentCh])-min(self.cd.adcData0[self.cd.currentCh])
+        l0 = self.dataPlotsFigure.text(0.2, 0.90,'Old:{0:.3f}'.format(dd1), ha='center', va='center', transform=a.transAxes)
+        l0.set_color('lightcoral')
+        l2 = self.dataPlotsFigure.text(0.2, 0.88,'Old:{0:.3f}'.format(dd1-dd0), ha='center', va='center', transform=a.transAxes)
+        if dd1-dd0>0:
+            l2.set_color('green')
+        else: l2.set_color('black')
 #         a.set_ylim([0.97,1.03])
 
         self.dataPlotsCanvas.show()
         self.dataPlotsToolbar.update()
 
-    def update_and_plot_data(self):
-        pass
+    def re_sample(self):
+        self.mode = 0
+        self.get_and_plot_data()
 
+    def auto_update(self):
+        self.mode = 1
+        while self.mode == 1:
+            time.sleep(1)
+            self.get_and_plot_data()
 
     def plot_data2(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
