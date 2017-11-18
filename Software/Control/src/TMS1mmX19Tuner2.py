@@ -82,6 +82,32 @@ class CommonData(object):
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
 
+        self.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
+        self.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
+
+    def fetch(self):
+        self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
+        time.sleep(0.1)
+#         print ('fetching data....')
+
+        buf = self.cmd.acquire_from_datafifo(self.dataSocket, self.nWords, self.sampleBuf)
+        self.sigproc.demux_fifodata(buf, self.adcData, self.sdmData)
+#         print ("new data is read.")
+
+    def updatePars(self, iSensor=None, inputs=None):
+        if iSensor is not None: self.currentSensor = iSensor
+        if inputs is not None: self.inputVs = inputs
+
+        ### everything from inputVs
+#         print ("-------------",self.currentSensor,"-------------")
+        self.inputVcodes = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
+        self.sensorVcodes[self.currentSensor] = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
+    def saveData(self,tag=""):
+        self.sigproc.save_data([tag + x for x in self.dataFName], self.adcData, self.sdmData)
+
+
+
+
 class DataPanelGUI(object):
 
     ##
@@ -184,13 +210,13 @@ class DataPanelGUI(object):
 
         a.step(x, self.cd.adcData[self.cd.currentCh], where='post')
         dd1 = max(self.cd.adcData[self.cd.currentCh])-min(self.cd.adcData[self.cd.currentCh])
-        l1 = self.dataPlotsFigure.text(0.2, 0.92,'New:{0:.3f}'.format(dd1), ha='center', va='center', transform=a.transAxes)
+        l1 = self.dataPlotsFigure.text(0.2, 0.92,'New:{0:.3f}'.format(0.5*dd1), ha='center', va='center', transform=a.transAxes)
         l1.set_color('blue')
 
         dd0 = max(self.cd.adcData0[self.cd.currentCh])-min(self.cd.adcData0[self.cd.currentCh])
-        l0 = self.dataPlotsFigure.text(0.2, 0.90,'Old:{0:.3f}'.format(dd1), ha='center', va='center', transform=a.transAxes)
+        l0 = self.dataPlotsFigure.text(0.2, 0.90,'Old:{0:.3f}'.format(0.5*dd1), ha='center', va='center', transform=a.transAxes)
         l0.set_color('lightcoral')
-        l2 = self.dataPlotsFigure.text(0.2, 0.88,'Old:{0:.3f}'.format(dd1-dd0), ha='center', va='center', transform=a.transAxes)
+        l2 = self.dataPlotsFigure.text(0.2, 0.88,'Old:{0:.3f}'.format(0.5*(dd1-dd0)), ha='center', va='center', transform=a.transAxes)
         if dd1-dd0>0:
             l2.set_color('green')
         else: l2.set_color('black')

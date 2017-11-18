@@ -77,23 +77,24 @@ class CommonData(object):
         #
         self.currentSensor = 0
         self.sensorVcodes = [[v for v in self.inputVcodes] for i in xrange(self.nCh)]
+        self.sensorVcodes[5] = [tms1mmReg.dac_volt2code(v) for v in [1.029,1.106,1.676,1.169,0.8,2.99]]
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
     def fetch(self):
         self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
         time.sleep(0.1)
-        print ('fetching data....')
+#         print ('fetching data....')
 
         buf = self.cmd.acquire_from_datafifo(self.dataSocket, self.nWords, self.sampleBuf)
         self.sigproc.demux_fifodata(buf, self.adcData, self.sdmData)
-        print ("new data is read.")
+#         print ("new data is read.")
 
     def updatePars(self, iSensor=None, inputs=None):
         if iSensor is not None: self.currentSensor = iSensor
         if inputs is not None: self.inputVs = inputs
 
         ### everything from inputVs
-        print ("-------------",self.currentSensor,"-------------")
+#         print ("-------------",self.currentSensor,"-------------")
         self.inputVcodes = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
         self.sensorVcodes[self.currentSensor] = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
     def saveData(self,tag=""):
@@ -505,9 +506,9 @@ class SensorConfig(threading.Thread):
         print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-            print("Send  : 0x{:0x}".format(data))
+#             print("Send  : 0x{:0x}".format(data))
             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+#             print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 
