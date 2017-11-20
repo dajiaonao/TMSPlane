@@ -4,7 +4,7 @@ from TMS1mmX19Tuner import CommonData, SensorConfig
 from command import *
 from math import sqrt
 from rootUtil import waitRootCmdX
-from ROOT import TGraph, TLatex
+from ROOT import TGraph, TLatex, gPad, gStyle
 from array import array
 import sys, time
 import logging as lg
@@ -22,6 +22,19 @@ def checkNSeq(d, n, i, v):
     for j in range(n, n+i):
         if j>nd or j<0: return False
 
+def growList(l):
+    i = 0
+    while True:
+       yield l[i] if i<len(l) else -1
+       i+=1
+
+def loopList(l):
+    i = 0
+    N = len(l)
+    while True:
+       yield l[i%N]
+       i+=1
+
 def getMeanVar(l, useVar2=False):
     muS = 0
     var2S = 0
@@ -34,6 +47,9 @@ def getMeanVar(l, useVar2=False):
     if not useVar2: var2S = sqrt(var2S)
     return muS, var2S
 
+
+
+plot_count = 0
 class SigInfo:
     def __init__(self, data=None):
         self.resp = [] # [(t0, dT, tM, A),]
@@ -44,16 +60,24 @@ class SigInfo:
             self.bkgMu = None
             self.bkgVar = None
             self.quality = None
-    def show(self, data, info=None):
+    def show(self, data, info=None, info2=None):
         x = [0.2*i for i in range(len(data))]
         g0 = TGraph(len(data), array('d',x), array('d',data))
         g0.Draw("AP")
         g0.GetHistogram().GetYaxis().SetTitle("V_{out} [V]")
         g0.GetHistogram().GetXaxis().SetTitle("t [#mus]")
+        g0.GetHistogram().GetYaxis().SetRangeUser(0.9, 1.4)
 
         if info: self.lt.DrawLatexNDC(0.2,0.8,info)
+        if info2: self.lt.DrawLatexNDC(0.2,0.93,info2)
 
-        waitRootCmdX("test1", False)
+        global plot_count
+        print plot_count
+        plot_count += 1
+        print plot_count
+
+        gPad.Update()
+        waitRootCmdX("plot_"+str(plot_count), True)
 
     def getQuickInfo(self, data, n1=500, n2=2000, np=20):
         '''Get some useful infomation quickly'''
@@ -150,6 +174,7 @@ class QuickTuner:
     def __init__(self, mode=0):
         self.mode = mode # 0: normal, 1: testing
         self.sensorConfig = None
+        self.showPlot = True
 
         self.setup()
 
@@ -242,7 +267,7 @@ class QuickTuner:
 
         isensor = cd.currentSensor
         self.sensorConfig.update_sensor(isensor) 
-#         print("Checking:", isensor, cd.inputVs)
+        print("Checking:", isensor, cd.inputVs)
 
         ### get new data
         time.sleep(3)
@@ -273,11 +298,12 @@ class QuickTuner:
                 nTried += 1 
 
         print "temp results: r=", r
-#         a1.show(data, "A={0:.4f}".format(r[1]))
+        if self.showPlot:
+            a1.show(data, "A={0:.4f}".format(r[1]),', '.join(['{0:.3f}'.format(x) for x in cd.inputVs]))
 
         if adjustDecayTime and r[1]>0.005:
             adjustDecayTime -= 1
-            if r[2]<0.3:
+            if r[2]<0.25:
                 print '-----r[2]=', r[2], cd.voltsNames[4], ':',cd.inputVs[4],'->',
                 cd.inputVs[4] -= 0.01
                 print cd.inputVs[4]
@@ -311,6 +337,7 @@ class QuickTuner:
         cd.currentSensor = chan
 #         cd.inputVs = [1.029,1.106,1.676,1.169,0.8,2.99]
 
+        print "starting with pars:", cd.inputVs
         ### check it
         x0 = self.assess()
 
@@ -319,40 +346,51 @@ class QuickTuner:
         px = [None]*6 ## to save the results of the 6 parameters
         mx = 0
         updated = True
-        while updated:
-            updated = False
-            for ipar in [1,2,0,3]:
-                direction = 0
-                inputVs0 = cd.inputVs
-                print "===> Start tune", cd.voltsNames[ipar]
-                while True:
-                    print '------', cd.voltsNames[ipar], '[U]:',cd.inputVs[ipar],'->',
-                    cd.inputVs[ipar] += 0.002
+        changeList = [0.002, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
+        tunePars = [1,2,0,3]
+
+        for ipar in growList(tunePars):
+            if ipar == -1: break ### reach the end of the list
+            
+            direction = 0
+            inputVs0 = cd.inputVs[:]
+            print "===> Start tune", cd.voltsNames[ipar]
+            while True:
+                print '------', cd.voltsNames[ipar], '[U]:',cd.inputVs[ipar],'->',
+                for d in changeList:
+                    cd.inputVs[ipar] += d
                     print cd.inputVs[ipar],
                     x1 = self.assess()
-                    print "dA=", x1[1]-x0[1],
-                    if x1[1]<x0[1]:
-                        cd.inputVs = inputVs0
-                        print 'reverting...'
-                        break
-                    x0 = x1
-                    print 'Good. Moving on...'
-                    direction = 1
-                    updated = True
-                while direction == 0:
-                    print '------', cd.voltsNames[ipar], '[D]:',cd.inputVs[ipar],'->',
-                    cd.inputVs[ipar] -= 0.002
+                    print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                    if abs(x1[1]-x0[1])>0.001: break
+                if x1[1]<x0[1]:
+                    cd.inputVs = inputVs0
+                    print 'reverting...'
+                    break
+                x0 = x1
+                print 'Good. Moving on...'
+                direction = 1
+            while direction == 0:
+                print '------', cd.voltsNames[ipar], '[D]:',cd.inputVs[ipar],'->',
+                for d in changeList:
+                    cd.inputVs[ipar] -= d
                     print cd.inputVs[ipar],
                     x1 = self.assess()
-                    print "dA=", x1[1]-x0[1],
-                    if x1[1]<x0[1]:
-                        cd.inputVs = inputVs0
-                        print 'reverting...'
-                        break
-                    x0 = x1
-                    print 'Good. Moving on...'
-                    direction = -1
-                    updated = True
+                    print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                    if abs(x1[1]-x0[1])>0.001: break
+                if x1[1]<x0[1]:
+                    cd.inputVs = inputVs0
+                    print 'reverting...'
+                    break
+                x0 = x1
+                print 'Good. Moving on...'
+                direction = -1
+
+            if direction:
+                tunePars += tuned ### if the parameter changed, the tuned ones need to be revisited
+            else:
+                tuned.append(ipar)
+                
         print "final:", cd.inputVs
         x1 = self.assess()
         print x1
@@ -392,8 +430,9 @@ def test():
 #     cd1.inputVs = [1.151, 0.746, 1.226, 1.409, 1.46, 2.55]
     print qt1.sensorConfig.cd.inputVs
 #     print qt1.assess()
-    qt1.tune(6)
+    qt1.tune(8)
 #     qt1.handTune(5)
 
 if __name__ == '__main__':
+    gStyle.SetOptTitle(0)
     test()
