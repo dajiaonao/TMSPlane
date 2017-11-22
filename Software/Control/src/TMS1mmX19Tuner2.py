@@ -84,6 +84,10 @@ class CommonData(object):
 
         self.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
         self.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
+        self.updatePars(12, [1.485, 1.546, 1.526, 1.169, 1.507, 2.458])
+#         self.updatePars(10, [1.379, 1.548, 0.86, 1.169, 1.56, 2.458]) # 3.6 mV
+        self.updatePars(10, [1.379, 0, 0.86, 1.169, 1.63, 2.498]) # 3.6 mV
+
 
     def fetch(self):
         self.dataSocket.sendall(self.cmd.send_pulse(1<<2));

@@ -77,9 +77,12 @@ class CommonData(object):
         #
         self.currentSensor = 0
         self.sensorVcodes = [[v for v in self.inputVcodes] for i in xrange(self.nCh)]
-        self.sensorVcodes[5] = [tms1mmReg.dac_volt2code(v) for v in [1.029,1.106,1.676,1.169,0.8,2.99]]
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
+
+        self.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
+        self.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
+
     def fetch(self):
         self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
         time.sleep(0.1)
@@ -97,9 +100,12 @@ class CommonData(object):
 #         print ("-------------",self.currentSensor,"-------------")
         self.inputVcodes = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
         self.sensorVcodes[self.currentSensor] = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
+
     def saveData(self,tag=""):
         self.sigproc.save_data([tag + x for x in self.dataFName], self.adcData, self.sdmData)
-
+    def readBackPars(self,iSensor):
+        self.inputVcodes = self.sensorVcodes[iSensor]
+        self.inputVs = [self.tms1mmReg.dac_code2volt(x) for x in self.inputVcodes]
 
 class DataPanelGUI(object):
 
@@ -504,11 +510,15 @@ class SensorConfig(threading.Thread):
         colAddr = self.tms1mmX19sensorInChain[iSensor]
         sensorsInChain = self.tms1mmX19chainSensors[colAddr]
         print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
-        for i in sensorsInChain:
-            data = self.get_config_vector_for_sensor(i)
-#             print("Send  : 0x{:0x}".format(data))
-            ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-#             print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+
+        data = self.get_config_vector_for_sensor(iSensor)
+        ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+
+#         for i in sensorsInChain:
+#             data = self.get_config_vector_for_sensor(i)
+# #             print("Send  : 0x{:0x}".format(data))
+#             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+# #             print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 
