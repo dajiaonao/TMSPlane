@@ -40,6 +40,44 @@ def loopList(l):
        yield l[i%N]
        i+=1
 
+def farList(start, end, n=-1):
+    clist = [end]
+    i = 0
+    while True:
+        i += 1
+        if i==len(clist):
+            dx = (clist[0]-start)*0.5
+            clist = [x-dx for x in clist]+[end]
+            i = 0
+        yield clist[i]
+
+def farList3(start,end):
+    N = 1
+    i = 0
+    dx = 0.5*(end-start)
+    while True:
+        if i==N:
+            N += 1
+            dx = (end-start)/(N+1)
+            pass
+        yield x
+
+
+def farList2(ls1):
+    start = ls1[0]
+    end = ls1[1]
+    dx = 0.5*(start+end)
+    dx0 = dx
+    dx1 = dx
+    while True:
+        if x2>dx1 or x2<dx0:
+            dx *= -0.5
+            if x2>dx1: dx1 = x2
+            elif x2<x0: dx0 = x2
+        x2 += dx
+
+        yield x2
+
 def getMeanVar(l, useVar2=False):
     muS = 0
     var2S = 0
@@ -207,7 +245,11 @@ class QuickTuner:
             sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
             self.sensorConfig = SensorConfig(cd)
 
-        cd.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
+#         cd.updatePars(5, [0.8, 0.746, 1.226, 1.409, 1.82, 2.85])
+#         cd.updatePars(5, [0.795, 0.746, 1.226, 1.409, 1.82, 2.85])
+        cd.updatePars(5, [0.795, 1.357, 1.226, 1.409, 1.820, 2.850])
+#         ['0.905', '1.048', '1.226', '1.409', '1.820', '2.850']
+#         cd.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
         cd.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
 #         cd.updatePars(12, [1.485, 1.546, 1.626, 1.169, 1.507, 2.458])
         cd.updatePars(12, [1.485, 1.546, 1.526, 1.169, 1.507, 2.458])
@@ -291,7 +333,7 @@ class QuickTuner:
         a1.sTag = "plot_{0:d}_".format(isensor)
 
         r = (0,0,0,0)
-        nTest = 5
+        nTest = 10
         if self.mode==0:
             var = 99
             nTried = 0
@@ -381,6 +423,26 @@ class QuickTuner:
 
         return r
 
+    def scan(self):
+        '''Scan the given range with given steps'''
+
+        pass
+
+    def smartScan(self):
+        '''Increase the number of points denpending on the situation'''
+        pass
+
+    def tryExisting(self):
+        '''Try the existing parameters'''
+        isendor = cd.currentSensor
+#         currentValues = 
+#         for i in range(len(cd.sensorVcodes)):
+#             print i, [cd.tms1mmReg.dac_code2volt(vx) for vx in cd.sensorVcodes[i]]
+# 
+
+        pass
+
+
     def tune(self, chan):
         ## give a set of parameters and get a quantity of goodness
         ### pass the parameters and get data
@@ -401,7 +463,7 @@ class QuickTuner:
         px = [None]*6 ## to save the results of the 6 parameters
         mx = 0
         updated = True
-        changeList = [0.002, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
+        changeList = [0.001, 0.001, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
         tunePars = [1,2,0,3]
 
         for ipar in growList(tunePars):
@@ -465,6 +527,7 @@ class QuickTuner:
         print "final:", cd.inputVs
         x1 = self.assess()
         print x1
+        print ['{0:.3f}'.format(x) for x in cd.inputVs]
 
     def handTune(self, chan):
         self.sensorConfig.cd.currentSensor = chan
@@ -501,7 +564,7 @@ def test():
 #     cd1.inputVs = [1.151, 0.746, 1.226, 1.409, 1.46, 2.55]
     print qt1.sensorConfig.cd.inputVs
 #     print qt1.assess()
-    qt1.tune(10)
+    qt1.tune(5)
 #     qt1.handTune(5)
 
 if __name__ == '__main__':
