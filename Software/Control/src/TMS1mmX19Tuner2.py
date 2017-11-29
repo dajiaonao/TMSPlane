@@ -27,10 +27,11 @@ from matplotlib.backend_bases import key_press_handler # for the default matplot
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
+from TMS1mmX19Tuner import CommonData
 
 online = True
 
-class CommonData(object):
+class CommonDataX(object):
 
     def __init__(self, cmd=Cmd(), dataSocket=None, ctrlSocket=None, nSamples=16384,
                  tms1mmReg=TMS1mmX19Config.TMS1mmReg(), sigproc=None):
@@ -135,9 +136,9 @@ class DataPanelGUI(object):
         self.controlFrame = tk.Frame(self.master)
         self.controlFrame.pack(side=tk.LEFT)
         button = tk.Button(master=self.controlFrame, text='Re-sample', command=self.re_sample)
-        button.pack(side=tk.TOP, fill=tk.X)
+        button.pack(side=tk.BOTTOM, fill=tk.X)
         button2 = tk.Button(master=self.controlFrame, text='Auto-update', command=self.auto_update)
-        button2.pack(side=tk.BOTTOM, fill=tk.X)
+        button2.pack(side=tk.TOP, fill=tk.X)
 
         # frame for selecting a sensor to operate on
         self.sensorsFrame = tk.Frame(self.controlFrame)
@@ -277,7 +278,9 @@ class DataPanelGUI(object):
 #             for txt in self.dataPlotsFigure.texts:
 #                 txt.set_visible(False)
         a = self.dataPlotsSubplots[-1]
-        a.set_xlabel(u't [us]')
+#         a.set_xlabel(u't [us]')
+        a.set_xlabel(u't [ms]')
+        self.cd.adcDt = 0.2*0.001
         a.set_ylabel('[V]')
         nSamples = len(self.cd.adcData[0])
         x = [self.cd.adcDt * i for i in xrange(nSamples)]
@@ -313,8 +316,11 @@ class DataPanelGUI(object):
     def auto_update(self):
         self.mode = 1
         while self.mode == 1:
-            time.sleep(1)
-            self.get_and_plot_data()
+            try:
+                time.sleep(1)
+                self.get_and_plot_data()
+            except:
+                break
 
     def plot_data2(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
@@ -439,142 +445,142 @@ class DataPanelGUI(object):
         return True
 
 
-class ControlPanelGUI(object):
-
-    def __init__(self, master, cd):
-        self.master = master
-        self.cd = cd
-        self.nVolts = self.cd.nVolts
-        self.nCh = self.cd.nCh
-
-        # appropriate quitting
-        master.wm_protocol("WM_DELETE_WINDOW", self.quit)
-
-        # frame for selecting a sensor to operate on
-        self.sensorsFrame = tk.Frame(master)
-        self.sensorsFrame.pack(side=tk.TOP)
-        # sensor location approximated on a grid (row, col)
-        self.sensorLocOnGrid = {0 : [4,2], 1 : [2,2], 2 : [3,1], 3 : [5,1],  4 : [6,2],  5 : [5,3],
-                                6 : [3,3], 7 : [0,2], 8 : [1,1], 9 : [2,0], 10 : [4,0], 11 : [6,0],
-                                12 : [7,1], 13 : [8,2], 14: [7,3], 15 : [6,4], 16 : [4,4],
-                                17 : [2,4], 18 : [1,3]}
-        self.sensorSelVar = tk.IntVar()
-        self.sensorSelRadioButtons = [tk.Radiobutton(self.sensorsFrame, text="{:d}".format(i),
-                                                     variable=self.sensorSelVar, value=i,
-                                                     command=self.select_current_sensor)
-                                      for i in xrange(self.nCh)]
-        for i in xrange(len(self.sensorSelRadioButtons)):
-            b = self.sensorSelRadioButtons[i]
-            b.grid(row=self.sensorLocOnGrid[i][0], column=self.sensorLocOnGrid[i][1])
-
-        # frame for controls
-        self.voltagesFrame = tk.Frame(master)
-        self.voltagesFrame.pack(side=tk.BOTTOM)
-
-        # GUI widgets
-        self.voltsNameLabels =  [tk.Label(self.voltagesFrame, text=self.cd.voltsNames[i])
-                             for i in xrange(self.nVolts)]
-        self.voltsILabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 A")
-                             for i in xrange(self.nVolts)]
-
-        self.voltsOutputLabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 V")
-                                  for i in xrange(self.nVolts)]
-
-        self.voltsSetVars = [tk.DoubleVar() for i in xrange(self.nVolts)]
-        for i in xrange(self.nVolts):
-            self.voltsSetVars[i].set(self.cd.inputVs[i])
-        self.voltsSetEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
-                                           textvariable=self.voltsSetVars[i],
-                                           from_=0.0, to=3.3, increment=0.001,
-                                           format_="%6.4f",
-                                           command=self.set_voltage_update)
-                                for i in xrange(self.nVolts)]
-        for v in self.voltsSetEntries:
-            v.bind('<Return>', self.set_voltage_update)
-
-        self.voltsSetCodeVars = [tk.IntVar() for i in xrange(self.nVolts)]
-        for i in xrange(self.nVolts):
-            self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
-        self.voltsSetCodeEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
-                                               textvariable=self.voltsSetCodeVars[i],
-                                               from_=0, to=65535, increment=1,
-                                               command=self.set_voltage_dac_code_update)
-                                    for i in xrange(self.nVolts)]
-        for v in self.voltsSetCodeEntries:
-            v.bind('<Return>', self.set_voltage_dac_code_update)
-
-        # caption
-        tk.Label(self.voltagesFrame, text="Name", width=8,
-                 fg="white", bg="black").grid(row=0, column=0, sticky=tk.W+tk.E)
-        tk.Label(self.voltagesFrame, text="Voltage [V]", width=10,
-                 fg="white", bg="black").grid(row=0, column=1, sticky=tk.W+tk.E)
-        tk.Label(self.voltagesFrame, text="DAC code", width=10,
-                 fg="white", bg="black").grid(row=0, column=2, sticky=tk.W+tk.E)
-        tk.Label(self.voltagesFrame, text="Measured [V]",
-                 fg="white", bg="black").grid(row=0, column=3, sticky=tk.W+tk.E)
-
-        # placing widgets
-        for i in xrange(self.nVolts):
-            self.voltsNameLabels[i].grid(row=i+1,column=0)
-            self.voltsSetEntries[i].grid(row=i+1, column=1)
-            self.voltsSetCodeEntries[i].grid(row=i+1, column=2)
-            self.voltsOutputLabels[i].grid(row=i+1, column=3)
-
-
-        button = tk.Button(master=self.voltagesFrame, text='Re-sample')
-        button.grid(row=40)
-        button2 = tk.Button(master=self.voltagesFrame, text='Auto-update')
-        button2.grid(row=40, column = 2)
-
-        # self-updating functions
-        self.update_values_display()
-
-    def quit(self):
-        with self.cd.cv:
-            self.cd.quit = True
-            self.cd.cv.notify()
-        self.master.destroy()
-
-    def update_values_display(self):
-        for i in xrange(self.nVolts):
-            self.voltsILabels[i].configure(text="{:7.3f}".format(self.cd.inputIs[i]))
-            self.voltsOutputLabels[i].configure(text="{:7.3f}".format(self.cd.voltsOutput[i]))
-        self.master.after(int(1000*self.cd.tI), self.update_values_display)
-
-    def select_current_sensor(self, *args):
-        with self.cd.cv:
-            self.cd.currentSensor = self.sensorSelVar.get()
-            print("sensor", self.cd.currentSensor)
-            self.cd.currentCh = self.cd.currentSensor
-            # load Vcodes for the specific sensor
-            for i in xrange(self.nVolts):
-                self.voltsSetCodeVars[i].set(self.cd.sensorVcodes[self.cd.currentSensor][i])
-        self.set_voltage_dac_code_update()
-
-    def set_voltage_update(self, *args):
-        with self.cd.cv:
-            for i in xrange(self.nVolts):
-                self.cd.inputVs[i] = self.voltsSetVars[i].get()
-                self.cd.inputVcodes[i] = self.cd.tms1mmReg.dac_volt2code(self.cd.inputVs[i])
-                self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
-                # update info for the array
-                self.cd.sensorVcodes[self.cd.currentSensor][i] = self.cd.inputVcodes[i]
-            self.cd.vUpdated = True
-            print(self.cd.inputVs)
-            print(self.cd.inputVcodes)
-        return True
-
-    def set_voltage_dac_code_update(self, *args):
-        with self.cd.cv:
-            for i in xrange(self.nVolts):
-                self.cd.inputVcodes[i] = self.voltsSetCodeVars[i].get()
-                self.cd.inputVs[i] = self.cd.tms1mmReg.dac_code2volt(self.cd.inputVcodes[i])
-                self.voltsSetVars[i].set(round(self.cd.inputVs[i],4))
-                # update info for the array
-                self.cd.sensorVcodes[self.cd.currentSensor][i] = self.cd.inputVcodes[i]
-            self.cd.vUpdated = True
-            print(self.cd.inputVcodes)
-        return True
+# class ControlPanelGUI(object):
+# 
+#     def __init__(self, master, cd):
+#         self.master = master
+#         self.cd = cd
+#         self.nVolts = self.cd.nVolts
+#         self.nCh = self.cd.nCh
+# 
+#         # appropriate quitting
+#         master.wm_protocol("WM_DELETE_WINDOW", self.quit)
+# 
+#         # frame for selecting a sensor to operate on
+#         self.sensorsFrame = tk.Frame(master)
+#         self.sensorsFrame.pack(side=tk.TOP)
+#         # sensor location approximated on a grid (row, col)
+#         self.sensorLocOnGrid = {0 : [4,2], 1 : [2,2], 2 : [3,1], 3 : [5,1],  4 : [6,2],  5 : [5,3],
+#                                 6 : [3,3], 7 : [0,2], 8 : [1,1], 9 : [2,0], 10 : [4,0], 11 : [6,0],
+#                                 12 : [7,1], 13 : [8,2], 14: [7,3], 15 : [6,4], 16 : [4,4],
+#                                 17 : [2,4], 18 : [1,3]}
+#         self.sensorSelVar = tk.IntVar()
+#         self.sensorSelRadioButtons = [tk.Radiobutton(self.sensorsFrame, text="{:d}".format(i),
+#                                                      variable=self.sensorSelVar, value=i,
+#                                                      command=self.select_current_sensor)
+#                                       for i in xrange(self.nCh)]
+#         for i in xrange(len(self.sensorSelRadioButtons)):
+#             b = self.sensorSelRadioButtons[i]
+#             b.grid(row=self.sensorLocOnGrid[i][0], column=self.sensorLocOnGrid[i][1])
+# 
+#         # frame for controls
+#         self.voltagesFrame = tk.Frame(master)
+#         self.voltagesFrame.pack(side=tk.BOTTOM)
+# 
+#         # GUI widgets
+#         self.voltsNameLabels =  [tk.Label(self.voltagesFrame, text=self.cd.voltsNames[i])
+#                              for i in xrange(self.nVolts)]
+#         self.voltsILabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 A")
+#                              for i in xrange(self.nVolts)]
+# 
+#         self.voltsOutputLabels = [tk.Label(self.voltagesFrame, font="Courier 10", text="0.0 V")
+#                                   for i in xrange(self.nVolts)]
+# 
+#         self.voltsSetVars = [tk.DoubleVar() for i in xrange(self.nVolts)]
+#         for i in xrange(self.nVolts):
+#             self.voltsSetVars[i].set(self.cd.inputVs[i])
+#         self.voltsSetEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
+#                                            textvariable=self.voltsSetVars[i],
+#                                            from_=0.0, to=3.3, increment=0.001,
+#                                            format_="%6.4f",
+#                                            command=self.set_voltage_update)
+#                                 for i in xrange(self.nVolts)]
+#         for v in self.voltsSetEntries:
+#             v.bind('<Return>', self.set_voltage_update)
+# 
+#         self.voltsSetCodeVars = [tk.IntVar() for i in xrange(self.nVolts)]
+#         for i in xrange(self.nVolts):
+#             self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
+#         self.voltsSetCodeEntries = [tk.Spinbox(self.voltagesFrame, width=8, justify=tk.RIGHT,
+#                                                textvariable=self.voltsSetCodeVars[i],
+#                                                from_=0, to=65535, increment=1,
+#                                                command=self.set_voltage_dac_code_update)
+#                                     for i in xrange(self.nVolts)]
+#         for v in self.voltsSetCodeEntries:
+#             v.bind('<Return>', self.set_voltage_dac_code_update)
+# 
+#         # caption
+#         tk.Label(self.voltagesFrame, text="Name", width=8,
+#                  fg="white", bg="black").grid(row=0, column=0, sticky=tk.W+tk.E)
+#         tk.Label(self.voltagesFrame, text="Voltage [V]", width=10,
+#                  fg="white", bg="black").grid(row=0, column=1, sticky=tk.W+tk.E)
+#         tk.Label(self.voltagesFrame, text="DAC code", width=10,
+#                  fg="white", bg="black").grid(row=0, column=2, sticky=tk.W+tk.E)
+#         tk.Label(self.voltagesFrame, text="Measured [V]",
+#                  fg="white", bg="black").grid(row=0, column=3, sticky=tk.W+tk.E)
+# 
+#         # placing widgets
+#         for i in xrange(self.nVolts):
+#             self.voltsNameLabels[i].grid(row=i+1,column=0)
+#             self.voltsSetEntries[i].grid(row=i+1, column=1)
+#             self.voltsSetCodeEntries[i].grid(row=i+1, column=2)
+#             self.voltsOutputLabels[i].grid(row=i+1, column=3)
+# 
+# 
+#         button = tk.Button(master=self.voltagesFrame, text='Re-sample')
+#         button.grid(row=40)
+#         button2 = tk.Button(master=self.voltagesFrame, text='Auto-update')
+#         button2.grid(row=40, column = 2)
+# 
+#         # self-updating functions
+#         self.update_values_display()
+# 
+#     def quit(self):
+#         with self.cd.cv:
+#             self.cd.quit = True
+#             self.cd.cv.notify()
+#         self.master.destroy()
+# 
+#     def update_values_display(self):
+#         for i in xrange(self.nVolts):
+#             self.voltsILabels[i].configure(text="{:7.3f}".format(self.cd.inputIs[i]))
+#             self.voltsOutputLabels[i].configure(text="{:7.3f}".format(self.cd.voltsOutput[i]))
+#         self.master.after(int(1000*self.cd.tI), self.update_values_display)
+# 
+#     def select_current_sensor(self, *args):
+#         with self.cd.cv:
+#             self.cd.currentSensor = self.sensorSelVar.get()
+#             print("sensor", self.cd.currentSensor)
+#             self.cd.currentCh = self.cd.currentSensor
+#             # load Vcodes for the specific sensor
+#             for i in xrange(self.nVolts):
+#                 self.voltsSetCodeVars[i].set(self.cd.sensorVcodes[self.cd.currentSensor][i])
+#         self.set_voltage_dac_code_update()
+# 
+#     def set_voltage_update(self, *args):
+#         with self.cd.cv:
+#             for i in xrange(self.nVolts):
+#                 self.cd.inputVs[i] = self.voltsSetVars[i].get()
+#                 self.cd.inputVcodes[i] = self.cd.tms1mmReg.dac_volt2code(self.cd.inputVs[i])
+#                 self.voltsSetCodeVars[i].set(self.cd.inputVcodes[i])
+#                 # update info for the array
+#                 self.cd.sensorVcodes[self.cd.currentSensor][i] = self.cd.inputVcodes[i]
+#             self.cd.vUpdated = True
+#             print(self.cd.inputVs)
+#             print(self.cd.inputVcodes)
+#         return True
+# 
+#     def set_voltage_dac_code_update(self, *args):
+#         with self.cd.cv:
+#             for i in xrange(self.nVolts):
+#                 self.cd.inputVcodes[i] = self.voltsSetCodeVars[i].get()
+#                 self.cd.inputVs[i] = self.cd.tms1mmReg.dac_code2volt(self.cd.inputVcodes[i])
+#                 self.voltsSetVars[i].set(round(self.cd.inputVs[i],4))
+#                 # update info for the array
+#                 self.cd.sensorVcodes[self.cd.currentSensor][i] = self.cd.inputVcodes[i]
+#             self.cd.vUpdated = True
+#             print(self.cd.inputVcodes)
+#         return True
 
 class SensorConfig(threading.Thread):
     # Do not try to access tk.IntVar etc. here.  Since after

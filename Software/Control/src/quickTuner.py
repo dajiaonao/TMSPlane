@@ -220,8 +220,14 @@ class QuickTuner:
         self.sensorConfig = None
         self.showPlot = True
         self.gainRef = None
+        self.tuneRef = [0.6, -1, 0.3, 0.1]
+        self.logFile = None
+        self.stepI = 0
 
         self.setup()
+
+    def setupLogFile(self,fname):
+        self.logFile = open(fname,'a')
 
     def setup(self):
         ### get connected
@@ -245,15 +251,7 @@ class QuickTuner:
             sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
             self.sensorConfig = SensorConfig(cd)
 
-#         cd.updatePars(5, [0.8, 0.746, 1.226, 1.409, 1.82, 2.85])
-#         cd.updatePars(5, [0.795, 0.746, 1.226, 1.409, 1.82, 2.85])
-        cd.updatePars(5, [0.795, 1.357, 1.226, 1.409, 1.820, 2.850])
-#         ['0.905', '1.048', '1.226', '1.409', '1.820', '2.850']
-#         cd.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
-        cd.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
-#         cd.updatePars(12, [1.485, 1.546, 1.626, 1.169, 1.507, 2.458])
-        cd.updatePars(12, [1.485, 1.546, 1.526, 1.169, 1.507, 2.458])
-        cd.updatePars(10, [1.379, 0, 0.86, 1.169, 1.63, 2.498]) # 3.6 mV
+        cd.getCurrentBest()
 
         for i in range(len(cd.sensorVcodes)):
             print i, [cd.tms1mmReg.dac_code2volt(vx) for vx in cd.sensorVcodes[i]]
@@ -353,7 +351,15 @@ class QuickTuner:
                     break
 
                 print "Not stable"
+                time.sleep(10)
                 nTried += 1 
+
+        if self.logFile:
+            infox = "{1:d}> P{0:d}:".format(isensor, self.stepI)
+            infox += ', '.join(['{0:.3f}'.format(x) for x in cd.inputVs])
+            infox += '->'+' '.join('{0:.4f}'.format(x) for x in r)
+            self.logFile.write(infox+'\n')
+        self.stepI += 1
 
         print "temp results: r=", r
         if self.showPlot:
@@ -379,7 +385,7 @@ class QuickTuner:
                     cd.inputVs = inputVs_t
                     Error(tname, "Failed to reduce r[0], reverting...")
 
-            elif r[0]<0.7 and cd.inputVs[5]<2.99:
+            elif r[0]<self.tuneRef[0] and cd.inputVs[5]<2.99:
                 print '-----r[0]=', r[0], cd.voltsNames[5], ':',cd.inputVs[5],'->',
                 cd.inputVs[5] += 0.01
                 print cd.inputVs[5]
@@ -395,7 +401,7 @@ class QuickTuner:
         if adjustDecayTime and r[1]>0.005:
             inputVs_t = cd.inputVs[:]
             adjustDecayTime -= 1
-            if r[2]<0.25:
+            if r[2]<self.tuneRef[2]:
                 print '-----r[2]=', r[2], cd.voltsNames[4], ':',cd.inputVs[4],'->',
                 cd.inputVs[4] -= 0.01
                 print cd.inputVs[4]
@@ -408,7 +414,7 @@ class QuickTuner:
                     cd.inputVs = inputVs_t
                     Error(tname, "Failed to increase r[2], reverting...")
 
-            elif r[3]>0.1:
+            elif r[3]>self.tuneRef[3]:
                 print '-----r[3]=', r[3], cd.voltsNames[4], ':',cd.inputVs[4],'->',
                 cd.inputVs[4] += 0.01
                 print cd.inputVs[4]
@@ -442,6 +448,184 @@ class QuickTuner:
 
         pass
 
+    def tune2(self, chan):
+        cd = self.sensorConfig.cd
+        cd.currentSensor = chan
+        cd.readBackPars(chan) 
+
+        print "starting with pars:", cd.inputVs
+        ### check it
+        x0 = self.assess(adjustDecayTime=0, adjustRef=False)
+        self.gainRef = x0[1]
+
+        inputVs0 = cd.inputVs[:]
+        for i in range(cd.nCh):
+            if cd.isGood[i]:
+                cd.sensorVcodes[chan] = cd.sensorVcodes[i][:]
+                xi = self.assess(adjustDecayTime=0, adjustRef=False)
+                if xi[1]>self.gainRef:
+                    cd.readBackPars(chan)
+                    self.gainRef = xi[1]
+                    print "find better starting point:", cd.inputVs, 'with gain:',self.gainRef
+                    if self.logFile: self.logFile.write('# new base\n')
+                else:
+                    cd.sensorVcodes[chan] = inputVs0
+                    print "worse gain:", xi[1], "going back to the old one"
+
+        ### first step: get high gain with loose shape requirement
+        ### scan all parameters execpt VDIS
+        self.tuneRef = [0.6, -1, 0.2, 0.1] ## loose requirement for high gain
+#         changeList = [0.001, 0.001, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
+        changeList = [0.001, 0.001, 0.002, 0.003, 0.005, 0.02, 0.03, 0.05, 0.1, 0.1, 0.1,0.1, 0.1, 0.1, 0.2]
+        tunePars = [5,1,2,0,3]
+
+        updated = True
+        tuned = []
+        tuneVref = (5 not in tunePars)
+        for ipar in growList(tunePars):
+            if ipar == -1: break ### reach the end of the list
+            print "===> Start tune", cd.voltsNames[ipar]
+          
+            ### find the best point
+            updated = False
+            while True:
+                direction = 0
+                inputVs0 = cd.inputVs[:]
+                while direction == 0:
+                    print '------', cd.voltsNames[ipar], '[U]:',cd.inputVs[ipar],'->',
+                    for d in changeList:
+                        cd.inputVs[ipar] += d
+                        if(cd.inputVs[ipar]>3): break
+                        print cd.inputVs[ipar],
+                        x1 = self.assess(adjustRef=tuneVref)
+                        if x1 is None: continue
+                        print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                        print x0, x1, self.gainRef
+                        if abs(x1[1]-self.gainRef)>0.001: break
+                    if (x1 is None) or x1[1]<self.gainRef+0.0008:
+                        cd.inputVs = inputVs0
+                        print 'reverting...'
+                        break
+                    x0 = x1
+                    self.gainRef = x0[1]
+                    print 'Good. Moving on...'
+                    if self.logFile: self.logFile.write('# new base\n')
+                    direction = 1
+                inputVs0 = cd.inputVs[:]
+                while direction == 0:
+                    print '------', cd.voltsNames[ipar], '[D]:',cd.inputVs[ipar],'->',
+                    for d in changeList:
+                        cd.inputVs[ipar] -= d
+                        if(cd.inputVs[ipar]<0): break
+                        print cd.inputVs[ipar],
+                        x1 = self.assess(adjustRef=tuneVref)
+#                         x1 = self.assess()
+                        if x1 is None: continue
+                        print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                        print x0, x1, self.gainRef
+                        if abs(x1[1]-self.gainRef)>0.001: break
+                    if (x1 is None) or x1[1]<self.gainRef+0.0008:
+                        cd.inputVs = inputVs0
+                        print 'reverting...'
+                        break
+                    x0 = x1
+                    self.gainRef = x0[1]
+                    print 'Good. Moving on...'
+                    if self.logFile: self.logFile.write('# new base\n')
+                    direction = -1
+                if direction != 0:
+                    updated = True
+                else: break
+
+            ### redo other parameters if 
+            if updated:
+                tunePars += tuned ### if the parameter changed, the tuned ones need to be revisited
+                tuned = []
+            else:
+                tuned.append(ipar)
+
+        print "gain tune done:", cd.inputVs
+        x1 = self.assess()
+        print x1
+        print ['{0:.3f}'.format(x) for x in cd.inputVs]
+        print "------------------------"
+ 
+        ### second step: tune the [VDIS, VREF, VCASN, VBIASN] with loose gain requirement
+        self.tuneRef = [0.6, -1, 0.4, 0.05] ## loose requirement for high gain
+#         changeList = [0.001, 0.001, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
+        changeList = [0.001, 0.001, 0.002, 0.003, 0.005, 0.02, 0.03, 0.05, 0.1, 0.1, 0.1,0.1, 0.1, 0.1, 0.2]
+        tunePars = [4,0,2,5]
+
+        updated = True
+        tuned = []
+        tuneVref = (5 in tunePars)
+        tuneDT = 0 if 4 in tunePars else 10
+        for ipar in growList(tunePars):
+            if ipar == -1: break ### reach the end of the list
+            print "===> Start tune", cd.voltsNames[ipar]
+          
+            ### find the best point
+            updated = False
+            while True:
+                direction = 0
+                inputVs0 = cd.inputVs[:]
+                while direction == 0:
+                    print '------', cd.voltsNames[ipar], '[U]:',cd.inputVs[ipar],'->',
+                    for d in changeList:
+                        cd.inputVs[ipar] += d
+                        if(cd.inputVs[ipar]>3): break
+                        print cd.inputVs[ipar],
+                        x1 = self.assess(adjustDecayTime=tuneDT, adjustRef=tuneVref)
+                        if x1 is None: continue
+                        print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                        print x0, x1, self.gainRef
+                        if abs(x1[1]-self.gainRef)>0.001: break
+                    if (x1 is None) or x1[1]<x0[1]+0.0008:
+                        cd.inputVs = inputVs0
+                        print 'reverting...'
+                        break
+                    x0 = x1
+                    self.gainRef = x0[1]
+                    print 'Good. Moving on...'
+                    if self.logFile: self.logFile.write('# new base\n')
+                    direction = 1
+                inputVs0 = cd.inputVs[:]
+                while direction == 0:
+                    print '------', cd.voltsNames[ipar], '[D]:',cd.inputVs[ipar],'->',
+                    for d in changeList:
+                        cd.inputVs[ipar] -= d
+                        if(cd.inputVs[ipar]<0): break
+                        print cd.inputVs[ipar],
+                        x1 = self.assess(adjustDecayTime=tuneDT, adjustRef=tuneVref)
+#                         x1 = self.assess()
+                        if x1 is None: continue
+                        print "dx=", cd.inputVs[ipar]-inputVs0[ipar],", dA=", x1[1]-x0[1],
+                        print x0, x1, self.gainRef
+                        if abs(x1[1]-self.gainRef)>0.001: break
+                    if (x1 is None) or x1[1]<x0[1]+0.0008:
+                        cd.inputVs = inputVs0
+                        print 'reverting...'
+                        break
+                    x0 = x1
+                    self.gainRef = x0[1]
+                    print 'Good. Moving on...'
+                    if self.logFile: self.logFile.write('# new base\n')
+                    direction = -1
+                if direction != 0:
+                    updated = True
+                else: break
+
+            ### redo other parameters if 
+            if updated:
+                tunePars += tuned ### if the parameter changed, the tuned ones need to be revisited
+                tuned = []
+            else:
+                tuned.append(ipar)
+
+        print "final:", cd.inputVs
+        x1 = self.assess(adjustDecayTime=0, adjustRef=False)
+        print x1
+        print ['{0:.3f}'.format(x) for x in cd.inputVs]
 
     def tune(self, chan):
         ## give a set of parameters and get a quantity of goodness
@@ -464,7 +648,7 @@ class QuickTuner:
         mx = 0
         updated = True
         changeList = [0.001, 0.001, 0.003, 0.005, 0.02, 0.03, 0.05, 0.2, 0.3, 0.5]
-        tunePars = [1,2,0,3]
+        tunePars = [5,1,2,0,3]
 
         for ipar in growList(tunePars):
             if ipar == -1: break ### reach the end of the list
@@ -553,6 +737,53 @@ class QuickTuner:
 #         self.get_score(dat1)
 #         self.check(dat1)
 
+def checkStablibity(isensor=8):
+    qt1 = QuickTuner(mode=0)
+    cd1 = qt1.sensorConfig.cd
+    cd1.readBackPars(isensor)
+
+    dataX = []
+    for i in range(10):
+        time.sleep(1)
+        cd1.fetch()
+        dataX.append(cd1.adcData[isensor][:])
+
+    max1 = -1
+    min1 = 999
+    ndata = len(dataX[0])
+    gr0 = None
+    option = 'AL'
+    icolor = 1
+    grs = []
+    for x in dataX:
+        max2 = max(x)
+        if max2>max1: max1 = max2
+        min2 = min(x)
+        if min2<min1: min1 = min2
+
+        gr1 = TGraph(ndata, array('d',[i*0.2*0.001 for i in range(ndata)]), array('d', x))
+        gr1.Draw(option)
+        if gr0 == None:
+            gr0 = gr1
+            option = 'L'
+        gr1.SetLineColor(icolor)
+        icolor += 1
+        grs.append(gr1)
+#         waitRootCmdX()
+
+    h1 = gr0.GetHistogram()
+    print min1, max1
+    h1.GetYaxis().SetRangeUser(min1,max1)
+    h1.GetYaxis().SetTitle("V")
+    h1.GetXaxis().SetTitle("t [ms]")
+    h1.Draw("axissame")
+
+    lt = TLatex()
+    lt.DrawLatexNDC(0.2,0.92, "C{0:d}: ".format(isensor)+' '.join(['{0:.3f}'.format(x) for x in cd1.inputVs]))
+
+    waitRootCmdX()
+    print len(dataX), len(grs)
+
 def test():
     qt1 = QuickTuner(mode=0)
     lg.info("testing!")
@@ -564,9 +795,13 @@ def test():
 #     cd1.inputVs = [1.151, 0.746, 1.226, 1.409, 1.46, 2.55]
     print qt1.sensorConfig.cd.inputVs
 #     print qt1.assess()
-    qt1.tune(5)
+#     qt1.setupLogFile("T_P15_Nov28.log")
+#     qt1.tune(15)
+    qt1.setupLogFile("T_P6_Nov28.log")
+    qt1.tune2(6)
 #     qt1.handTune(5)
 
 if __name__ == '__main__':
     gStyle.SetOptTitle(0)
+#     checkStablibity(5)
     test()
