@@ -42,7 +42,6 @@ class CommonData(object):
         self.nCh = 19
         self.nAdcCh = 20
         self.adcSdmCycRatio = 5
-        self.currentCh = 0
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
         # signal processor
@@ -50,7 +49,6 @@ class CommonData(object):
             self.sigproc = SigProc(self.nSamples, self.nAdcCh, self.nCh, self.adcSdmCycRatio)
         # adc sampling interval in us
         self.adcDt = 0.2
-        self.adcData0 = [[i*0.0001 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
         self.adcData = self.sigproc.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
         self.sdmData = self.sigproc.generate_sdmDataBuf() # ((ctypes.c_byte * (self.nSamples*self.adcSdmCycRatio)) * (self.nCh*2))()
         # size equals FPGA internal data fifo size
@@ -81,52 +79,6 @@ class CommonData(object):
         self.sensorVcodes = [[v for v in self.inputVcodes] for i in xrange(self.nCh)]
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
-
-        self.isGood = [None]*self.nCh
-        self.getCurrentBest()
-
-    def getCurrentBest(self):
-#         self.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
-#         self.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
-#         self.updatePars(6, [1.380, 1.546, 1.126, 1.169, 1.357, 2.458], False)
-#         self.updatePars(6, [1.380, 0.129, 1.126, 1.169, 1.377, 2.458], False)
-        self.updatePars(6, [1.380, 0.129, 1.126, 1.169, 1.357, 2.458])
-        self.updatePars(5, [0.8, 1.057, 1.226, 0.799, 1.720, 2.85])
-#         cd.updatePars(5, [0.795, 0.746, 1.226, 1.409, 1.82, 2.85])
-#         cd.updatePars(5, [0.795, 1.357, 1.226, 1.409, 1.820, 2.850])
-#         ['0.905', '1.048', '1.226', '1.409', '1.820', '2.850']
-#         cd.updatePars(5, [1.149, 0.746, 1.226, 1.409, 1.82, 2.85])
-#         cd.updatePars(6, [1.379, 1.146, 1.426, 1.169, 1.52, 2.758])
-#         cd.updatePars(12, [1.485, 1.546, 1.626, 1.169, 1.507, 2.458])
-        self.updatePars(12, [1.485, 1.546, 1.526, 1.169, 1.507, 2.458])
-#         cd.updatePars(10, [1.379, 0, 0.86, 1.169, 1.63, 2.498]) # 3.6 mV
-
-
-
-    def fetch(self):
-        self.dataSocket.sendall(self.cmd.send_pulse(1<<2));
-        time.sleep(0.1)
-#         print ('fetching data....')
-
-        buf = self.cmd.acquire_from_datafifo(self.dataSocket, self.nWords, self.sampleBuf)
-        self.sigproc.demux_fifodata(buf, self.adcData, self.sdmData)
-#         print ("new data is read.")
-
-    def updatePars(self, iSensor=None, inputs=None, good=True):
-        if iSensor is not None: self.currentSensor = iSensor
-        if inputs is not None: self.inputVs = inputs
-
-        ### everything from inputVs
-#         print ("-------------",self.currentSensor,"-------------")
-        self.inputVcodes = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
-        self.sensorVcodes[self.currentSensor] = [self.tms1mmReg.dac_volt2code(v) for v in self.inputVs]
-        self.isGood[self.currentSensor] = good
-
-    def saveData(self,tag=""):
-        self.sigproc.save_data([tag + x for x in self.dataFName], self.adcData, self.sdmData)
-    def readBackPars(self,iSensor):
-        self.inputVcodes = self.sensorVcodes[iSensor]
-        self.inputVs = [self.tms1mmReg.dac_code2volt(x) for x in self.inputVcodes]
 
 class DataPanelGUI(object):
 
@@ -188,7 +140,6 @@ class DataPanelGUI(object):
 
     def get_and_plot_data(self):
         # reset data fifo
-        print("in get_and_plot_data")
         self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         time.sleep(0.1)
         buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
@@ -211,7 +162,6 @@ class DataPanelGUI(object):
         a.set_ylabel('[V]')
         nSamples = len(self.cd.adcData[0])
         x = [self.cd.adcDt * i for i in xrange(nSamples)]
-        print(x if len(x)<10 else x[:10])
         for i in xrange(len(self.dataPlotsSubplots)):
             a = self.dataPlotsSubplots[i]
             a.locator_params(axis='y', tight=True, nbins=4)
@@ -230,7 +180,6 @@ class DataPanelGUI(object):
         else:
             fD = fData
         if len(fD) % bytesPerSample != 0:
-            print ("empty fD")
             return []
         nSamples = len(fD) / bytesPerSample
         if adcData == None:
@@ -245,7 +194,6 @@ class DataPanelGUI(object):
                 # convert to signed int
                 v = (v ^ 0x8000) - 0x8000
                 # convert to actual volts
-
                 adcData[j][i] = v * adcLSB + adcVoffset
             b0 = self.nAdcCh*2
             for j in xrange(self.adcSdmCycRatio*self.nSdmCh*2):
@@ -432,7 +380,6 @@ class SensorConfig(threading.Thread):
                 self.cd.cv.wait(self.cd.tI)
                 if self.cd.vUpdated:
                     self.update_sensor(self.cd.currentSensor)
-                    print("sensor updated.")
                     self.cd.vUpdated = False
                 self.get_inputs()
 
@@ -473,8 +420,7 @@ class SensorConfig(threading.Thread):
         self.s.sendall(self.dac8568.set_voltage(2, 1.65))
         time.sleep(0.001)
         for c,l in self.tms1mmX19chainSensors.iteritems():
-#             self.update_sensor(l[0])
-            for x in l: self.update_sensor(x)
+            self.update_sensor(l[0])
         time.sleep(0.001)
 
     def get_config_vector_for_sensor(self, iSensor):
@@ -531,16 +477,12 @@ class SensorConfig(threading.Thread):
     def update_sensor(self, iSensor):
         colAddr = self.tms1mmX19sensorInChain[iSensor]
         sensorsInChain = self.tms1mmX19chainSensors[colAddr]
-        print("Updating sensor {:d} in chain {:d} with sensors {:}".format(iSensor, colAddr, sensorsInChain))
-
-        data = self.get_config_vector_for_sensor(iSensor)
-        ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-
-#         for i in sensorsInChain:
-#             data = self.get_config_vector_for_sensor(i)
-# #             print("Send  : 0x{:0x}".format(data))
-#             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-# #             print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+        print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
+        for i in sensorsInChain:
+            data = self.get_config_vector_for_sensor(i)
+            print("Send  : 0x{:0x}".format(data))
+            ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
+            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 
