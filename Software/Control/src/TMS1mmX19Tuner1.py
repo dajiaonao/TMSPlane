@@ -133,6 +133,19 @@ class CommonData(object):
         self.inputVcodes = self.sensorVcodes[iSensor]
         self.inputVs = [self.tms1mmReg.dac_code2volt(x) for x in self.inputVcodes]
 
+    def setupConnection(self):
+        data_ip_port = "192.168.2.3:1024"
+        control_ip_port = "192.168.2.3:1025"
+
+        self.dataSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.ctrlSocket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+
+        dataIpPort = data_ip_port.split(':')
+        self.dataSocket.connect((dataIpPort[0],int(dataIpPort[1])))
+
+        ctrlIpPort = control_ip_port.split(':')
+        self.ctrlSocket.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
+
 class DataPanelGUI(object):
 
     ##

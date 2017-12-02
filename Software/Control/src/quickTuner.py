@@ -3,8 +3,8 @@ import socket
 from TMS1mmX19Tuner1 import CommonData, SensorConfig
 from command import *
 from math import sqrt
-from rootUtil import waitRootCmdX, get_default_fig_dir
-from ROOT import TGraph, TLatex, gPad, gStyle, Error, Info, Warning, gROOT, TLegend, TF1
+from rootUtil import waitRootCmdX, get_default_fig_dir, savehistory
+from ROOT import TGraph, TLatex, gPad, gStyle, Error, Info, Warning, gROOT, TLegend, TF1, TGraphErrors
 from array import array
 import sys, time
 import logging as lg
@@ -175,8 +175,6 @@ class SigInfo:
         gr4.SetMarkerStyle(23)
         gr4.Draw("Psame")
        
-
-
         global plot_count
         plot_count += 1
 
@@ -1015,11 +1013,126 @@ def test():
 #     qt1.tune2(2)
 #     qt1.handTune(5)
 
+def scanX(chans=[i for i in range(19)]):
+    '''Used to test the scan of one or more parameters'''
+    nChips = 19 # the magic number
+    nChan = len(chans)
+
+    iP = 1
+    fixedPars = [3.3, 3.3]
+    cd = CommonData()
+    cd.setupConnection()
+    inputs = cd.inputVs
+    sc1 = SensorConfig(cd)
+
+    ### setup the style list
+    mkColors = [2,3,4,6,7,8]
+    mkMarkers = [20,25,23,26,21,22,24,27,32]
+    styleList = [(None,None)]*nChips
+    for i,j in sc1.tms1mmX19chainSensors.iteritems():
+        for k,l in enumerate(j):
+            styleList[l] = (mkColors[i],mkMarkers[k])
+
+    ### get list of chains to be updated
+    chains = set([sc1.tms1mmX19chainSensors[sc1.tms1mmX19sensorInChain[c]][0] for c in chans])
+    print chains
+
+    ### setup the elements for plotting 
+    lg = TLegend(0.84,0.11,0.998,0.89)
+    lg.SetFillStyle(0)
+
+    grs = [TGraphErrors() for chan in chans]
+    for ic in range(len(chans)):
+        chan = chans[ic]
+        grs[ic].SetMarkerColor(styleList[chan][0])
+        grs[ic].SetLineColor(styleList[chan][0])
+        grs[ic].SetMarkerStyle(styleList[chan][1])
+        lg.AddEntry(grs[ic],str(chan),'lp')
+
+    ### variables to store the results
+    pValues = [None]*nChan
+    changeP = [(None,None)]*nChan ## save (where, how_large) for each channel
+
+    ### perform the scan
+    max1 = -1
+    min1 = 999
+    for ir in range(11): ## run ir
+        vr = 0.33*ir
+        ### update channels
+        for chan in chans:
+            cd.readBackPars(chan)
+            for f in range(len(fixedPars)):
+                if fixedPars[f] is not None: inputs[f] = fixedPars[f]
+
+            inputs[iP] = vr
+            cd.updatePars(chan, inputs, False)
+
+        for c in chains: sc1.update_sensor(c)
+        time.sleep(2)
+        cd.fetch()
+
+#         x = ''
+#         while x!='m':
+#             cd.fetch()
+#             a1 = SigInfo()
+#             a1.showMore(dat1)
+#             x = raw_input("'m' to move to next|")
+
+        for ic in range(len(chans)):
+            chan = chans[ic]
+            m,v = getMeanVar(cd.adcData[chan])
+            if m+v>max1: max1 = m+v
+            if m-v<min1: min1 = m-v
+            print chan, m,v
+            grs[ic].SetPoint(ir, vr, m)
+            grs[ic].SetPointError(ir, 0, v)
+
+            ### get the values
+            if pValues[ic] is not None:
+                if (changeP[ic][1] is None) or (m - pValues[ic] < changeP[ic][1]):
+                    changeP[ic] = (ir, m - pValues[ic])
+            pValues[ic] = m
+
+    gr1 = grs[0]
+    print gr1.GetN()
+    gr1.Draw("APL")
+    h1 = gr1.GetHistogram()
+    h1.GetXaxis().SetTitle(cd.voltsNames[iP]+' [V]')
+    h1.GetYaxis().SetTitle('V_{out} [V]')
+    dm = 0.05*(max1-min1)    
+    h1.GetYaxis().SetRangeUser(min1-dm,max1+dm)
+
+    for gr in grs[1:]: gr.Draw("PLsame")
+    lg.Draw("same")
+
+
+    ### add info of other parameters
+    inputT = ''
+    for i,x in enumerate(fixedPars):
+        if i == iP: continue
+        if x is not None: inputT += cd.voltsNames[i]+'='+str(x)
+    lt = TLatex()
+    lt.DrawLatexNDC(0.2,0.92,' '.join(inputT))
+
+#     inputT = ['{0:.3f}'.format(x) for x in inputs]
+#     inputT[iP] = '--'
+#     lt.DrawLatexNDC(0.2,0.92,' '.join(inputT))
+
+    for x in changeP: print x
+
+    waitRootCmdX()
+
+
 if __name__ == '__main__':
+    savehistory('./')
     gStyle.SetOptTitle(0)
     gStyle.SetNdivisions(506,'XYZ')
+#     gStyle.SetPadTickX(1);
+#     gStyle.SetPadTickY(1);
+    gStyle.SetLegendBorderSize(0);
+    scanX()
 #     checkPlot()
-    takeSamples()
+#     takeSamples()
 #     checkStablibity(5)
 #     test()
 #     testCompare()
