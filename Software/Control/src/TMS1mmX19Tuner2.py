@@ -29,7 +29,7 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
 from TMS1mmX19Tuner1 import CommonData
 
-online = True
+online = False
 
 class CommonDataX(object):
 
