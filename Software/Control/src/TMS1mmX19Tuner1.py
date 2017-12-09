@@ -42,7 +42,6 @@ class CommonData(object):
         self.nCh = 19
         self.nAdcCh = 20
         self.adcSdmCycRatio = 5
-        self.currentCh = 0
         self.nSamples = nSamples
         self.nWords = 512/32 * self.nSamples
         # signal processor
@@ -50,7 +49,8 @@ class CommonData(object):
             self.sigproc = SigProc(self.nSamples, self.nAdcCh, self.nCh, self.adcSdmCycRatio)
         # adc sampling interval in us
         self.adcDt = 0.2
-        self.adcData0 = [[i*0.0001 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
+#         self.adcData0 = [[i*0.0001 for i in xrange(self.nSamples)] for j in xrange(self.nAdcCh)]
+        self.adcData0 = self.sigproc.generate_adcDataBuf() 
         self.adcData = self.sigproc.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
         self.sdmData = self.sigproc.generate_sdmDataBuf() # ((ctypes.c_byte * (self.nSamples*self.adcSdmCycRatio)) * (self.nCh*2))()
         # size equals FPGA internal data fifo size
@@ -427,9 +427,10 @@ class SensorConfig(threading.Thread):
     # destroyed as well and accessing them would result in this thread
     # to hang.
 
-    def __init__(self, cd):
+    def __init__(self, cd, online=True):
         threading.Thread.__init__(self)
         self.cd = cd
+        self.online = online
         self.s = self.cd.ctrlSocket
         self.dac8568 = TMS1mmX19Config.DAC8568(self.cd.cmd)
         self.tms1mmReg = cd.tms1mmReg
@@ -442,7 +443,7 @@ class SensorConfig(threading.Thread):
                                       3 : [18, 6, 5, 14],
                                       4 : [17, 16, 15]}
         #
-        self.set_global_defaults()
+        if self.online: self.set_global_defaults()
 
     def run(self):
         with self.cd.cv:

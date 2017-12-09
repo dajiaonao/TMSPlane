@@ -15,7 +15,7 @@ sDirectly = False
 
 if gROOT.IsBatch(): sDirectly = True
 
-isDebug = False
+isDebug = True
 # lg.basicConfig(level=lg.DEBUG,
 #                 format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
 #                 datefmt='%a, %d %b %Y %H:%M:%S',
@@ -1041,13 +1041,53 @@ def test():
 #     qt1.tune2(2)
 #     qt1.handTune(5)
 
+def scanY(chans=[i for i in range(19)]):
+    '''Used to test the scan of one or more parameters'''
+    nChips = 19 # the magic number
+    nChan = len(chans)
+
+    iP = 1
+    cd = CommonData()
+    cd.setupConnection()
+    sc1 = SensorConfig(cd)
+
+    ### get list of chains to be updated
+    chains = set([sc1.tms1mmX19chainSensors[sc1.tms1mmX19sensorInChain[c]][0] for c in chans])
+
+    xj = open('scan_out_v2.ttl','w')
+
+    nP = 10
+    ranges = [range(11), range(10,-1,-1)]
+    for iN in range(11):
+        for iP in ranges[iN%2]:
+            print iN,iP
+            for chan in chans:
+                cd.readBackPars(chan)
+                cd.inputVs[0] = iN*0.33
+                cd.inputVs[1] = iP*0.33
+#                 print cd.inputVs
+                cd.updatePars(chan, None, False)
+
+            for c in chains: sc1.update_sensor(c)
+            time.sleep(2)
+            cd.fetch()
+
+            for ic in range(len(chans)):
+                chan = chans[ic]
+                cd.readBackPars(chan)
+#                 print cd.inputVs
+
+                m,v = getMeanVar(cd.adcData[chan])
+                print ' '.join([str(x) for x in [chan, m, v]+cd.inputVs])
+                xj.write(' '.join([str(x) for x in [chan, iN, iP, m, v]+cd.inputVs])+'\n')
+
 def scanX(chans=[i for i in range(19)]):
     '''Used to test the scan of one or more parameters'''
     nChips = 19 # the magic number
     nChan = len(chans)
 
     iP = 1
-    fixedPars = [3.3, 3.3]
+    fixedPars = [1.5, 1.5]
     cd = CommonData()
     cd.setupConnection()
     inputs = cd.inputVs
@@ -1158,7 +1198,7 @@ if __name__ == '__main__':
 #     gStyle.SetPadTickX(1);
 #     gStyle.SetPadTickY(1);
     gStyle.SetLegendBorderSize(0);
-    scanX()
+    scanY()
 #     checkPlot()
 #     takeSamples()
 #     checkStablibity(5)
