@@ -272,6 +272,14 @@ class SigInfo:
         
         waitRootCmdX()
 
+class TuneResults:
+    def __init__(self,nPar=6):
+        self.inputVs = [None]*nPar
+        self.status = None
+    def show(self):
+        print self.inputVs
+        print self.status
+
 class QuickTuner:
     def __init__(self, mode=0):
         self.mode = mode # 0: normal, 1: testing
@@ -286,6 +294,9 @@ class QuickTuner:
         self.sTag = sTag
         self.autoSave = sDirectly
         self.halfPeriod = 2500
+        
+        ### To save the results a list of [((),())]
+        self.results = None
 
         self.setup()
 
@@ -831,6 +842,23 @@ class QuickTuner:
         print a1.getQuickInfo(dat1, 20)
 #         self.get_score(dat1)
 #         self.check(dat1)
+
+    def fullTune(self):
+        '''Do everything automatically'''
+        ### First find the initial values for fine tune
+        ### Dead channels will be marked
+        self.getInitialValues()
+
+        ### Continue with the fine tune
+        ## Could be done in prallel in future
+        nChan = 19 # number of channels
+        for i in range(nChan):
+            # don't waste time on the dead ones
+            if self.isDead[i]: continue
+            self.tune2(i)
+
+        ### Finish. The output is a list of parameters and the characteristics
+        ### Where to save the output? Inside the class, or return from this method? -- save to the method.
 
     def compareInputs(self, chan, inputs, dt=10, info=None, saveName='testing'):
         '''Compare a list of inputs
