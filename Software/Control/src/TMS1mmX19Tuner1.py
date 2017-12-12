@@ -557,9 +557,9 @@ class SensorConfig(threading.Thread):
 
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-#             print("Send  : 0x{:0x}".format(data))
+            print("Send  : 0x{:0x}".format(data))
             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-#             print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
 

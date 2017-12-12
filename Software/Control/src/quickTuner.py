@@ -1163,6 +1163,108 @@ def scanX(chans=[i for i in range(19)]):
     waitRootCmdX()
 
 
+def scanKK():
+    '''Used to test the scan of one or more parameters'''
+    nChips = 19 # the magic number
+#     nChan = len(chans)
+
+    iP = 1
+    cd = CommonData()
+    cd.setupConnection()
+    sc1 = SensorConfig(cd)
+
+    ### get list of chains to be updated
+#     chains = set([sc1.tms1mmX19chainSensors[sc1.tms1mmX19sensorInChain[c]][0] for c in chans])
+
+    chan = 5
+#     cd.inputVs = [3., 0., 3., 0., 0., 0.]
+#     cd.inputVs = [3., 0., 0.732, 1.68, 0., 0.]
+#     cd.inputVs = [0.75, 2.15, 0.7, 0., 0., 0.]
+
+    show = True
+    g1 = None
+    if show:
+        g1 = TGraphErrors()
+
+    xj = open('scan_KK_6.ttl','w')
+
+    ### point insert scan
+    ipar = 2
+    pts = [(0.,None),(3.,None)]
+    while True:
+        print pts
+        pt, xy, r1, k = insertPoint(pts)
+        print '-'*30
+        print pt,xy,r1, k
+        print '-'*30
+        if xy<3 and (r1<0.01 or xy/r1<0.1 or k<0.007): break
+
+        cd.inputVs[ipar] = pt
+        cd.updatePars(chan, None, False)
+        sc1.update_sensor(chan)
+        time.sleep(3)
+        cd.fetch()
+
+        m,v = getMeanVar(cd.adcData[chan])
+        print ' '.join([str(x) for x in [chan, m, v]+cd.inputVs])
+        xj.write(' '.join([str(x) for x in [chan, m, v]+cd.inputVs])+'\n')
+
+        if g1:
+            n1 = g1.GetN()
+            g1.SetPoint(n1, pt, m)
+            g1.SetPointError(n1, 0, v)
+
+        if xy == 999:
+            pts[r1] = (pt,m)
+        else:
+            pts.append((pt,m))
+
+    ### simple scan
+#     while cd.inputVs[0]>0.001:
+#         cd.updatePars(chan, None, False)
+#         sc1.update_sensor(chan)
+#         time.sleep(2)
+#         cd.fetch()
+# 
+#         m,v = getMeanVar(cd.adcData[chan])
+#         print ' '.join([str(x) for x in [chan, m, v]+cd.inputVs])
+#         xj.write(' '.join([str(x) for x in [chan, m, v]+cd.inputVs])+'\n')
+# 
+#         if g1:
+#             g1.SetPoint(g1.GetN(), cd.inputVs[0], m)
+#         cd.inputVs[0] *= 2./3
+    if g1:
+        g1.SetMarkerStyle(4)
+        g1.SetMarkerColor(2)
+        g1.SetLineColor(2)
+        g1.Draw("AP")
+        h1 = g1.GetHistogram()
+        h1.GetXaxis().SetTitle(cd.voltsNames[ipar]+' [V]')
+        h1.GetYaxis().SetTitle("V_{out} [V]")
+        lt = TLatex()
+        lt.DrawLatexNDC(0.2,0.92,"Chip %d"%chan)
+        waitRootCmdX()
+
+def insertPoint(lx):
+    '''Insert a point [(x,y)]'''
+    for k in lx:
+        if k[1] is None: return k[0],999,lx.index(k), 1
+    j1 = sorted(lx, key=lambda a:a[0])
+    print j1
+    vx = [p[1] for p in j1]
+    maxd = max(vx)-min(vx)
+
+    dxm = -1
+    pt = -1
+    k  = 3
+    for x in range(len(j1)-1):
+        dx = abs(j1[x][1]-j1[x+1][1])
+        if dx>dxm:
+            dxm = dx
+            pt = 0.5*(j1[x][0]+j1[x+1][0])
+            k = 0.5*abs(j1[x][0]-j1[x+1][0])
+    return pt, dxm, maxd, k
+
 if __name__ == '__main__':
     savehistory('./')
     gStyle.SetOptTitle(0)
@@ -1170,7 +1272,8 @@ if __name__ == '__main__':
 #     gStyle.SetPadTickX(1);
 #     gStyle.SetPadTickY(1);
     gStyle.SetLegendBorderSize(0);
-    scanY()
+#     scanY()
+    scanKK()
 #     checkPlot()
 #     takeSamples()
 #     checkStablibity(5)

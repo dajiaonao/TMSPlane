@@ -30,7 +30,7 @@ from matplotlib.ticker import FormatStrFormatter
 from matplotlib import artist
 import array
 
-online = False
+online = True
 
 class DataPanelGUI(object):
 
