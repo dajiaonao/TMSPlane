@@ -546,7 +546,6 @@ class QuickTuner:
 #         currentValues = 
 #         for i in range(len(cd.sensorVcodes)):
 #             print i, [cd.tms1mmReg.dac_code2volt(vx) for vx in cd.sensorVcodes[i]]
-# 
 
         pass
 
@@ -1190,6 +1189,52 @@ def scanX(chans=[i for i in range(19)]):
 
     waitRootCmdX()
 
+def zrange(a,b):
+    d = 1 if a<b else -1
+    p = a
+    while p!=b:
+        yield p
+        p += d
+
+def getPars():
+    fname = '/home/dzhang/links/cernbox/temp/scan_out_v2.ttl' 
+    lines = None
+    with open(fname) as f1:
+        lines = [l.rstrip().split() for l in f1.readlines() if len(l.rstrip().split())>3]
+
+    ### 11x11 for iN x iP
+    ### now let's find the vlaues
+    iC = 5
+    i = 0
+
+    ### for each row, we get the max difference and whrere the max change happens
+    pars = None
+    lxJ = []
+    while True:
+        l1 = [x for x in lines if int(x[0])==iC and int(x[1])==i]
+        i += 1
+        if len(l1)==0: break
+
+        kx = [float(j[3]) for j in l1]
+        print kx
+        imax, fmax = max(enumerate(kx), key=lambda p:p[1])
+        imin, fmin = min(enumerate(kx), key=lambda p:p[1])
+        print imax, imin, fmax, fmin
+
+        d = 1 if imin<imax else -1
+        imx = imin
+        dmx = 0
+        for j in range(imin, imax, d):
+            if kx[j+d]-kx[j]>dmx:
+                dmx = kx[j+d]-kx[j]
+                imx = j
+        print '-'*20
+        print imx, dmx
+        lxJ.append((imx, dmx, fmax-fmin))
+    for t in lxJ: print t
+
+def scanV():
+    ### test
 
 if __name__ == '__main__':
     savehistory('./')
@@ -1198,7 +1243,9 @@ if __name__ == '__main__':
 #     gStyle.SetPadTickX(1);
 #     gStyle.SetPadTickY(1);
     gStyle.SetLegendBorderSize(0);
-    scanY()
+#     scanY()
+    getPars()
+# 
 #     checkPlot()
 #     takeSamples()
 #     checkStablibity(5)
