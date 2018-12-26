@@ -38,6 +38,10 @@ class SigProc(object):
         ret = cfun(byref(fD), c_size_t(bytesPerSample), c_size_t(nSamples), c_size_t(self.adcSdmCycRatio),
                    byref(adcData), c_size_t(self.nAdcCh), byref(sdmData), c_size_t(self.nSdmCh), c_double(adcVoffset), c_double(adcLSB))
         return adcData
+    def filters_trapezoidal(self, adcChData, scrAry, fltParam=[500, 150, 200, -1.0]):
+        cfun = self.sigprocSO.filters_trapezoidal
+        cfun(self.nSamples, adcChData, scrAry, c_size_t(fltParam[1]), c_size_t(fltParam[2]), c_double(fltParam[3]));
+#         cfun(self.nSamples, adcChData, scrAry, 150,200,-1.);
 
     def save_data(self, fNames, adcData, sdmData):
         timeStamp = int(time.time())
@@ -50,7 +54,7 @@ class SigProc(object):
                    c_char_p(fNames[0].encode("ascii")), byref(adcData), c_size_t(nAdcCh),
                    c_char_p(fNames[1].encode("ascii")), byref(sdmData), c_size_t(nSdmCh))
 
-    def measure_pulse(self, adcData, fltParam=[500, 150, 200, -1.0]):
+    def measure_pulse(self, adcData, fltParam=[500, 150, 200, 1.]):
         nSamples = len(adcData[0])
         nAdcCh = len(adcData)
         nFltParam = len(self.fltParam)

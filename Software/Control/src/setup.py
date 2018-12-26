@@ -5,7 +5,7 @@ module0 = Extension('command',
                                      ('MINOR_VERSION', '1')],
                     include_dirs = ['/usr/local/include'],
                     libraries = ['m'],
-                    library_dirs = ['/usr/local/lib'],
+                    library_dirs = ['/usr/local/lib', '/data/Install/lib'],
                     extra_compile_args = ['-Wall', '-std=c99', '-pedantic'],
                     sources = ['command.c'])
 
@@ -14,7 +14,7 @@ module1 = Extension('sigproc',
                                      ('MINOR_VERSION', '1')],
                     include_dirs = ['/usr/local/include'],
                     libraries = ['m'],
-                    library_dirs = ['/usr/local/lib'],
+                    library_dirs = ['/usr/local/lib', '/data/Install/lib'],
                     extra_compile_args = ['-Wall', '-std=c99', '-pedantic'],
                     sources = ['sigproc.c'])
 
