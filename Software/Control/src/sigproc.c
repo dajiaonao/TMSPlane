@@ -100,6 +100,49 @@ int sigproc_save_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
     return 0;
 }
 
+int sigproc_read_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
+                      const char *adcFName, ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
+                      const char *sdmFName, char *sdmData, size_t nSdmCh)
+{
+    FILE *fpa, *fps;
+    ssize_t i, j;
+
+    if((fpa=fopen(adcFName, "r"))!=NULL) {
+       char timeStamp[100];
+       if(fgets(timeStamp, 100 , fpa)!=NULL ) printf(timeStamp);
+
+       /// read data
+       for(i=0; i<nSamples; i++) {
+          for(j=0; j<nAdcCh; j++){
+            if(fscanf(fpa, " %f", &(adcData[j*nSamples + i]))==EOF) break;
+          }
+       }
+
+      fclose(fpa);
+    }
+  
+    if((fps=fopen(sdmFName, "r"))!=NULL) {
+       char timeStamp[100];
+       if(fgets(timeStamp, 100 , fps)!=NULL ) printf(timeStamp);
+
+       /// read data
+       unsigned int a;
+       for(i=0; i<nSamples*adcSdmCycRatio; i++) {
+           for(j=0; j<nSdmCh; j++){
+             if(fscanf(fps, " %1u", &a)==EOF) break;
+             sdmData[j*nSamples*adcSdmCycRatio + i] = a;
+           }
+       }
+
+      fclose(fps);
+     }
+
+    return 0;
+}
+
+
+
+
 int filters_trapezoidal(size_t wavLen, const ANALYSIS_WAVEFORM_BASE_TYPE *inWav, ANALYSIS_WAVEFORM_BASE_TYPE *outWav,
                         size_t k, size_t l, double M)
 {
