@@ -222,3 +222,83 @@ int sigproc_measure_pulse(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *ad
     fclose(fpa);
     return 0;
 }
+int sigproc_measure_pulse2(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
+                          size_t nFltParam, const double *fltParam,
+                          size_t nMeasParam, double *measParam)
+{
+  size_t iCh;
+  //// loop over the channels
+  for(iCh=0; iCh<nAdcCh; iCh++) {
+    adcChData = adcData + nSamples * iCh;
+    measChParam = measParam + nMeasParam * iCh;
+    //// loop over the sample to find the largest increase
+    size_t i;
+    size_t L =  nSamples*iCh;
+    double fMax = -100;
+
+    size_t im;
+    /// find the max increase
+    for(i=1;i<nSamples; i++){
+      if(adcChData[i]-adcChData[i-1]<fMax) continue;
+      fMax = adcChData[i]-adcChData[i-1];
+      im = i;
+    }
+
+    /// find the max
+    size_t in = im;
+    for(;in<nSamples; in++){if(adcChData[in]-adcChData[in-1]<0) break;}
+
+    /// find the background
+    size_t ib = im;
+    for(; ib>0; ib--){ if(adcChData[ib]-adcChData[ib-1]<0) break;}
+
+  }
+
+  size_t lH;
+  double 
+    size_t nBl;
+    ssize_t iCh, i, j;
+    const ANALYSIS_WAVEFORM_BASE_TYPE *adcChData;
+    ANALYSIS_WAVEFORM_BASE_TYPE *scrAry; /* scratch array space */
+    double *measChParam, v, bl, bln;
+
+    FILE *fpa;
+    if((fpa=fopen("flt.dat", "w"))==NULL) {
+        perror("flt.dat");
+        return -1;
+    }
+
+    nBl = (size_t)fltParam[0];
+    scrAry = (ANALYSIS_WAVEFORM_BASE_TYPE*)calloc(nSamples, sizeof(ANALYSIS_WAVEFORM_BASE_TYPE));
+    for(iCh=0; iCh<nAdcCh; iCh++) {
+        adcChData = adcData + nSamples * iCh;
+        measChParam = measParam + nMeasParam * iCh;
+        /* baseline and baseline noise */
+        bl = 0.0; bln = 0.0;
+        for(i=0; i<nBl; i++) {
+            bl += adcChData[i];
+            bln += adcChData[i] * adcChData[i];
+        }
+        bl /= (double)nBl;
+        bln = sqrt((bln - (double)nBl * bl*bl)/(nBl - 1.0));
+        measChParam[0] = bl;
+        measChParam[1] = bln;
+        /* peak location and height */
+        filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+        v = -DBL_MAX; j = 0;
+        for(i=0; i<nSamples; i++) {
+            if(scrAry[i] > v) {
+                v = scrAry[i];
+                j = i;
+            }
+            fprintf(fpa, "%g\n", scrAry[i] + bl);
+        }
+        measChParam[2] = j;
+        measChParam[3] = v;
+        fprintf(fpa, "\n\n");
+    }
+    free(scrAry);
+
+    fclose(fpa);
+    return 0;
+}
