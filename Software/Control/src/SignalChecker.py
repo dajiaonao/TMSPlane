@@ -7,6 +7,8 @@ from sigproc import SigProc
 import time
 import array
 import glob
+from rootUtil import waitRootCmdX
+
 
 class SignalChecker:
     def __init__(self):
@@ -79,7 +81,7 @@ class SignalChecker:
             hc.Fill(listA[i][0],listA[i][1],d[i])
 
         hc.Draw("text colz0");
-        raw_input('waiting...')
+        waitRootCmdX()
 
     def check_file(self, fname):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -92,23 +94,21 @@ class SignalChecker:
         d = [x[2] for x in mx]
         self.plot_data(d)
 
-    def show_sample(self):
+    def show_sample(self, fnameP='/data/Samples/TMSPlane/Dec26/sample_{0:d}.adc', Ns=10, ich=8):
         from ROOT import TGraph, gPad, TLatex
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
         data2 = s1.generate_sdmDataBuf()
 
-        ich = 8
-        Ns = 10
         data3 = ((s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nSamples)*Ns)()
         dataList = []
         for i in range(Ns):
-            fname = '/data/Samples/TMSPlane/Dec26/sample_{0:d}.adc'.format(i)
+            fname = fnameP.format(i)
             s1.read_data([fname,''], data1, data2)
             x = array.array('f', range(s1.nSamples))
-#             s1.filters_trapezoidal(data1[ich], data3[i], [100,100,200,-1])
-#             g1 = TGraph(s1.nSamples, x, data3[i])
-            g1 = TGraph(s1.nSamples, x, data1[ich])
+            s1.filters_trapezoidal(data1[ich], data3[i], [100,100,200,-1])
+            g1 = TGraph(s1.nSamples, x, data3[i])
+#             g1 = TGraph(s1.nSamples, x, data1[ich])
 
             opt = 'AP' if i==0 else "PSame"
             g1.Draw(opt+' PLC PMC')
@@ -117,7 +117,7 @@ class SignalChecker:
         lt = TLatex()
         lt.DrawLatexNDC(0.2,0.8,"Chan={0:d}".format(ich))
         gPad.Update()
-        raw_input('xx:')
+        waitRootCmdX()
 
     def check_enc(self, filePattern, ch):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -125,22 +125,24 @@ class SignalChecker:
         data2 = s1.generate_sdmDataBuf()
 
         files = glob.glob(filePattern)
-        with open('test1aaa.dat','w') as fout:
-            fout.write(':'.join(['sID/I', 'B/F','dB/F','idx/I','A/F']))
+        with open('test1bbb.dat','w') as fout:
+            fout.write(':'.join(['sID/I', 'ch/I', 'B/F','dB/F','idx/I','A/F']))
             for fname in files:
                 s1.read_data([fname,''], data1, data2)
                 mxx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
-                mx = mxx[ch]
-                fout.write('\n'+' '.join([fname[fname.find('_')+1:-4],str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
+                for ch in range(s1.nAdcCh):
+                    mx = mxx[ch]
+                    fout.write('\n'+' '.join([fname[fname.find('_')+1:-4],str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
 
 def test1():
     sc1 = SignalChecker()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
-    sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
+#     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()
+#     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_10{0:d}.adc',Ns=80,ich=12)
 
 if __name__ == '__main__':
     test1()
