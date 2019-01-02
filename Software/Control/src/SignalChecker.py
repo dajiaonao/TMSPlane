@@ -106,7 +106,8 @@ class SignalChecker:
             fname = fnameP.format(i)
             s1.read_data([fname,''], data1, data2)
             x = array.array('f', range(s1.nSamples))
-            s1.filters_trapezoidal(data1[ich], data3[i], [100,100,200,-1])
+#             s1.filters_trapezoidal(data1[ich], data3[i], [100,100,200,-1])
+            s1.filters_trapezoidal(data1[ich], data3[i], [100,100,100,0.000722])
             g1 = TGraph(s1.nSamples, x, data3[i])
 #             g1 = TGraph(s1.nSamples, x, data1[ich])
 
@@ -143,6 +144,7 @@ def test1():
 #     sc1.show_signal()
 #     sc1.show_sample()
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_10{0:d}.adc',Ns=80,ich=12)
+    sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
     test1()
