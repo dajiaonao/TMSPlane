@@ -602,6 +602,14 @@ class SensorConfig(threading.Thread):
         with open(self.configFName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 
+    def write_config_fileX(self, fName, sensorVcodes):
+        config = {}
+        for i in range(self.cd.nCh):
+            config[i] = dict(zip(self.cd.voltsNames, sensorVcodes[i]))
+        with open(fName, 'w') as fp:
+            fp.write(json.dumps(config, sort_keys=True, indent=4))
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

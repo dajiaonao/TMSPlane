@@ -9,6 +9,8 @@ from TMS1mmX19Tuner import SensorConfig, CommonData
 import socket
 from command import *
 import numpy as nm
+import matplotlib.pyplot as plt
+import array
 
 class tuner(threading.Thread):
     def __init__(self, idx):
@@ -50,14 +52,43 @@ class Train(threading.Thread):
         self.cd = cd
         self.tx_qs = None
         self.rx_qs = None
-#         self.pars = [None]*cd.nAdcCh
-#         self.meas = [None]*cd.nAdcCh
         self.on = True
         self.mask = [0]*cd.nAdcCh
         self.nSig = 3
+        self.sensorVcodes = [[v for v in cd.inputVcodes] for i in range(cd.nCh)]
+        self.bestConfigFile = 'current_best_config.json'
+        self.retBest = [0.]*cd.nAdcCh
 
         ### for data taking
         self.sc = None
+
+        ### plotting
+        self.axs = None
+        self.plot_x = None
+        self.pltCnt = 0
+        self.pltN = 20
+
+    def plot_data(self):
+#         item = self.q.get()
+        if self.axs is None:
+            print("creating the plot......")
+            import matplotlib
+            matplotlib.rcParams['toolbar'] = 'None'
+            plt.ion()
+            fig, self.axs = plt.subplots(self.cd.nAdcCh, 1, sharex=True)
+            # Remove horizontal space between axes
+            plt.tight_layout(pad=0)
+            fig.subplots_adjust(hspace=0)
+            self.plot_x = [self.cd.adcDt * i for i in range(self.cd.nSamples)]
+
+        for i in range(self.cd.nAdcCh):
+            self.axs[i].cla()
+#             self.axs[i].plot(self.cd.adcData[i])
+#             self.axs[i].step(array.array('f', self.cd.adcData[i]), where='post')
+            self.axs[i].plot(self.plot_x, array.array('f', self.cd.adcData[i]))
+        plt.draw()
+#         self.q.task_done()
+
 
     def test_update_sensor(self):
         print('/'*40)
@@ -140,15 +171,34 @@ class Train(threading.Thread):
                 self.sc.update_sensor(isr)
 
             ### take data
+            self.pltCnt += 1
+            t = None
+            if self.pltCnt%self.pltN == 0:
+                t = threading.Thread(target=self.plot_data)
+                t.daemon = True
+                t.start()
+#                 self.q.put('run')
+
             time.sleep(2.0)
+            if t is not None: t.join()
+
             ret = self.take_data()
 
             ### return
+            needUpdate = False
             for i,t in enumerate(self.tx_qs):
                 if self.mask[i] == 1:
                     t.put(ret[i])
                     self.mask[i] = 0
+
+                    ### save the values if it's the best so far
+                    if ret[i]<self.retBest[i]:
+                        self.retBest[i] = ret[i]
+                        self.sensorVcodes[i] = [a for a in self.cd.sensorVcodes[i]]
+                        needUpdate = True
 #                     print("--- {0:d} {1:g}".format(i, self.meas[i]))
+            if needUpdate:
+                self.sc.write_config_fileX(self.bestConfigFile, self.sensorVcodes)
         print('Stopping the train.....')
 
 

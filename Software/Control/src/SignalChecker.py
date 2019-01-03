@@ -7,7 +7,14 @@ from sigproc import SigProc
 import time
 import array
 import glob
-from rootUtil import waitRootCmdX
+
+def waitRootCmdY():
+    a = raw_input("waiting...")
+
+try:
+    from rootUtil import waitRootCmdX
+except ImportError:
+    waitRooCmdX = waitRootCmdY
 
 
 class SignalChecker:
@@ -137,7 +144,8 @@ class SignalChecker:
 
 def test1():
     sc1 = SignalChecker()
-#     sc1.take_samples(2000, name="Dec27a_{0:d}")
+    sc1.connect()
+    sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
@@ -146,7 +154,7 @@ def test1():
 #     sc1.show_signal()
 #     sc1.show_sample()
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_10{0:d}.adc',Ns=80,ich=12)
-    sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
+#     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
     test1()

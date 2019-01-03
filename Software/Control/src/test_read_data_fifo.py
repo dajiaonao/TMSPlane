@@ -51,13 +51,17 @@ if __name__ == "__main__":
         s.close()
 
     else:
-        s1.read_data(['/data/Samples/TMSPlane/Dec26/sample_0.adc','/data/Samples/TMSPlane/Dec26/sample_0.sdm'], data1, data2)
+        s1.read_data(['data/Jan03a/Jan03a_0.adc','xxx'], data1, data2)
 
 
-    ich = 18
+    ich = 12
     data3 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nSamples)()
     s1.filters_trapezoidal(data1[ich], data3, [100,100,200,-1])
-   
+
+    a = s1.measure_pulse(data1, [100,100,200,-1])
+    for b in a: 
+        for c in b: print(c)
+
 #     for i in range(s1.nSamples):
 #         print(i,data1[8][i],data3[i])
 #         if i%20 == 0:
@@ -81,3 +85,5 @@ if __name__ == "__main__":
     plt.subplot(122)
     plt.plot(x,d3)
     plt.show()
+
+

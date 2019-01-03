@@ -1,131 +1,131 @@
 {
     "0": {
-        "VBIASN": 32722, 
-        "VBIASP": 31405, 
-        "VCASN": 31320, 
-        "VCASP": 27758, 
-        "VDIS": 27075, 
-        "VREF": 61969
+        "VBIASN": 26711, 
+        "VBIASP": 22767, 
+        "VCASN": 21220, 
+        "VCASP": 38044, 
+        "VDIS": 33653, 
+        "VREF": 60586
     }, 
     "1": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 18706, 
+        "VBIASP": 19383, 
+        "VCASN": 32580, 
+        "VCASP": 19927, 
+        "VDIS": 38345, 
+        "VREF": 60844
     }, 
     "2": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 40901, 
+        "VBIASP": 23368, 
+        "VCASN": 37339, 
+        "VCASP": 24216, 
+        "VDIS": 19359, 
+        "VREF": 59428
     }, 
     "3": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 40620, 
+        "VBIASP": 26074, 
+        "VCASN": 31883, 
+        "VCASP": 23712, 
+        "VDIS": 22751, 
+        "VREF": 57620
     }, 
     "4": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 29710, 
+        "VBIASP": 41857, 
+        "VCASN": 43559, 
+        "VCASP": 27582, 
+        "VDIS": 28771, 
+        "VREF": 50068
     }, 
     "5": {
-        "VBIASN": 28560, 
-        "VBIASP": 32074, 
-        "VCASN": 44898, 
-        "VCASP": 32713, 
-        "VDIS": 35115, 
-        "VREF": 59566
+        "VBIASN": 35505, 
+        "VBIASP": 31158, 
+        "VCASN": 28208, 
+        "VCASP": 34237, 
+        "VDIS": 25841, 
+        "VREF": 59450
     }, 
     "6": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 39606, 
+        "VBIASP": 18544, 
+        "VCASN": 28278, 
+        "VCASP": 28242, 
+        "VDIS": 25793, 
+        "VREF": 63428
     }, 
     "7": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 27563, 
+        "VBIASP": 41459, 
+        "VCASN": 24744, 
+        "VCASP": 20454, 
+        "VDIS": 30521, 
+        "VREF": 50757
     }, 
     "8": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 40144, 
+        "VBIASP": 30598, 
+        "VCASN": 35281, 
+        "VCASP": 32623, 
+        "VDIS": 27237, 
+        "VREF": 62767
     }, 
     "9": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 21379, 
+        "VBIASP": 30916, 
+        "VCASN": 35438, 
+        "VCASP": 39957, 
+        "VDIS": 33873, 
+        "VREF": 51010
     }, 
     "10": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 37851, 
+        "VBIASP": 23868, 
+        "VCASN": 28510, 
+        "VCASP": 25278, 
+        "VDIS": 27471, 
+        "VREF": 62733
     }, 
     "11": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 18330, 
+        "VBIASP": 32191, 
+        "VCASN": 35611, 
+        "VCASP": 20315, 
+        "VDIS": 31627, 
+        "VREF": 58813
     }, 
     "12": {
-        "VBIASN": 28627, 
-        "VBIASP": 38314, 
-        "VCASN": 25189, 
-        "VCASP": 36170, 
-        "VDIS": 32002, 
-        "VREF": 59764
+        "VBIASN": 33491, 
+        "VBIASP": 41694, 
+        "VCASN": 27353, 
+        "VCASP": 30536, 
+        "VDIS": 26577, 
+        "VREF": 61879
     }, 
     "13": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 34597, 
+        "VBIASP": 18111, 
+        "VCASN": 38260, 
+        "VCASP": 28284, 
+        "VDIS": 34831, 
+        "VREF": 56909
     }, 
     "14": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 23841, 
+        "VBIASP": 22327, 
+        "VCASN": 26558, 
+        "VCASP": 41357, 
+        "VDIS": 30234, 
+        "VREF": 51100
     }, 
     "15": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 29249, 
+        "VBIASP": 25451, 
+        "VCASN": 41396, 
+        "VCASP": 19498, 
+        "VDIS": 30337, 
+        "VREF": 51729
     }, 
     "16": {
         "VBIASN": 30836, 
@@ -136,19 +136,19 @@
         "VREF": 55592
     }, 
     "17": {
-        "VBIASN": 30836, 
-        "VBIASP": 34668, 
-        "VCASN": 36503, 
-        "VCASP": 26018, 
-        "VDIS": 30332, 
-        "VREF": 55592
+        "VBIASN": 29170, 
+        "VBIASP": 30151, 
+        "VCASN": 29601, 
+        "VCASP": 31900, 
+        "VDIS": 25224, 
+        "VREF": 60224
     }, 
     "18": {
-        "VBIASN": 43686, 
-        "VBIASP": 41525, 
-        "VCASN": 21102, 
-        "VCASP": 29592, 
-        "VDIS": 28374, 
-        "VREF": 57184
+        "VBIASN": 21873, 
+        "VBIASP": 33270, 
+        "VCASN": 34560, 
+        "VCASP": 24535, 
+        "VDIS": 40341, 
+        "VREF": 61527
     }
 }

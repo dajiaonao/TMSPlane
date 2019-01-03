@@ -172,7 +172,7 @@ int filters_trapezoidal(size_t wavLen, const ANALYSIS_WAVEFORM_BASE_TYPE *inWav,
     return 0;
 }
 
-int sigproc_measure_pulse_quick(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
+int sigproc_measure_pulse_fast(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
                           size_t nFltParam, const double *fltParam,
                           size_t nMeasParam, double *measParam)
 {
@@ -265,6 +265,7 @@ int sigproc_measure_pulse(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *ad
     fclose(fpa);
     return 0;
 }
+/* probably does not make sense...
 int sigproc_measure_pulse2(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh,
                           size_t nFltParam, const double *fltParam,
                           size_t nMeasParam, double *measParam)
@@ -317,3 +318,4 @@ int sigproc_measure_pulse2(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYPE *a
 
     return 0;
 }
+*/

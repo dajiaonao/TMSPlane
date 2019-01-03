@@ -69,7 +69,8 @@ class SigProc(object):
         nMeasParam = len(self.measParam[0])
         for i in range(min(nFltParam, len(fltParam))):
             self.fltParam[i] = fltParam[i]
-        cfun = self.sigprocSO.sigproc_measure_pulse
+#         cfun = self.sigprocSO.sigproc_measure_pulse
+        cfun = self.sigprocSO.sigproc_measure_pulse_fast
         ret = cfun(c_size_t(nSamples), byref(adcData), c_size_t(nAdcCh),
                    c_size_t(nFltParam), byref(self.fltParam),
                    c_size_t(nMeasParam), byref(self.measParam))
