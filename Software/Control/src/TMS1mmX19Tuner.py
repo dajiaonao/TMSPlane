@@ -96,6 +96,9 @@ class CommonData(object):
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
 
+    def set_sensor(self, i, l):
+        self.sensorVcodes[i] = [self.tms1mmReg.dac_volt2code(v) for v in l]
+
 class DataPanelGUI(object):
 
     ##
