@@ -73,7 +73,8 @@ class CommonData(object):
         #self.atBounds = [(1.3, 1.4), (1.5, 1.6), (1.45, 1.6), (1.1, 1.35), (1.1, 1.6), (2.4, 2.5)]
         self.atBounds = [(0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (2.2, 2.8)]
         #self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
-        self.atTbounds = (3000, 3500) # time of pulse bounds
+#         self.atTbounds = (3000, 3500) # time of pulse bounds
+        self.atTbounds = (2300, 2500) # time of pulse bounds
         self.atMeasNavg = 10 # number of measurements for average
         self.atMaxIters = 100
         self.atBestRet   = 0.0
@@ -421,6 +422,7 @@ class ControlPanelGUI(object):
             buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
             self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
             currMeasP = self.cd.sigproc.measure_pulse(self.cd.adcData)[self.cd.currentSensor]
+            print("T:", currMeasP[2], currMeasP[3], currMeasP[3]/currMeasP[1])
             if currMeasP[2] < self.cd.atTbounds[0] or currMeasP[2] > self.cd.atTbounds[1] or currMeasP[3] < 0:
                 return 0
             for j in range(len(currMeasP)):

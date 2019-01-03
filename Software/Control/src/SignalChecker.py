@@ -82,8 +82,8 @@ class SignalChecker:
 
 def test1():
     sc1 = SignalChecker()
-#     sc1.take_samples()
-    sc1.show_signal()
+    sc1.take_samples(2000, name="Dec27a_{0:d}")
+#     sc1.show_signal()
 
 if __name__ == '__main__':
     test1()

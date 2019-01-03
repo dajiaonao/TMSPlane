@@ -46,7 +46,7 @@ if __name__ == "__main__":
     data2 = s1.generate_sdmDataBuf()
     s1.demux_fifodata(ret,data1,data2)
 
-    ich = 8
+    ich = 18
     data3 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nSamples)()
     s1.filters_trapezoidal(data1[ich], data3, [100,100,200,-1])
    
