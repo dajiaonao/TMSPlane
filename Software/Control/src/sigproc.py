@@ -54,6 +54,14 @@ class SigProc(object):
                    c_char_p(fNames[0].encode("ascii")), byref(adcData), c_size_t(nAdcCh),
                    c_char_p(fNames[1].encode("ascii")), byref(sdmData), c_size_t(nSdmCh))
 
+    def read_data(self, fNames, adcData, sdmData):
+        timeStamp = int(time.time())
+        cfun = self.sigprocSO.sigproc_read_data
+        ret = cfun(c_size_t(self.nSamples), c_long(timeStamp), c_size_t(self.adcSdmCycRatio),
+                   c_char_p(fNames[0].encode("ascii")), byref(adcData), c_size_t(self.nAdcCh),
+                   c_char_p(fNames[1].encode("ascii")), byref(sdmData), c_size_t(self.nSdmCh))
+
+ 
     def measure_pulse(self, adcData, fltParam=[500, 150, 200, 1.]):
         nSamples = len(adcData[0])
         nAdcCh = len(adcData)
