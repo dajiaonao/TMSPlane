@@ -7,6 +7,7 @@ from sigproc import SigProc
 import time
 import array
 import glob
+from ROOT import *
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -142,6 +143,21 @@ class SignalChecker:
                     mx = mxx[ch]
                     fout.write('\n'+' '.join([fname[fname.find('_')+1:-4],str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
 
+def text2root(spattern, irange, outname):
+    s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+    data1 = s1.generate_adcDataBuf()
+    data2 = s1.generate_sdmDataBuf()
+
+    fout1 = TFile(outname,'recreate')
+    tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+    tree1.Branch('ch0',data1, "ch0[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
+
+    for i in irange:
+        s1.read_data([spattern.format(i),'xxx'], data1, data2)
+        tree1.Fill()
+    fout1.Write()
+ 
+
 def test1():
     sc1 = SignalChecker()
     sc1.connect()
@@ -157,4 +173,5 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
-    test1()
+#     test1()
+    text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
