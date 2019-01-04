@@ -145,7 +145,8 @@ class SignalChecker:
 def test1():
     sc1 = SignalChecker()
     sc1.connect()
-    sc1.take_samples(10, name="Jan03a_{0:d}")
+#     sc1.take_samples(10, name="Jan03a_{0:d}")
+    sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
