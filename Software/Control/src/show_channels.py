@@ -3,12 +3,6 @@
 from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F
 from rootUtil import waitRootCmdX
 
-t1 = TTree()
-# t1.ReadFile('test1bbb.dat')
-t1.ReadFile('tt2.dat')
-
-t1.Show(0)
-
 lt = TLatex()
 c1 = TCanvas()
 c1.Divide(6,3)
@@ -39,18 +33,40 @@ def add_fit_menu(h=None):
     n = TClassMenuItem(TClassMenuItem.kPopupUserFunction,cl,"fit ENC","fitENC",0,"TObject*",2);
     l.AddFirst(n);
 
-add_fit_menu()
-for i in range(18):
-    c1.cd(i+1)
-    lt.DrawLatexNDC(0.2,0.4,'Ch={0:d}'.format(i))
-    t1.Draw('A','ch=={0:d}'.format(i))
+def test1():
+    add_fit_menu()
 
-#     t1.Draw('A>>h1','ch=={0:d}'.format(i),'goff')
-#     h1 = gDirectory.Get('h1')
-#     h1.SetName('ch'+str(i))
-# 
-#     c1.cd(i)
-#     h1.Draw()
-#     if i>1: break
-c1.cd()
-waitRootCmdX()
+    t1 = TTree()
+    # t1.ReadFile('test1bbb.dat')
+    t1.ReadFile('tt2.dat')
+
+    t1.Show(0)
+
+    for i in range(18):
+        c1.cd(i+1)
+        lt.DrawLatexNDC(0.2,0.4,'Ch={0:d}'.format(i))
+        t1.Draw('A','ch=={0:d}'.format(i))
+
+    #     t1.Draw('A>>h1','ch=={0:d}'.format(i),'goff')
+    #     h1 = gDirectory.Get('h1')
+    #     h1.SetName('ch'+str(i))
+    # 
+    #     c1.cd(i)
+    #     h1.Draw()
+    #     if i>1: break
+    c1.cd()
+    waitRootCmdX()
+
+def test2():
+    add_fit_menu()
+    t150 = TTree()
+    t150.ReadFile('Jan05a_150mV.dat')
+    t150.ReadFile('Jan05a_50mV.dat')
+    t150.ReadFile('tt2.dat')
+
+    t150.Draw('A','ch==12')
+    waitRootCmdX()
+
+if __name__ == '__main__':
+#     test1()
+    test2()

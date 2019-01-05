@@ -177,7 +177,8 @@ class SignalChecker:
 
         fout1 = TFile(inRoot,'read')
         tree1 = fout1.Get('tree1')
-        tree1.SetBranchAddress('ch0',data1)
+#         tree1.SetBranchAddress('ch0',data1)
+        tree1.SetBranchAddress('adc',data1)
         with open(outText,'w') as fout:
             fout.write(':'.join(['sID/I', 'ch/I', 'B/F','dB/F','idx/I','A/F']))
 
@@ -207,15 +208,16 @@ def text2root(spattern, irange, outname):
 
 def test1():
     sc1 = SignalChecker()
-    sc1.connect()
+#     sc1.connect()
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
-    sc1.take_samples2(5000, "data/Jan05a_50mV.root")
+#     sc1.take_samples2(5000, "data/Jan05a_50mV.root")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
 #     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
-    sc1.check_enc2('/data/Samples/TMSPlane/root_files/ADC_Jan04a.root', 'tt2.dat')
+    sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
+    sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()
