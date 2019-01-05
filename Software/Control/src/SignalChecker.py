@@ -49,6 +49,33 @@ class SignalChecker:
             s1.demux_fifodata(ret,data1,data2)
             s1.save_data([name1+'.adc', name1+'.sdm'], data1, data2)
 
+    def take_samples2(self, n=10, outRootName='test_sample.root'):
+        s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+        data1 = s1.generate_adcDataBuf()
+        data2 = s1.generate_sdmDataBuf()
+
+        T = array.array('i',[0])
+        fout1 = TFile(outRootName,'recreate')
+        tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+        tree1.Branch('T',T,'T/i')
+        tree1.Branch('adc',data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
+
+        # FPGA internal fifo : 512 bit width x 16384 depth
+        nWords = (512 // 32) * 16384
+        nBytes = nWords * 4
+        buf = bytearray(nBytes)
+
+        for i in range(n):
+            if i%100==0: print(str(i)+' samples taken.')
+            self.s.sendall(self.cmd.send_pulse(1<<2));
+            time.sleep(0.5)
+
+            T[0] = int(time.time())
+            ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
+            s1.demux_fifodata(ret,data1,data2)
+            tree1.Fill()
+        fout1.Write()
+
     def show_signal(self):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
@@ -162,7 +189,8 @@ def test1():
     sc1 = SignalChecker()
     sc1.connect()
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
-    sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
+#     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
+    sc1.take_samples2(5000, "data/Jan05a_50mV.root")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
@@ -174,5 +202,6 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
-#     test1()
-    text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
+    test1()
+#     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
+#     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')
