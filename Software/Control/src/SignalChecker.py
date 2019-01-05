@@ -128,7 +128,7 @@ class SignalChecker:
         gPad.Update()
         waitRootCmdX()
 
-    def check_enc(self, filePattern, ch):
+    def check_enc(self, filePattern):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
         data2 = s1.generate_sdmDataBuf()
@@ -142,6 +142,26 @@ class SignalChecker:
                 for ch in range(s1.nAdcCh):
                     mx = mxx[ch]
                     fout.write('\n'+' '.join([fname[fname.find('_')+1:-4],str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
+
+    def check_enc2(self, inRoot, outText):
+        s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+        data1 = s1.generate_adcDataBuf()
+        data2 = s1.generate_sdmDataBuf()
+
+        fout1 = TFile(inRoot,'read')
+        tree1 = fout1.Get('tree1')
+        tree1.SetBranchAddress('ch0',data1)
+        with open(outText,'w') as fout:
+            fout.write(':'.join(['sID/I', 'ch/I', 'B/F','dB/F','idx/I','A/F']))
+
+            for i in range(tree1.GetEntries()):
+                if i%100==0: print(str(i)+' entries processed')
+                tree1.GetEntry(i)
+                mxx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
+#                 if i>4: break
+                for ch in range(s1.nAdcCh):
+                    mx = mxx[ch]
+                    fout.write('\n'+' '.join([str(i),str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
 
 def text2root(spattern, irange, outname):
     s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -160,12 +180,13 @@ def text2root(spattern, irange, outname):
 
 def test1():
     sc1 = SignalChecker()
-    sc1.connect()
-    sc1.take_samples(10, name="Jan03a_{0:d}")
+#     sc1.connect()
+#     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
 #     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
+    sc1.check_enc2('/data/Samples/TMSPlane/root_files/ADC_Jan04a.root', 'tt2.dat')
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()
@@ -173,5 +194,5 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
-#     test1()
-    text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
+    test1()
+#     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')

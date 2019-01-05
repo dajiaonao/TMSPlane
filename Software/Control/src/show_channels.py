@@ -4,7 +4,8 @@ from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F
 from rootUtil import waitRootCmdX
 
 t1 = TTree()
-t1.ReadFile('test1bbb.dat')
+# t1.ReadFile('test1bbb.dat')
+t1.ReadFile('tt2.dat')
 
 t1.Show(0)
 
