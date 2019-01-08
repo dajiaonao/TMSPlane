@@ -72,7 +72,7 @@ class SignalChecker:
         for i in range(n):
             if i%100==0: print(str(i)+' samples taken.')
             self.s.sendall(self.cmd.send_pulse(1<<2));
-            time.sleep(0.5)
+#             time.sleep(0.5)
 
             T[0] = int(time.time())
             ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
@@ -217,7 +217,13 @@ def test1():
 #     sc1.take_samples2(5000, "data/Jan05a_150mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_400mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_50mV.root")
-    sc1.take_samples2(5000, "data/Jan08a_100mV_R19p5312us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R19p5312us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R30p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R40p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r50p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r30p0us.root")
+    sc1.take_samples2(5000, "data/Jan08a_100mV_r40p0us.root")
+#     sc1.take_samples2(100, "data/test.root")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')

@@ -251,7 +251,7 @@ class TestClass:
 
 def test1():
     tc1 = TestClass()
-    tc1.muteList = [5,6,8,12,18]
+    tc1.muteList = [3,5,6,8,12,18]
     tc1.test_tune()
 
 if __name__ == '__main__':

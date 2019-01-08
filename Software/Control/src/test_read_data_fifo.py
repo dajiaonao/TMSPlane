@@ -26,7 +26,7 @@ if __name__ == "__main__":
     data1 = s1.generate_adcDataBuf()
     data2 = s1.generate_sdmDataBuf()
 
-    data_source = 1
+    data_source = 0
 
     if data_source == 0:
         ctrlipport = args.control_ip_port.split(':')
