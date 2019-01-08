@@ -55,7 +55,7 @@ class Train(threading.Thread):
         self.on = True
         self.mask = [0]*cd.nAdcCh
         self.nSig = 3
-        self.sensorVcodes = [[v for v in cd.inputVcodes] for i in range(cd.nCh)]
+        self.sensorVcodes = [[v for v in cd.sensorVcodes[i]] for i in range(cd.nCh)]
         self.bestConfigFile = 'current_best_config.json'
         self.retBest = [0.]*cd.nAdcCh
 
