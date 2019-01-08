@@ -168,7 +168,7 @@ class Train(threading.Thread):
 
             ### apply the configurations
             for isr in ss:
-                self.sc.update_sensor(isr)
+                self.sc.update_sensor(isr,quiet=1)
 
             ### take data
             self.pltCnt += 1
@@ -208,6 +208,7 @@ class TestClass:
         self.tx_qs = [None]*nAdcCh
         self.rx_qs = [None]*nAdcCh
         self.nAdcCh = nAdcCh
+        self.muteList = []
 
     def test_tune(self):
         dataIpPort = '192.168.2.3:1024'.split(':')
@@ -237,6 +238,7 @@ class TestClass:
 #         tr1.take_data()
 
         for i in range(self.nAdcCh):
+            if i in self.muteList: continue
             self.tx_qs[i] = Queue()
             self.rx_qs[i] = Queue()
             th1 = tuner(i)
@@ -249,6 +251,7 @@ class TestClass:
 
 def test1():
     tc1 = TestClass()
+    tc1.muteList = [5,6,8,12,18]
     tc1.test_tune()
 
 if __name__ == '__main__':
