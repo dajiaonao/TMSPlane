@@ -125,7 +125,7 @@ class Train(threading.Thread):
         ret = [0]*self.cd.nAdcCh
         for j in range(self.cd.nAdcCh):
             ### return the mean of the variance is small enough, otherwise 0
-#             print(j,meas[j],nm.mean(meas[j]), nm.std(meas[j]), nm.mean(meas[j])/nm.std(meas[j]))
+#             if j==12: print(j,meas[j],nm.mean(meas[j]), nm.std(meas[j]), nm.mean(meas[j])/nm.std(meas[j]))
             m1 = nm.mean(meas[j])
             if m1<0 and -m1>self.nSig*nm.std(meas[j]): ret[j] = m1
 
@@ -179,7 +179,7 @@ class Train(threading.Thread):
                 t.start()
 #                 self.q.put('run')
 
-            time.sleep(2.0)
+            time.sleep(5.0)
             if t is not None: t.join()
 
             ret = self.take_data()
@@ -209,6 +209,7 @@ class TestClass:
         self.rx_qs = [None]*nAdcCh
         self.nAdcCh = nAdcCh
         self.muteList = []
+        self.atBounds = None
 
     def test_tune(self):
         dataIpPort = '192.168.2.3:1024'.split(':')
@@ -225,6 +226,7 @@ class TestClass:
         cd.x2gain = 2 # BufferX2 gain 
         cd.sdmMode = 0 # SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection 
         cd.bufferTest = 0 #
+        cd.atTbounds = (2650,2750)
 
         sc1 = SensorConfig(cd, configFName='config.json')
 
