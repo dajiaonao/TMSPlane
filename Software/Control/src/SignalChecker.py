@@ -24,12 +24,14 @@ class SignalChecker:
         self.control_ip_port = "192.168.2.3:1024"
         self.cmd = Cmd()
         self.s = None
+        self.connected = False
 #         self.connect()
 
     def connect(self):
         ctrlipport = self.control_ip_port.split(':')
         self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.s.connect((ctrlipport[0],int(ctrlipport[1])))
+        self.connected = True
 
     def take_samples(self, n=10, name="sample_{0:d}"):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -51,6 +53,8 @@ class SignalChecker:
             s1.save_data([name1+'.adc', name1+'.sdm'], data1, data2)
 
     def take_samples2(self, n=10, outRootName='test_sample.root'):
+        if not self.connected: self.connect()
+
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
         data2 = s1.generate_sdmDataBuf()
@@ -69,7 +73,7 @@ class SignalChecker:
         for i in range(n):
             if i%100==0: print(str(i)+' samples taken.')
             self.s.sendall(self.cmd.send_pulse(1<<2));
-            time.sleep(0.5)
+#             time.sleep(0.5)
 
             T[0] = int(time.time())
             ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
@@ -209,12 +213,19 @@ def text2root(spattern, irange, outname):
 
 def test1():
     sc1 = SignalChecker()
-#     sc1.connect()
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
 #     sc1.take_samples2(5000, "data/Jan05a_150mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_400mV.root")
+    sc1.take_samples2(5000, "data/Jan09a_300mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_50mV.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R19p5312us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R30p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R40p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r50p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r30p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r40p0us.root")
+#     sc1.take_samples2(100, "data/test.root")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
@@ -226,6 +237,8 @@ def test1():
     sc1.check_enc2('data/root_files/Jan08a_100mV_r30p0us.root', 'Jan08a_100mV_r30p0us.dat')
 #     sc1.check_enc2('data/root_files/Jan08a_100mV_r40p0us.root', 'Jan08a_100mV_r40p0us.dat')
 #     sc1.check_enc2('data/root_files/Jan08a_100mV_r50p0us.root', 'Jan08a_100mV_r50p0us.dat')
+#     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
+#     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()
