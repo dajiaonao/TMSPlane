@@ -8,6 +8,7 @@ import time
 import array
 import glob
 from ROOT import *
+from subprocess import call
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -208,15 +209,29 @@ def text2root(spattern, irange, outname):
         s1.read_data([spattern.format(i),'xxx'], data1, data2)
         tree1.Fill()
     fout1.Write()
- 
+
+def setPulse(v,f):
+    cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.2f} {1:d}'.format(v,f)
+    call(cmd, shell=True)
 
 def test1():
     sc1 = SignalChecker()
+    sc1.control_ip_port = "localhost:1024"
+#     sc1.take_samples2(100, "data/test1.root")
+#     sc1.take_samples2(5000, "data/sample1.root")
+#     sc1.take_samples2(5000, "data/Jan18a_C2_50mV.root")
+    dir1 = 'data/fpgaLin/'
+    tag1 = dir1+'Jan22a_C2_100mV_'
+    for f in [100,200,500,1000]:
+        setPulse(0.1,f)
+        time.sleep(20)
+        sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
+#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
 #     sc1.take_samples2(5000, "data/Jan05a_150mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_400mV.root")
-    sc1.take_samples2(5000, "data/Jan09a_300mV.root")
+#    sc1.take_samples2(5000, "data/Jan09a_300mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_50mV.root")
 #     sc1.take_samples2(5000, "data/Jan08a_100mV_R19p5312us.root")
 #     sc1.take_samples2(5000, "data/Jan08a_100mV_R30p0us.root")
@@ -231,6 +246,8 @@ def test1():
 #     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
 #     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
 #     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
+#     sc1.check_enc2('data/sample1.root', 'Jan17_sample1.dat')
+#     sc1.check_enc2('data/Jan18a_C2_50mV.root', 'data/Jan18a_C2_50mV.dat')
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()

@@ -617,10 +617,12 @@ class SensorConfig(threading.Thread):
 
 if __name__ == "__main__":
 
+    host='192.168.2.3'
+    if socket.gethostname() == 'FPGALin': host = 'localhost'
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", "--aout-buf", type=int, default="1", help="AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both")
-    parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
-    parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
+    parser.add_argument("-c", "--control-ip-port", type=str, default=host+":1025", help="control system ipaddr and port")
+    parser.add_argument("-d", "--data-ip-port", type=str, default=host+":1024", help="data source ipaddr and port")
     parser.add_argument("-f", "--config-file", type=str, default="config.json", help="configuration file, will be overwritten")
     parser.add_argument("-g", "--bufferx2-gain", type=int, default="2", help="BufferX2 gain")
     parser.add_argument("-l", "--visible-channels", type=str, default="None", help="List of ADC channels to plot (made visible).  None or [] means all channels")

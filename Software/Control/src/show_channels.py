@@ -38,7 +38,9 @@ def test1():
 
     t1 = TTree()
     # t1.ReadFile('test1bbb.dat')
-    t1.ReadFile('tt2.dat')
+#     t1.ReadFile('tt2.dat')
+#     t1.ReadFile('Jan17_sample1.dat')
+    t1.ReadFile('data/Jan18a_C2_50mV.dat')
 
     t1.Show(0)
 
@@ -68,5 +70,5 @@ def test2():
     waitRootCmdX()
 
 if __name__ == '__main__':
-#     test1()
-    test2()
+    test1()
+#     test2()
