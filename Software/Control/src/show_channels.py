@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F
-from rootUtil import waitRootCmdX
+from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F, TChain
+from rootUtil import waitRootCmdX, useLHCbStyle
 
 lt = TLatex()
 c1 = TCanvas()
@@ -33,14 +33,11 @@ def add_fit_menu(h=None):
     n = TClassMenuItem(TClassMenuItem.kPopupUserFunction,cl,"fit ENC","fitENC",0,"TObject*",2);
     l.AddFirst(n);
 
-def test1():
+def test1(fname='tt2.dat'):
     add_fit_menu()
 
     t1 = TTree()
-    # t1.ReadFile('test1bbb.dat')
-#     t1.ReadFile('tt2.dat')
-#     t1.ReadFile('Jan17_sample1.dat')
-    t1.ReadFile('data/Jan18a_C2_50mV.dat')
+    t1.ReadFile(fname)
 
     t1.Show(0)
 
@@ -69,6 +66,29 @@ def test2():
     t150.Draw('A','ch==12')
     waitRootCmdX()
 
+def compareX():
+    fl = ['Jan05a_100mV.dat', 'Jan08a_100mV_r30p0us.dat','Jan08a_100mV_r40p0us.dat','Jan08a_100mV_r50p0us.dat']
+    fs = [TTree() for f in fl]
+    opt = ''
+
+    chx = TTree()
+    for f in fl: chx.ReadFile(f)
+
+    chx.Draw('A','ch==12','axis')
+
+    opt = 'same'
+    for i in range(len(fl)):
+        fs[i].ReadFile(fl[i])
+        fs[i].SetFillStyle(0)
+        fs[i].SetLineColor(i+1)
+
+        fs[i].Draw('A','ch==12',opt)
+    waitRootCmdX()
+
+
 if __name__ == '__main__':
-    test1()
+    useLHCbStyle()
+    compareX()
+#     test1('Jan08a_100mV_r50p0us.dat')
+#     test1('Jan05a_100mV.dat')
 #     test2()

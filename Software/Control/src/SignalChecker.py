@@ -9,6 +9,7 @@ import array
 import glob
 from ROOT import *
 from subprocess import call
+from math import isnan
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -191,9 +192,9 @@ class SignalChecker:
                 if i%100==0: print(str(i)+' entries processed')
                 tree1.GetEntry(i)
                 mxx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
-#                 if i>4: break
                 for ch in range(s1.nAdcCh):
                     mx = mxx[ch]
+                    if isnan(mx[1]): print("xxxx")
                     fout.write('\n'+' '.join([str(i),str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
 
 def text2root(spattern, irange, outname):
@@ -244,6 +245,13 @@ def test1():
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
 #     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
+#     sc1.check_enc2('data/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
+#     sc1.check_enc2('data/root_files/Jan05a_100mV.root', 'Jan05a_100mV.dat')
+#     sc1.check_enc2('data/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
+#     sc1.check_enc2('data/root_files/Jan05a_400mV.root', 'Jan05a_400mV.dat')
+    sc1.check_enc2('data/root_files/Jan08a_100mV_r30p0us.root', 'Jan08a_100mV_r30p0us.dat')
+#     sc1.check_enc2('data/root_files/Jan08a_100mV_r40p0us.root', 'Jan08a_100mV_r40p0us.dat')
+#     sc1.check_enc2('data/root_files/Jan08a_100mV_r50p0us.root', 'Jan08a_100mV_r50p0us.dat')
 #     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
 #     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
 #     sc1.check_enc2('data/sample1.root', 'Jan17_sample1.dat')
