@@ -67,7 +67,9 @@ def test2():
     waitRootCmdX()
 
 def compareX():
-    fl = ['Jan05a_100mV.dat', 'Jan08a_100mV_r30p0us.dat','Jan08a_100mV_r40p0us.dat','Jan08a_100mV_r50p0us.dat']
+#     fl = ['Jan05a_100mV.dat', 'Jan08a_100mV_r30p0us.dat','Jan08a_100mV_r40p0us.dat','Jan08a_100mV_r50p0us.dat']
+#     fl = ['Jan05a_100mV.dat', 'Jan08a_100mV_r30p0us.dat','Jan08a_100mV_r40p0us.dat','Jan08a_100mV_r50p0us.dat']
+    fl = ['data/fpgaLin/Jan22a_C2_100mV_f{0:d}.dat'.format(x) for x in [100,200,500,1000]]
     fs = [TTree() for f in fl]
     opt = ''
 
@@ -87,8 +89,9 @@ def compareX():
 
 
 if __name__ == '__main__':
-    useLHCbStyle()
-    compareX()
+#     useLHCbStyle()
+#     compareX()
 #     test1('Jan08a_100mV_r50p0us.dat')
 #     test1('Jan05a_100mV.dat')
+    test1('temp1.dat')
 #     test2()
