@@ -50,7 +50,7 @@ class SignalProcessor{
     if(scrAry) free(scrAry); 
    }
 
- private:
+//  private:
   AWBT* scrAry{nullptr};
 
  public:
@@ -59,7 +59,7 @@ class SignalProcessor{
   }
 
   void test2();
-  int measure_pulse(const AWBT *adcData);
+  int measure_pulse(const AWBT *adcData, int chan=-1);
 
 };
 
@@ -68,7 +68,7 @@ void SignalProcessor::test2(){
   std::cout << sRanges.size() << std::endl;
 }
 
-int SignalProcessor::measure_pulse(const AWBT *adcData)
+int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
 {
     size_t nBl;
     const AWBT *adcChData;
@@ -85,6 +85,8 @@ int SignalProcessor::measure_pulse(const AWBT *adcData)
      }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+        if(chan>=0 && chan != iCh) continue;
+
         adcChData = adcData + nSamples * iCh;
         measChParam = measParam + nMeasParam * iCh;
         /* baseline and baseline noise */

@@ -17,9 +17,14 @@ def readSignal(inRoot, outText, freq=1000):
     n1 = int(1/(0.2*freq*0.000001))
     sp1.sRanges.clear()
     ip = 0
-    while ip+n1<sp1.nSamples:
-        sp1.sRanges.push_back((ip, ip+n1))
+    dn = 2500%n1 ## 2500 is the expected position of the signal
+    while ip+dn < sp1.nSamples:
+        sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
         ip += n1
+
+#     while ip+n1<sp1.nSamples:
+#         sp1.sRanges.push_back((ip, ip+n1))
+#         ip += n1
 
     data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
 
@@ -56,4 +61,5 @@ def testJ():
 if __name__ == '__main__':
 #     testJ()
 #     readSignal(inRoot = 'data/fpgaLin/Jan21b_C2_100mV_f1000.root', outText='temp1.dat')
-    readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f1000.root', outText='temp1.dat')
+#     readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f1000.root', outText='temp1.dat')
+    readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f500.root', outText='Jan22a_C2_100mV_f500.dat', freq=500)
