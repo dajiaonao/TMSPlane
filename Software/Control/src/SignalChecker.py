@@ -212,7 +212,7 @@ def text2root(spattern, irange, outname):
     fout1.Write()
 
 def setPulse(v,f):
-    cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.2f} {1:d}'.format(v,f)
+    cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.3f} {1:d}'.format(v,f)
     call(cmd, shell=True)
 
 def test1():
@@ -229,15 +229,20 @@ def test1():
 #         sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
 #         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
     dir1 = 'data/fpgaLin/'
-    tag1 = dir1+'Jan22b_C2_'
-    for iv in range(10):
-        if iv<2: continue
-        v = 0.05+iv*0.05
+#     tag1 = dir1+'Jan22b_C2_'
+#     for iv in range(16):
+#         v = 0.025+iv*0.05
+#         setPulse(v,1000)
+#         time.sleep(20)
+#         sc1.take_samples2(5000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
+#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+    tag1 = dir1+'Jan24a_C2_'
+    for iv in range(30):
+        v = 0.025+iv*0.025
         setPulse(v,1000)
         time.sleep(20)
-        sc1.take_samples2(5000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
-#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
-
+        sc1.take_samples2(3000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
+#
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
 #     sc1.take_samples2(5000, "data/Jan05a_150mV.root")

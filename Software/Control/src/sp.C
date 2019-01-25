@@ -3,6 +3,8 @@
 #include <cfloat>
 #include <vector>
 #include "common.h"
+#include <TF1.h>
+#include <TGraph.h>
 
 typedef ANALYSIS_WAVEFORM_BASE_TYPE AWBT;
 
@@ -45,6 +47,9 @@ class SignalProcessor{
   size_t nMeasParam{2};
   vector< pair<size_t, size_t> > sRanges;
 
+  vector< TF1* > corr_TF1;
+  vector< TGraph* > corr_spine;
+
 //   SignalProcessor():scrAry(nullptr){};
   ~SignalProcessor(){
     if(scrAry) free(scrAry); 
@@ -61,11 +66,17 @@ class SignalProcessor{
   void test2();
   int measure_pulse(const AWBT *adcData, int chan=-1);
 
+  float correction(size_t ich, float raw, int opt=0);
 };
 
 void SignalProcessor::test2(){
   std::cout << "testing 2" << std::endl;
   std::cout << sRanges.size() << std::endl;
+}
+
+float SignalProcessor::correction(size_t ich, float raw, int opt){
+  /// need to add protections: empty function or graph; out of range
+  return opt==0? corr_TF1[ich]->Eval(raw): corr_spine[ich]->Eval(raw);
 }
 
 int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
@@ -85,7 +96,7 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
      }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
-        if(chan>=0 && chan != iCh) continue;
+        if(chan>=0 && chan != int(iCh)) continue;
 
         adcChData = adcData + nSamples * iCh;
         measChParam = measParam + nMeasParam * iCh;

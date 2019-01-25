@@ -7,6 +7,10 @@ gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from array import array
 
+from multiprocessing import Pool
+from glob import glob
+
+
 def readSignal(inRoot, outText, freq=1000):
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
@@ -46,6 +50,29 @@ def readSignal(inRoot, outText, freq=1000):
                     fout.write('\n'+' '.join([str(ievt), str(i), str(sp1.measParam[itmp]), str(sp1.measParam[itmp+1]), str(j), str(int(sp1.measParam[itmp+2*j+2])), str(sp1.measParam[itmp+2*j+3])]))
 
 
+def check_Jan22a(f):
+    tag1 = 'data/fpgaLin/Jan22a_C2_100mV_'
+    readSignal(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f), f)
+
+def testK():
+    p = Pool(4)
+    p.map(check_Jan22a, [100,200,500,1000])
+
+
+def check_Jan22b(v):
+    tag1 = 'data/fpgaLin/Jan22b_C2_{0:d}mV_f1000'.format(v)
+    readSignal(tag1+'.root', tag1+".dat", 1000)
+
+def test_Jan22b():
+    p = Pool(6)
+#     p.map(check_Jan22b, [50+50*i for i in range(10)])
+    p.map(check_Jan22bx, glob('data/fpgaLin/Jan22b_C2_*5mV*.root'))
+
+def check_Jan22bx(fname):
+    out = fname[:-5]+'.dat'
+    print "Starting", fname, out
+    readSignal(fname, out, 1000)
+
 def testJ():
     sc1 = SignalChecker()
     sc1.control_ip_port = "localhost:1024"
@@ -55,11 +82,33 @@ def testJ():
 #         setPulse(0.1,f)
 #         time.sleep(20)
 #         sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
-        if f not in [1000]: continue
-        sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+#         if f not in [1000]: continue
+#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+        readSignal(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f), f)
+
+def check_calib():
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+
+    ### setup the calibration file
+    fin1 = TFile('fout_calib.root')
+    sp1.corr_spine.clear()
+    sp1.corr_TF1.clear()
+    sp1.corr_spine.reserve(sp1.nAdcCh)
+    sp1.corr_TF1.reserve(sp1.nAdcCh)
+    for i in range(sp1.nAdcCh-1):
+        sp1.corr_spine.push_back(fin1.Get('gr_calib_ch'+str(i)))
+        sp1.corr_TF1.push_back(sp1.corr_spine[i].GetFunction('pol1'))
+    
+    ## run a test
+    for x in sp1.corr_spine[5].GetX():
+        t = 1
+        print sp1.correction(1,x)*t, sp1.correction(1,x, 1)*t, '|', sp1.correction(5,x)*t, sp1.correction(5,x, 1)*t
 
 if __name__ == '__main__':
 #     testJ()
-#     readSignal(inRoot = 'data/fpgaLin/Jan21b_C2_100mV_f1000.root', outText='temp1.dat')
-#     readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f1000.root', outText='temp1.dat')
-    readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f500.root', outText='Jan22a_C2_100mV_f500.dat', freq=500)
+#     testK()
+#     test_Jan22b()
+#     readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f500.root', outText='data/fpgaLin/Jan22a_C2_100mV_f500.dat', freq=500)
+    check_calib()
