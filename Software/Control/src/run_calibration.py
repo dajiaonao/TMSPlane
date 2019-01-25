@@ -8,20 +8,21 @@ from rootUtil import waitRootCmdX, useNxStyle, get_default_fig_dir
 sDir = get_default_fig_dir()
 sTag = 'test1_'
 
-def create_calibration_file():
+def create_calibration_file(infiles='data/fpgaLin/Jan22b_C2_*mV_f1000.dat',outfile='fout_calib.root'):
     '''Create a root file that contains a TF1 and a TGraph to map the measured voltage to the number of electron'''
     nCh = 19
     gr0 = [TGraphErrors() for j in range(nCh)]
     grs = [TGraphErrors() for j in range(nCh)]
     gEs = [TGraphErrors() for j in range(nCh)]
-    vx = [int(os.path.basename(fname).split('_')[2][:-2]) for fname in glob('data/fpgaLin/Jan22b_C2_*mV_f1000.dat')]
+    vx = [(int(os.path.basename(fname).split('_')[2][:-2]),fname) for fname in glob(infiles)]
 
     h_quality = TGraph2D()
 
-    fout = TFile('fout_calib.root','recreate')
+    fout = TFile(outfile,'recreate')
 
-    for v in sorted(vx):
-        fname = 'data/fpgaLin/Jan22b_C2_{0:d}mV_f1000.dat'.format(v)
+    for vi in sorted(vx, key=lambda x:x[0]):
+        v = vi[0]
+        fname = vi[1] 
         t1 = TTree()
         t1.ReadFile(fname)
 
@@ -63,8 +64,8 @@ def create_calibration_file():
     fout.Close()
 
 
-def check_calibration():
-    fout = TFile('fout_calib.root','read')
+def check_calibration(calibFile='fout_calib.root', tag1 = 'Jan22a_'):
+    fout = TFile(calibFile,'read')
 
     nCh = 19
     nxt = TIter(fout.GetListOfKeys())
@@ -93,20 +94,51 @@ def check_calibration():
             max_y = max(max_y, x[1].GetBinContent(x[1].GetMaximumBin()))
             max_x = max(max_x, x[1].GetXaxis().GetXmax())
 
+        range_y = max_y*1.1
+        h2.GetYaxis().SetRangeUser(0,range_y)
         h2.GetXaxis().SetRangeUser(0,max_x)
-        h2.GetYaxis().SetRangeUser(0,max_y*1.1)
 
         lt.DrawLatexNDC(0.2,0.88,"Channel {0:d}".format(ch))
 
-        tag1 = 'Jan22a_'
+
+        g1 = fout.Get('gr_calib_ch'+str(ch))
+#         g1.Draw('P same')
+
+        g2 = fout.Get('gr_mean_ch'+str(ch))
+        g3 = fout.Get('gr_sigma_ch'+str(ch))
+        X2 = g2.GetX()
+        Y2 = g2.GetY()
+        EX2 = g2.GetEX()
+        Y3 = g3.GetY()
+
+        g4 = TGraphErrors(g2.GetN(), Y2, X2, Y3, EX2)
+        for i in range(g4.GetN()): g4.GetY()[i] *= max_y/max(X2); 
+
+        g4.SetLineColor(4)
+        g4.SetMarkerStyle(20)
+        g4.Fit('pol1', 'F EX0')
+        fun1 = g4.GetFunction('pol1')
+        fun1.SetLineColor(kGray)
+
+        canv = gPad
+        canv.Update()
+        axis2 = TGaxis(canv.GetUxmax(), canv.GetUymin(), canv.GetUxmax(), canv.GetUymax(),0.,max(X2)*1.1,510,"+L"); ##or better line below
+        axis2.SetTitle('Input pulse [mV]')
+        axis2.Draw(); 
+
+        g4.Draw("Psame")
+#         fun1.Draw('same')
         waitRootCmdX(sDir+tag1+'check_ch{0:d}'.format(ch))
 
 def test1():
     print "testing"
-    create_calibration_file()
+#     create_calibration_file()
+    create_calibration_file('data/fpgaLin/Jan24a_C2_*mV_f1000.dat','Jan24a_calib.root')
 
 if __name__ == "__main__":
 #     test1()
     useNxStyle()
     gStyle.SetPalette(55)
-    check_calibration()
+    gStyle.SetOptFit(0)
+    gStyle.SetPadRightMargin(0.1)
+    check_calibration('Jan24a_calib.root', 'Jan24a_')

@@ -236,9 +236,11 @@ def test1():
 #         time.sleep(20)
 #         sc1.take_samples2(5000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
 #         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
-    tag1 = dir1+'Jan24a_C2_'
-    for iv in range(30):
+    tag1 = dir1+'Jan25a_C2_'
+    for iv in range(31):
         v = 0.025+iv*0.025
+
+#         if v<0.481: continue
         setPulse(v,1000)
         time.sleep(20)
         sc1.take_samples2(3000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
