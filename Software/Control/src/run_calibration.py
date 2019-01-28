@@ -133,7 +133,8 @@ def check_calibration(calibFile='fout_calib.root', tag1 = 'Jan22a_'):
 def test1():
     print "testing"
 #     create_calibration_file()
-    create_calibration_file('data/fpgaLin/Jan24a_C2_*mV_f1000.dat','Jan24a_calib.root')
+#     create_calibration_file('data/fpgaLin/Jan24a_C2_*mV_f1000.dat','Jan24a_calib.root')
+    create_calibration_file('data/fpgaLin/Jan25a_C2_*mV_f1000.dat','Jan25a_calib.root')
 
 if __name__ == "__main__":
 #     test1()
@@ -141,4 +142,4 @@ if __name__ == "__main__":
     gStyle.SetPalette(55)
     gStyle.SetOptFit(0)
     gStyle.SetPadRightMargin(0.1)
-    check_calibration('Jan24a_calib.root', 'Jan24a_')
+    check_calibration('Jan25a_calib.root', 'Jan25a_')

@@ -104,6 +104,40 @@ class DG1022(object):
         self._instr.write("PM:DEViation {0:d}".format(ph))
         time.sleep(0.5)
 
+    def setupCH2(self, freq, vLow, vHigh, userFun, phase=0):
+        self._instr.write("FUNC:CH2 USER")
+        self._instr.write("FUNC:USER:CH2 %s" % userFun)
+#         self._instr.write("FUNC:CH2 %s" % userFun)
+        time.sleep(0.5)
+
+        self._instr.write("FREQ:CH2 %g" % freq)
+        time.sleep(0.5)
+
+        self._instr.write("VOLT:UNIT:CH2 VPP")
+        time.sleep(0.5)
+        self._instr.write("VOLTage:LOW:CH2 %g" % vLow)
+        time.sleep(0.5)
+        self._instr.write("VOLTage:HIGH:CH2 %g" % vHigh)
+        time.sleep(0.5)
+        self._instr.write("COUP ON")
+        self._instr.write("COUP:BASE:CH1")
+        self._instr.write("COUP:PHASEDEV %d" % phase)
+        time.sleep(0.5)
+
+        self._instr.write("OUTP:CH2 ON")
+
+    def turn_on_trigger(self):
+        self._instr.write("OUTPut:SYNC ON")
+        time.sleep(0.5)
+        self._instr.write("OUTPut:TRIGger ON")
+        time.sleep(0.5)
+
+    def turn_off_trigger(self):
+        self._instr.write("OUTPut:SYNC OFF")
+        time.sleep(0.5)
+        self._instr.write("OUTPut:TRIGger OFF")
+        time.sleep(0.5)
+
     def close(self):
         self._instr.close()
 
@@ -122,7 +156,18 @@ def main():
     fg.setup_tail_pulse2(fQ, 64, 1024, 0.01)
 #    fg.set_phase(100)
     fg.turn_on_output()
+#     fg.setupCH2(fQ,0.0,hV,'SIN')
+    fg.setupCH2(fQ,0.0,hV,'StairUp')
+#     fg.turn_on_trigger()
+#     fg.setupCH2(fQ,0.0,hV,'PPulse')
     fg.close()
+
+
+def test1():
+    fg = DG1022()
+    fg.turn_off_trigger()
+    fg.close()
+
 
 def test(freq=100, xp=16, np=1024, alpha=0.01):
     amax = 16383
@@ -142,5 +187,6 @@ def test(freq=100, xp=16, np=1024, alpha=0.01):
     plt.show()
 
 if __name__ == "__main__":
+#     test1()
     main()
     #test()

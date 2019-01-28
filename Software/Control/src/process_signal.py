@@ -67,7 +67,8 @@ def test_Jan22b():
     p = Pool(6)
 #     p.map(check_Jan22b, [50+50*i for i in range(10)])
 #     p.map(check_Jan22bx, glob('data/fpgaLin/Jan22b_C2_*5mV*.root'))
-    p.map(check_Jan22bx, glob('data/fpgaLin/Jan24a_C2_*.root'))
+#     p.map(check_Jan22bx, glob('data/fpgaLin/Jan24a_C2_*.root'))
+    p.map(check_Jan22bx, glob('data/fpgaLin/Jan25a_C2_*.root'))
 
 def check_Jan22bx(fname):
     out = fname[:-5]+'.dat'
