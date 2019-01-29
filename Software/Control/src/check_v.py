@@ -32,11 +32,29 @@ def test2():
             gr.SetPointError(n, 0, a[1])
 #         break
 
-    gr.Fit('pol1')
-    fun1 = gr.GetFunction('pol1')
+    fun0 = TF1('fun0','pol1', 0,800)
+    fun1 = TF1('fun1','pol1', 0,295)
+    fun2 = TF1('fun2','pol1', 295,595)
+    fun3 = TF1('fun3','pol1', 595,800)
+    fun0.SetLineColor(kGray)
     fun1.SetLineColor(2)
-    fun1.SetLineStyle(2)
-    gr.Draw('AP')        
+    fun2.SetLineColor(3)
+    fun3.SetLineColor(4)
+
+    gr.Fit(fun0,'R')
+    gr.Fit(fun1,'R+')
+    gr.Fit(fun2,'R+')
+    gr.Fit(fun3,'R+')
+#     gr.Fit('pol1')
+#     fun1 = gr.GetFunction('pol1')
+#     fun1.SetLineColor(2)
+#     fun1.SetLineStyle(2)
+
+    gStyle.SetOptFit(0)
+    gr.Draw('AP')
+    h1 = gr.GetHistogram()
+    h1.GetXaxis().SetTitle("Input [mV]")
+    h1.GetYaxis().SetTitle("Output [V]")
 
     waitRootCmdX()
 
