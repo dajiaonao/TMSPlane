@@ -8,6 +8,8 @@ gROOT.LoadMacro("sp.C+")
 
 from ROOT import SignalProcessor
 
+from rootUtil import waitRootCmdX, useNxStyle
+
 
 def check0():
     inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
@@ -83,6 +85,84 @@ def check0():
         if x=='q': break
 
 
+def check1():
+    inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
+    ich    = int(sys.argv[2]) if len(sys.argv)>2 else 0
+    nEvt   = int(sys.argv[3]) if len(sys.argv)>3 else None
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+    freq = 1000
+    n1 = int(1/(0.2*freq*0.000001))
+    sp1.sRanges.clear()
+    ip = 0
+    dn = 2500%n1 ## 2500 is the expected position of the signal
+    while ip+dn < sp1.nSamples:
+        sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
+        ip += n1
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    if nEvt is None: nEvt = tree1.GetEntries()
+
+    fout1 = TFile('out_filter_check.root','recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'evt:fR:fW:ich:b:bE:im:idx:A')
+
+    INTV = 1000 if nEvt>10000 else max(nEvt/10, 1)
+    ### range
+    itmp = None
+    for ievt in range(nEvt):
+        tree1.GetEntry(ievt)
+
+        if ievt%INTV==0: print ievt, ' events processed'
+
+        for R in range(50,300, 50):
+            for W in range(50, 600, 50):
+                sp1.fltParam.clear()
+                for x in [500, R, W, -1.]: sp1.fltParam.push_back(x)
+                sp1.measure_pulse(data1,ich)
+
+                if itmp is None: itmp = sp1.nMeasParam*ich ## we only need to do this calculation once
+#                 for itmp in range(sp1.nAdcCh)
+                for j in range(sp1.nMeasParam/2-1):
+                    tup1.Fill(ievt, R, W, ich, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3])
+
+    tup1.Write()
+    fout1.Close()
+
+
+def checkENC():
+    ich = 0
+    fin1 = TFile('out_filter_check.root','read')
+    tup1 = fin1.Get('tup1')
+
+    fout1 = TFile('out_filter_check_enc.root','recreate')
+    tup2 = TNtuple('tup2',"filter analysis tuple enc",'ich:fR:fW:m:mE:sigma:sigmaE:fq:fStatus')
+
+    for R in range(50,300, 50):
+        for W in range(50, 600, 50):
+            gDirectory.Delete('h1*')
+            tup1.Draw('A>>h1','int(fW)=={0:d}&&int(fR)=={1:d}'.format(W,R),'goff')
+            h1 = gDirectory.Get('h1')
+#             print R, W, h1.GetEntries()
+            r = h1.Fit('gaus', 'S0')
+            fun1 = h1.GetFunction('gaus')
+            tup2.Fill(ich, R, W, fun1.GetParameter(1),fun1.GetParError(1), fun1.GetParameter(2),fun1.GetParError(2), r.Prob(), r.Status())
+#             h1.Draw()
+#             gPad.Update()
+#             a = raw_input()
+#             if a == 'q': return
+#             waitRootCmdX()
+
+    tup2.Write()
+    fout1.Close()
+
+
+
 
 def main():
     inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
@@ -154,4 +234,6 @@ def main():
 
 if __name__ == '__main__':
 #     main()
-    check0()
+#     check0()
+#     check1()
+    checkENC()
