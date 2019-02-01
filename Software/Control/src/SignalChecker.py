@@ -236,14 +236,17 @@ def test1():
 #         time.sleep(20)
 #         sc1.take_samples2(5000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
 #         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
-    tag1 = dir1+'Jan28b_C2_'
-    for iv in range(31):
-        v = 0.025+iv*0.025
 
-#         if v<0.37: continue
-        setPulse(v,500)
-        time.sleep(50)
-        sc1.take_samples2(100, tag1+"{0:d}mV_f500.root".format(int(v*1000)))
+#     tag1 = dir1+'Jan28b_C2_'
+#     for iv in range(31):
+#         v = 0.025+iv*0.025
+# 
+# #         if v<0.37: continue
+#         setPulse(v,500)
+#         time.sleep(50)
+#         sc1.take_samples2(100, tag1+"{0:d}mV_f500.root".format(int(v*1000)))
+    sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
+
 #
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")

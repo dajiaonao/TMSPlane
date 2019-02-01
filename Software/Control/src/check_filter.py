@@ -2,13 +2,15 @@
 import sys
 import matplotlib.pyplot as plt
 from array import array
+from multiprocessing import Pool
+from glob import glob
+from rootUtil import waitRootCmdX, useNxStyle
+
 
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 
 from ROOT import SignalProcessor
-
-from rootUtil import waitRootCmdX, useNxStyle
 
 
 def check0():
@@ -85,11 +87,8 @@ def check0():
         if x=='q': break
 
 
-def check1():
-    inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
-    ich    = int(sys.argv[2]) if len(sys.argv)>2 else 0
-    nEvt   = int(sys.argv[3]) if len(sys.argv)>3 else None
-
+def check1(inRoot, chRange=None, nEvt=None):
+    print inRoot
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
@@ -108,13 +107,13 @@ def check1():
     tree1 = fin1.Get('tree1')
     tree1.SetBranchAddress('adc',data1)
     if nEvt is None: nEvt = tree1.GetEntries()
+    if chRange is None: chRange = range(sp1.nAdcCh)
 
-    fout1 = TFile('out_filter_check.root','recreate')
+    fout1 = TFile(inRoot.rstrip('.root')+'_tt.root','recreate')
     tup1 = TNtuple('tup1',"filter analysis tuple",'evt:fR:fW:ich:b:bE:im:idx:A')
 
+    ### start processing
     INTV = 1000 if nEvt>10000 else max(nEvt/10, 1)
-    ### range
-    itmp = None
     for ievt in range(nEvt):
         tree1.GetEntry(ievt)
 
@@ -124,16 +123,26 @@ def check1():
             for W in range(50, 600, 50):
                 sp1.fltParam.clear()
                 for x in [500, R, W, -1.]: sp1.fltParam.push_back(x)
-                sp1.measure_pulse(data1,ich)
+                sp1.measure_pulse(data1)
 
-                if itmp is None: itmp = sp1.nMeasParam*ich ## we only need to do this calculation once
-#                 for itmp in range(sp1.nAdcCh)
-                for j in range(sp1.nMeasParam/2-1):
-                    tup1.Fill(ievt, R, W, ich, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3])
+                for ich in chRange:
+                    itmp = sp1.nMeasParam*ich
+                    for j in range(sp1.nMeasParam/2-1):
+                        tup1.Fill(ievt, R, W, ich, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3])
 
     tup1.Write()
     fout1.Close()
 
+def run1():
+    inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
+    ich    = sys.argv[2].split(',') if len(sys.argv)>2 else None
+    nEvt   = int(sys.argv[3]) if len(sys.argv)>3 else None
+
+    check1(inRoot, ich, nEvt)
+
+def process_check1():
+    p = Pool(6)
+    p.map(check1, glob('data/fpgaLin/Jan25a_C2_*_f1000.root'))
 
 def checkENC():
     ich = 0
@@ -235,5 +244,6 @@ def main():
 if __name__ == '__main__':
 #     main()
 #     check0()
-#     check1()
-    checkENC()
+#     run1()
+    process_check1()
+#     checkENC()

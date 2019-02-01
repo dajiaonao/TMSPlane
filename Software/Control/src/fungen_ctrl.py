@@ -12,10 +12,10 @@ import sys
 import shutil
 import math
 # use either usbtmc or NI Visa
-try:
-    import usbtmc
-except:
-    import visa
+# try:
+#     import usbtmc
+# except:
+#     import visa
 
 ## Rigol DG1022
 class DG1022(object):
@@ -144,20 +144,24 @@ class DG1022(object):
 def main():
     hV = float(sys.argv[1]) if len(sys.argv)>1 else 0.05
     fQ = int(sys.argv[2]) if len(sys.argv)>2 else 100
+    np = int(sys.argv[3]) if len(sys.argv)>3 else 1024
 
     print("Setting high V: {0:.3f} and Frequency {1:d}".format(hV, fQ))
     if hV > 1:
         print('The demanded high V is too high: {0:.3f}. Abort...'.format(hV))
         sys.exit(1)
 
+    test(fQ, 64, np, 0.01)
+    return
 
     fg = DG1022()
     fg.set_voltage(0.0, hV)
-    fg.setup_tail_pulse2(fQ, 64, 1024, 0.01)
+    fg.setup_tail_pulse2(fQ, 64, np, 0.01)
 #    fg.set_phase(100)
     fg.turn_on_output()
 #     fg.setupCH2(fQ,0.0,hV,'SIN')
-    fg.setupCH2(fQ,0.0,hV,'StairUp')
+#     fg.setupCH2(fQ,0.0,hV,'StairUp')
+    fg.setupCH2(fQ,0.0,hV,'VOLATILE')
 #     fg.turn_on_trigger()
 #     fg.setupCH2(fQ,0.0,hV,'PPulse')
     fg.close()
@@ -173,10 +177,20 @@ def test(freq=100, xp=16, np=1024, alpha=0.01):
     amax = 16383
     vals=[0 for i in xrange(np)]
 
-    pp = int(0.0005*freq*np)%np
-    dp = pp+int(0.00001*freq*np)
-    for i in range(pp-xp): vals[i] = int(amax*(1-math.exp(-(i+np-dp)*alpha)))
+
+    alpha /= (np/1024.)
+    pp = int(0.0005*freq*np)%np ### the pulse will always be at around 0.5 ms of the sample
+    dp = pp+int(0.00002*freq*np) ### keep high voltage for 0.01 ms
+    for i in range(pp): vals[i] = int(amax*(1-math.exp(-(i+np-dp)*alpha)))
     for i in range(dp,np): vals[i] = int(amax*(1-math.exp(-(i-dp)*alpha)))
+
+#     amax = 16383
+#     vals=[0 for i in xrange(np)]
+# 
+#     pp = int(0.0005*freq*np)%np
+#     dp = pp+int(0.00001*freq*np)
+#     for i in range(pp-xp): vals[i] = int(amax*(1-math.exp(-(i+np-dp)*alpha)))
+#     for i in range(dp,np): vals[i] = int(amax*(1-math.exp(-(i-dp)*alpha)))
 
     string = "DATA:DAC VOLATILE"
     for i in xrange(np):
