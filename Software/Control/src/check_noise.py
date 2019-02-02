@@ -36,7 +36,7 @@ def test5():
     n1 = 16384
     n2 = 16381
     n3 = 10000
-    fMax = 5000.
+    fMax = 2500. ### 2500 kHz, the maximum frequency is sampling_rate/2
 
     for ievt in range(ch1.GetEntries()):
         n = ch1.Draw('adc[12]','Entry$=={0:d}'.format(ievt),'goff')
