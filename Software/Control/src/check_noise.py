@@ -22,6 +22,44 @@ class var:
         ### see https://docs.scipy.org/doc/numpy-1.15.0/reference/routines.fft.html about the 1/sqrt(n_sample) normalization
         return self.norm*m, self.norm*sqrt(self.sumx2/self.nx - m*m)
 
+def test6():
+    '''Check the low and high frequency'''
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+
+    fs1 = None
+    n1 = 16384
+    fMax = 2500. ### 2500 kHz, the maximum frequency is sampling_rate/2
+
+    for ievt in range(ch1.GetEntries()):
+        n = ch1.Draw('adc[12]','Entry$=={0:d}'.format(ievt),'goff')
+        v1 = ch1.GetV1()
+        var1 = [v1[i] for i in range(n1)]
+
+        sp1 = np.fft.rfft(var1, n1)
+        if fs1 is None: fs1 = [var(N=n1) for i in range(sp1.size)]
+        for i in range(sp1.size): fs1[i].add(np.abs(sp1[i]))
+
+    fv1 = [a.value()[0] for a in fs1]
+    plotFun = plt.semilogy
+#     plotFun = plt.loglog
+    color=iter(cm.rainbow(np.linspace(0,1,5)))
+    for ip in range(5):
+        p = ip+1
+        pMax = fMax/p
+        v = pow(10, ip)
+        plotFun(np.arange(0, pMax, pMax/len(fv1)), [a*v for a in fv1], c=next(color), label='p={0:d}'.format(p))
+
+    plt.xlabel('Frequency [kHz]')
+    plt.ylabel('Amplitude')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
+
+
+
 def test5():
     '''Check one channel, for mutiple samples, compare the effect of different sample size'''
     ch1 = TChain('tree1')
@@ -58,12 +96,12 @@ def test5():
     fv1 = [a.value()[0] for a in fs1]
     fv2 = [a.value()[0] for a in fs2]
     fv3 = [a.value()[0] for a in fs3]
-#     plt.semilogy(np.arange(0, fMax, fMax/len(fv1)), fv1, c=next(color), label='N={0:d}'.format(n1))
-#     plt.semilogy(np.arange(0, fMax, fMax/len(fv2)), fv2, c=next(color), label='N={0:d}'.format(n2))
-#     plt.semilogy(np.arange(0, fMax, fMax/len(fv3)), fv3, c=next(color), label='N={0:d}'.format(n3))
-    plt.loglog(np.arange(0, fMax, fMax/len(fv1)), fv1, c=next(color), label='N={0:d}'.format(n1))
-    plt.loglog(np.arange(0, fMax, fMax/len(fv2)), fv2, c=next(color), label='N={0:d}'.format(n2))
-    plt.loglog(np.arange(0, fMax, fMax/len(fv3)), fv3, c=next(color), label='N={0:d}'.format(n3))
+    plt.semilogy(np.arange(0, fMax, fMax/len(fv1)), fv1, c=next(color), label='N={0:d}'.format(n1))
+    plt.semilogy(np.arange(0, fMax, fMax/len(fv2)), fv2, c=next(color), label='N={0:d}'.format(n2))
+    plt.semilogy(np.arange(0, fMax, fMax/len(fv3)), fv3, c=next(color), label='N={0:d}'.format(n3))
+#     plt.loglog(np.arange(0, fMax, fMax/len(fv1)), fv1, c=next(color), label='N={0:d}'.format(n1))
+#     plt.loglog(np.arange(0, fMax, fMax/len(fv2)), fv2, c=next(color), label='N={0:d}'.format(n2))
+#     plt.loglog(np.arange(0, fMax, fMax/len(fv3)), fv3, c=next(color), label='N={0:d}'.format(n3))
 
     plt.xlabel('Frequency [kHz]')
     plt.ylabel('Amplitude')
@@ -196,6 +234,5 @@ def test1():
 #     plt.plot(freq, sp.imag)
     plt.show()
 
-
 if __name__ == '__main__':
-    test5()
+    test6()
