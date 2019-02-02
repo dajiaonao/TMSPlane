@@ -245,7 +245,8 @@ def test1():
 #         setPulse(v,500)
 #         time.sleep(50)
 #         sc1.take_samples2(100, tag1+"{0:d}mV_f500.root".format(int(v*1000)))
-    sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
+#     sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
+    sc1.take_samples2(5000, dir1+"Feb01a_noise_dc.root")
 
 #
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
