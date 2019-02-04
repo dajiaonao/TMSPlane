@@ -8,7 +8,7 @@ from ctypes import *
 from array import array
 
 class var:
-    def __init__(self, N=None):
+    def __init__(self, N=16384):
         self.sumx = 0
         self.sumx2 = 0
         self.nx = 0
@@ -152,11 +152,57 @@ def test4():
     tree2.Write()
     fout1.Close()
 
+def test3b():
+    '''Process mutiple channels and show them on a (scaled) plot'''
+    nAdcCh = 20
+    nSamples = 16384 
+    data1 = array('f',[0]*(nSamples*nAdcCh))
+
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+#     ch1.Add('data/fpgaLin/Feb01a_noise_dc.root')
+    ch1.SetBranchAddress('adc',data1)
+
+#     cRange = range(nAdcCh)
+    cRange = [2,3]
+    fs = [None]*nAdcCh
+    color=iter(cm.rainbow(np.linspace(0,1,len(cRange))))
+
+#     nEvt = ch1.GetEntries()
+    nEvt = 30
+    INTV = 1000 if nEvt>10000 else max(nEvt/10, 1)
+    for ievt in range(nEvt):
+        if ievt%INTV==0: print ievt, ' events processed'
+        ch1.GetEntry(ievt)
+
+        for ich in cRange:
+            var1 = data1[nSamples*ich:nSamples*(ich+1)]
+            sp = np.fft.rfft(var1, nSamples)
+
+            if fs[ich] is None:
+                fs[ich] = [var() for i in range(sp.size)]
+            for i in range(sp.size):
+                fs[ich][i].add(np.abs(sp[i]))
+
+    for ich in cRange:
+        fv = [a.value()[0]*pow(10,ich) for a in fs[ich]]
+#         fe = [a.value()[1]/a.value()[0] for a in fs[ich]]
+#         plt.semilogy(np.arange(len(fs[ich])), fv, label=r'Ch {0:d} ($\times 10^{0:d}$)'.format(ich), c=next(color))
+        plt.semilogy(np.arange(len(fs[ich])), fv, label=r'$\alpha - \beta$', c=next(color))
+#         plt.semilogy(np.arange(len(fs)), fe, label='{0:d} error'.format(ich), c=next(color))
+
+#     plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
+
 def test3():
     '''Process mutiple channels and show them on a (scaled) plot'''
     ch1 = TChain('tree1')
-#     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
-    ch1.Add('data/fpgaLin/Feb01a_noise_dc.root')
+    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+#     ch1.Add('data/fpgaLin/Feb01a_noise_dc.root')
 
 #     for ich in [2,3,4,5,12,17]:
     n = 2*2
@@ -235,4 +281,4 @@ def test1():
     plt.show()
 
 if __name__ == '__main__':
-    test6()
+    test3b()
