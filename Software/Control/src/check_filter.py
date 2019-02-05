@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys
+import sys, os
 import matplotlib.pyplot as plt
 from array import array
 from multiprocessing import Pool
@@ -87,8 +87,15 @@ def check0():
         if x=='q': break
 
 
-def check1(inRoot, chRange=None, nEvt=None):
-    print inRoot
+def check1(inRoot, chRange=None, nEvt=None, oTag='_tt'):
+    '''Use various filters to extract the results'''
+
+    if os.path.exists(inRoot.rstrip('.root')+oTag+'.root'):
+        print "has:", inRoot
+        return
+
+#     print inRoot
+#     return
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
@@ -109,7 +116,7 @@ def check1(inRoot, chRange=None, nEvt=None):
     if nEvt is None: nEvt = tree1.GetEntries()
     if chRange is None: chRange = range(sp1.nAdcCh)
 
-    fout1 = TFile(inRoot.rstrip('.root')+'_tt.root','recreate')
+    fout1 = TFile(inRoot.rstrip('.root')+oTag+'.root','recreate')
     tup1 = TNtuple('tup1',"filter analysis tuple",'evt:fR:fW:ich:b:bE:im:idx:A')
 
     ### start processing
@@ -130,7 +137,20 @@ def check1(inRoot, chRange=None, nEvt=None):
                     for j in range(sp1.nMeasParam/2-1):
                         tup1.Fill(ievt, R, W, ich, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3])
 
+    ### save the ENC results
+    tup2 = TNtuple('tup2',"filter analysis tuple enc",'ich:fR:fW:m:mE:sigma:sigmaE:fq:fStatus')
+    for R in range(50,300, 50):
+        for W in range(50, 600, 50):
+            for ich in chRange:
+                gDirectory.Delete('h1*')
+                tup1.Draw('A>>h1','int(fW)=={0:d}&&int(fR)=={1:d}&&ich=={2:d}'.format(W,R,ich),'goff')
+                h1 = gDirectory.Get('h1')
+                r = h1.Fit('gaus', 'S0')
+                fun1 = h1.GetFunction('gaus')
+                tup2.Fill(ich, R, W, fun1.GetParameter(1),fun1.GetParError(1), fun1.GetParameter(2),fun1.GetParError(2), r.Prob(), r.Status())
+
     tup1.Write()
+    tup2.Write()
     fout1.Close()
 
 def run1():
@@ -169,6 +189,30 @@ def checkENC():
 
     tup2.Write()
     fout1.Close()
+
+def checkENC_d():
+    ich = 0
+    fin1 = TFile('data/fpgaLin/Jan25a_C2_200mV_f1000_tt.root','read')
+    tup1 = fin1.Get('tup1')
+
+    for R in range(50,300, 50):
+        for W in range(50, 600, 50):
+            gDirectory.Delete('h1*')
+            tup1.Draw('A>>h1','int(fW)=={0:d}&&int(fR)=={1:d}&&ich=={2:d}'.format(W,R,ich),'goff')
+            h1 = gDirectory.Get('h1')
+#             print R, W, h1.GetEntries()
+            r = h1.Fit('gaus', 'S0')
+            fun1 = h1.GetFunction('gaus')
+#             tup2.Fill(ich, R, W, fun1.GetParameter(1),fun1.GetParError(1), fun1.GetParameter(2),fun1.GetParError(2), r.Prob(), r.Status())
+            if r.Prob()<0.05:
+                h1.Draw()
+                gPad.Update()
+                a = raw_input()
+                if a == 'q': return
+#             waitRootCmdX()
+
+#     tup2.Write()
+#     fout1.Close()
 
 
 
@@ -247,3 +291,4 @@ if __name__ == '__main__':
 #     run1()
     process_check1()
 #     checkENC()
+#     checkENC_d()
