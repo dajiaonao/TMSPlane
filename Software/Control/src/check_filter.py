@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-import sys, os
+import sys, os, re
 import matplotlib.pyplot as plt
 from array import array
 from multiprocessing import Pool
 from glob import glob
 from rootUtil import waitRootCmdX, useNxStyle
+# from scipy.signal import find_peaks
+from scipy.signal import find_peaks_cwt
+import numpy as np
+# from scipy import signal
 
 
 from ROOT import *
@@ -71,17 +75,28 @@ def check0():
         ax2.clear()
 
         sp1.fltParam.clear()
-        for x in [500, 150, 200, -1.]: sp1.fltParam.push_back(x)
+        for x in [500, 150, 200, 2500]: sp1.fltParam.push_back(x)
         sp1.measure_pulse(data1,ich)
         ax2.plot([sp1.scrAry[i] for i in range(sp1.nSamples)], 'r.')
 
         sp1.fltParam.clear()
-        for x in [500, 500, 200, -1.]: sp1.fltParam.push_back(x)
+        for x in [500, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#         for x in [500, 150, 200, 2500]: sp1.fltParam.push_back(x)
         sp1.measure_pulse(data1,ich)
-        ax2.plot([sp1.scrAry[i] for i in range(sp1.nSamples)], 'g.')
+#         ax2.plot([sp1.scrAry[i] for i in range(sp1.nSamples)], 'g.')
+        
+        vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
+        ax2.plot(vx, 'g.')
+
+#         peakind = find_peaks_cwt(vx, np.arange(1,100))
+        peaks = find_peaks_cwt(vx, np.array([5, 10, 20,30,50,100,200,350]), min_snr=50)
+        print peaks, vx[peaks]
+#         peaks, properties = signal.find_peaks(vx, prominence=1, width=20)
+        plt.plot(peaks, vx[peaks], "x")
 
         fig.tight_layout()
         plt.draw()
+        plt.grid(True)
         plt.pause(0.001)
         x = raw_input("Press [enter] to continue.")
         if x=='q': break
@@ -136,6 +151,7 @@ def check1(inRoot, chRange=None, nEvt=None, oTag='_tt'):
                     itmp = sp1.nMeasParam*ich
                     for j in range(sp1.nMeasParam/2-1):
                         tup1.Fill(ievt, R, W, ich, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3])
+    tup1.Write()
 
     ### save the ENC results
     tup2 = TNtuple('tup2',"filter analysis tuple enc",'ich:fR:fW:m:mE:sigma:sigmaE:fq:fStatus')
@@ -149,7 +165,6 @@ def check1(inRoot, chRange=None, nEvt=None, oTag='_tt'):
                 fun1 = h1.GetFunction('gaus')
                 tup2.Fill(ich, R, W, fun1.GetParameter(1),fun1.GetParError(1), fun1.GetParameter(2),fun1.GetParError(2), r.Prob(), r.Status())
 
-    tup1.Write()
     tup2.Write()
     fout1.Close()
 
@@ -213,9 +228,48 @@ def checkENC_d():
 
 #     tup2.Write()
 #     fout1.Close()
+def scan_run():
+    with open('flt_test.ttl','w') as fout1:
+        fout1.write('ich/I:Vin/F:W/I:R/I:enc')
 
+        for fname in glob('data/fpgaLin/Jan25a_C2_*mV_f1000_tt.root'):
+            fin1 = TFile(fname,'read')
+            tup2 = fin1.Get('tup2')
+            if not tup2:
+                print fname, 'tree'
+                continue
 
+            m = re.match(r".*_C2_(\d+)mV_f1000_tt.root", fname)
+            if m is None:
+                print fname
+                continue
+            vin = m.group(1)
 
+            for ich in range(20):
+                n = tup2.Draw("sigma/m:fW:fR","ich=={0:d}".format(ich),"goff")
+                if n == 0:
+                    print fname, n, ich
+                    continue
+                enc = tup2.GetV1()
+                fW = tup2.GetV2()
+                fR = tup2.GetV3()
+
+                a = TMath.LocMin(n, tup2.GetV1())
+                fout1.write('\n'+' '.join([str(ich),vin,str(fW[a]), str(fR[a]), str(enc[a])]))
+
+def scan_test():
+    ich = 0
+    fin1 = TFile('data/fpgaLin/Jan25a_C2_100mV_f1000_tt.root','read')
+    tup2 = fin1.Get('tup2')
+
+    n = tup2.Draw("sigma/m:fW:fR","ich==2","goff")
+    enc = tup2.GetV1()
+    fW = tup2.GetV2()
+    fR = tup2.GetV3()
+
+    a = TMath.LocMin(n, tup2.GetV1())
+    print a, enc[a], fW[a], fR[a]
+    for i in range(n): print '--', i, enc[i]
 
 def main():
     inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
@@ -224,7 +278,7 @@ def main():
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
-    for x in [500, 150, 200, -1.]: sp1.fltParam.push_back(x)
+    for x in [50, 150, 200, -1.]: sp1.fltParam.push_back(x)
 
     freq = 1000
     n1 = int(1/(0.2*freq*0.000001))
@@ -287,8 +341,10 @@ def main():
 
 if __name__ == '__main__':
 #     main()
-#     check0()
+#     scan_test()
+#     scan_run()
+    check0()
 #     run1()
-    process_check1()
+#     process_check1()
 #     checkENC()
 #     checkENC_d()

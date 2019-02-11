@@ -9,23 +9,78 @@ from array import array
 
 from multiprocessing import Pool
 from glob import glob
+import os, time, re
 
+def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
+    if oTag is None:
+        oTag = readSignal2.oTag
+    print "Starting", inRoot, oTag
+#     return
+
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            run = int(m.group(1))
+    print run
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+    sp1.fltParam.clear()
+#     for x in [50, 150, 200, -1.]: sp1.fltParam.push_back(x)
+#     for x in [50, 150, 200, 2500]: sp1.fltParam.push_back(x)
+    for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
+
+    n1 = int(1/(0.2*freq*0.000001))
+    sp1.sRanges.clear()
+    ip = 0
+    dn = 2500%n1 ## 2500 is the expected position of the signal
+#     while ip+dn < sp1.nSamples:
+#         sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
+#         ip += n1
+
+    sp1.sRanges.push_back((0, 400))
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:im:idx:A:T')
+
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse(data1)
+        for i in range(sp1.nAdcCh):
+            itmp = sp1.nMeasParam*i
+            for j in range(sp1.nMeasParam/2-1):
+                tup1.Fill(run, ievt, i, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3], dataT[0]-788947200)
+
+    tup1.Write()
+    fout1.Close()
 
 def readSignal(inRoot, outText, freq=1000):
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
-    for x in [500, 150, 200, -1.]: sp1.fltParam.push_back(x)
+    for x in [50, 150, 200, -1.]: sp1.fltParam.push_back(x)
 
     n1 = int(1/(0.2*freq*0.000001))
     sp1.sRanges.clear()
     ip = 0
     dn = 2500%n1 ## 2500 is the expected position of the signal
-    while ip+dn < sp1.nSamples:
-        sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
-        ip += n1
+#     while ip+dn < sp1.nSamples:
+#         sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
+#         ip += n1
 
+    sp1.sRanges.push_back((0, 400))
 #     while ip+n1<sp1.nSamples:
 #         sp1.sRanges.push_back((ip, ip+n1))
 #         ip += n1
@@ -70,6 +125,38 @@ def test_Jan22b():
 #     p.map(check_Jan22bx, glob('data/fpgaLin/Jan24a_C2_*.root'))
     p.map(check_Jan22bx, glob('data/fpgaLin/Jan25a_C2_*.root'))
 
+def test_Feb06c(oTag):
+    p = Pool(6)
+
+    files = sorted([f for f in glob('data/fpgaLin/Feb06c_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+#     p.map(check_Jan22bx, files)
+#     p.map(check_Jan22by, files)
+    p.map(readSignal2, files)
+# readSignal2.oTag = 'sp2_'
+
+def test_Feb09(oTag):
+    p = Pool(6)
+
+    files = sorted([f for f in glob('data/fpgaLin/Feb09*_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+#     p.map(check_Jan22bx, files)
+#     p.map(check_Jan22by, files)
+    p.map(readSignal2, files)
+readSignal2.oTag = 'sp2_'
+
+
+def check_Jan22by(fname):
+    tag = 'sp_'
+    print "Starting", fname, tag
+    readSignal2(fname, tag, 1000)
+
 def check_Jan22bx(fname):
     out = fname[:-5]+'.dat'
     print "Starting", fname, out
@@ -111,6 +198,13 @@ def check_calib():
 if __name__ == '__main__':
 #     testJ()
 #     testK()
-    test_Jan22b()
+#     test_Jan22b()
 #     readSignal(inRoot = 'data/fpgaLin/Jan22a_C2_100mV_f500.root', outText='data/fpgaLin/Jan22a_C2_100mV_f500.dat', freq=500)
+#     readSignal(inRoot = 'data/fpgaLin/Feb05a_noise_dc_ch19.root', outText='data/fpgaLin/Feb05a_noise_dc_ch19.dat', freq=100)
+#     readSignal(inRoot = 'data/fpgaLin/Feb06a_noise_dc_ch19.root', outText='data/fpgaLin/Feb06a_noise_dc_ch19.dat', freq=100)
+#     readSignal2(inRoot = 'data/fpgaLin/Feb06c_data_50.root', oTag='t1_')
+#     readSignal2(inRoot = 'data/fpgaLin/Feb09a_data_1.root', oTag='sp0_')
+#     readSignal(inRoot = 'data/fpgaLin/Feb06b_data_1.root', outText='data/fpgaLin/Feb06b_data_1.dat', freq=100)
 #     check_calib()
+    test_Feb09('sp2_')
+#     test_Feb06c('sp2_')

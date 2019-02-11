@@ -7,6 +7,10 @@ from matplotlib.pyplot import cm
 from ctypes import *
 from array import array
 
+
+gROOT.LoadMacro("dPhi.C+")
+from ROOT import dPhi
+
 class var:
     def __init__(self, N=16384):
         self.sumx = 0
@@ -265,6 +269,8 @@ def test2b():
 
     color=iter(cm.rainbow(np.linspace(0,1,10)))
     fs = None
+    fp = None
+    iref = 0
     ich = 2
     for ievt in range(ch1.GetEntries()):
         n = ch1.Draw('adc[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
@@ -272,10 +278,13 @@ def test2b():
         var1 = [v1[i] for i in range(n)]
 
         sp = np.fft.rfft(var1, n)
+        aRef = np.angle(sp[iref])
         if fs is None:
             fs = [var() for i in range(sp.size)]
+            fp = [var() for i in range(sp.size)]
         for i in range(sp.size):
             fs[i].add(np.abs(sp[i]))
+            fp[i].add(dPhi(np.angle(sp[i]), aRef))
 
     ievt = 10
     n = ch2.Draw('adc[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
@@ -288,6 +297,7 @@ def test2b():
     fe = [a.value()[1] for a in fs]
     fv2 = [np.abs(a)/sqrt(n) for a in sp]
     fe2 = [(fv2[i]-fv[i])/fe[i] for i in range(len(fv2))]
+    fp2 = [(fv2[i]-fv[i])/fe[i] for i in range(len(fv2))]
 #     plt.loglog(np.arange(len(fs)), fv, 'bo')
 #     plotFun = plt.semilogy
 #     plotFun = plt.loglog
