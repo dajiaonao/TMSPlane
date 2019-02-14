@@ -31,8 +31,9 @@ def test6():
     n1 = 16384
     fMax = 2500. ### 2500 kHz, the maximum frequency is sampling_rate/2
 
+    ich = 12
     for ievt in range(ch1.GetEntries()):
-        n = ch1.Draw('adc[12]','Entry$=={0:d}'.format(ievt),'goff')
+        n = ch1.Draw('adc[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
         v1 = ch1.GetV1()
         var1 = [v1[i] for i in range(n1)]
 
@@ -48,17 +49,17 @@ def test6():
         p = ip+1
         pMax = fMax/p
         v = pow(10, ip)
-        plotFun(np.arange(0, pMax, pMax/len(fv1)), [a*v for a in fv1], c=next(color), label='p={0:d}'.format(p))
+        plotFun(np.arange(0, pMax, pMax/len(fv1)), [a*v for a in fv1], c=next(color), label='F/{0:d}'.format(p))
 
     plt.xlabel('Frequency [kHz]')
     plt.ylabel('Amplitude')
     plt.grid(True)
 
+    plt.annotate("Ch {0:d}".format(ich), xy=(0.1, 0.95), xycoords='axes fraction')
+
     plt.tight_layout()
     plt.legend(loc='best')
     plt.show()
-
-
 
 def test5():
     '''Check one channel, for mutiple samples, compare the effect of different sample size'''
@@ -157,19 +158,23 @@ def test3b():
     nAdcCh = 20
     nSamples = 16384 
     data1 = array('f',[0]*(nSamples*nAdcCh))
+    fMax = 2500. ### 2500 kHz, the maximum frequency is sampling_rate/2
 
     ch1 = TChain('tree1')
     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
 #     ch1.Add('data/fpgaLin/Feb01a_noise_dc.root')
     ch1.SetBranchAddress('adc',data1)
 
-#     cRange = range(nAdcCh)
-    cRange = [2,3]
+    cRange = range(nAdcCh)
+#     cRange = [2,13]
     fs = [None]*nAdcCh
     color=iter(cm.rainbow(np.linspace(0,1,len(cRange))))
 
-#     nEvt = ch1.GetEntries()
-    nEvt = 30
+#     plotFun = plt.semilogy
+    plotFun = plt.loglog
+
+    nEvt = ch1.GetEntries()
+#     nEvt = 30
     INTV = 1000 if nEvt>10000 else max(nEvt/10, 1)
     for ievt in range(nEvt):
         if ievt%INTV==0: print ievt, ' events processed'
@@ -187,12 +192,12 @@ def test3b():
     for ich in cRange:
         fv = [a.value()[0]*pow(10,ich) for a in fs[ich]]
 #         fe = [a.value()[1]/a.value()[0] for a in fs[ich]]
-#         plt.semilogy(np.arange(len(fs[ich])), fv, label=r'Ch {0:d} ($\times 10^{0:d}$)'.format(ich), c=next(color))
-        plt.semilogy(np.arange(len(fs[ich])), fv, label=r'$\alpha - \beta$', c=next(color))
+        plotFun(np.arange(0, fMax, fMax/len(fv)), fv, label=r'Ch {0:d} ($\times 10^{{{0:d}}}$)'.format(ich), c=next(color))
 #         plt.semilogy(np.arange(len(fs)), fe, label='{0:d} error'.format(ich), c=next(color))
 
-#     plt.rc('text', usetex=True)
-    plt.rc('font', family='serif')
+    plt.xlabel('Frequency [kHz]')
+    plt.ylabel('Amplitude')
+    plt.grid(True)
 
     plt.tight_layout()
     plt.legend(loc='best')
@@ -281,4 +286,5 @@ def test1():
     plt.show()
 
 if __name__ == '__main__':
-    test3b()
+#     test3b()
+    test6()
