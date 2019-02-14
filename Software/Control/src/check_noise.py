@@ -7,6 +7,10 @@ from matplotlib.pyplot import cm
 from ctypes import *
 from array import array
 
+
+gROOT.LoadMacro("dPhi.C+")
+from ROOT import dPhi
+
 class var:
     def __init__(self, N=16384):
         self.sumx = 0
@@ -260,11 +264,64 @@ def test2():
     plt.semilogy(np.arange(len(fs)), fv, 'bo')
     plt.show()
 
+def test2b():
+    '''Check one channel, for mutiple samples'''
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+
+    ch2 = TChain('tree1')
+    ch2.Add('data/fpgaLin/Jan25a_C2_225mV_f1000.root')
+
+    color=iter(cm.rainbow(np.linspace(0,1,10)))
+    fs = None
+    fp = None
+    iref = 0
+    ich = 2
+    for ievt in range(ch1.GetEntries()):
+        n = ch1.Draw('adc[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+        v1 = ch1.GetV1()
+        var1 = [v1[i] for i in range(n)]
+
+        sp = np.fft.rfft(var1, n)
+        aRef = np.angle(sp[iref])
+        if fs is None:
+            fs = [var() for i in range(sp.size)]
+            fp = [var() for i in range(sp.size)]
+        for i in range(sp.size):
+            fs[i].add(np.abs(sp[i]))
+            fp[i].add(dPhi(np.angle(sp[i]), aRef))
+
+    ievt = 10
+    n = ch2.Draw('adc[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+    v1 = ch2.GetV1()
+    var1 = [v1[i] for i in range(n)]
+
+    sp = np.fft.rfft(var1, n)
+
+    fv = [a.value()[0] for a in fs]
+    fe = [a.value()[1] for a in fs]
+    fv2 = [np.abs(a)/sqrt(n) for a in sp]
+    fe2 = [(fv2[i]-fv[i])/fe[i] for i in range(len(fv2))]
+    fp2 = [(fv2[i]-fv[i])/fe[i] for i in range(len(fv2))]
+#     plt.loglog(np.arange(len(fs)), fv, 'bo')
+#     plotFun = plt.semilogy
+#     plotFun = plt.loglog
+    plotFun = plt.semilogx
+#     plotFun(np.arange(len(fs)), fv2, label='Signal', c=next(color))
+    plotFun(np.arange(len(fs)), fe2, label='Derivation', c=next(color))
+#     plotFun(np.arange(len(fs)), fv, label='Noise', c=next(color))
+
+
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
+
 
 def test1():
     '''Check one channel, using one sample'''
     ch1 = TChain('tree1')
     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+#     ch1.Add('data/fpgaLin/Jan25a_C2_225mV_f1000.root')
 
     n = ch1.Draw('adc[12]','Entry$==50','goff')
     v1 = ch1.GetV1()
@@ -287,4 +344,5 @@ def test1():
 
 if __name__ == '__main__':
 #     test3b()
-    test6()
+#     test6()
+    test2b()

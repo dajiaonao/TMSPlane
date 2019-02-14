@@ -246,7 +246,18 @@ def test1():
 #         time.sleep(50)
 #         sc1.take_samples2(100, tag1+"{0:d}mV_f500.root".format(int(v*1000)))
 #     sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
-    sc1.take_samples2(5000, dir1+"Feb01a_noise_dc.root")
+#     sc1.take_samples2(5000, dir1+"Feb01a_noise_dc.root")
+#     sc1.take_samples2(5000, dir1+"Feb05a_noise_dc_ch19.root")
+    nSample = 0
+#     while True:
+#         sc1.take_samples2(1000, dir1+"Feb06c_data_{0:d}.root".format(nSample))
+#         nSample += 1
+    while True:
+#         sc1.take_samples2(2000, dir1+"Feb08t1_data_{0:d}.root".format(nSample))
+        sc1.take_samples2(1000, dir1+"Feb09b_data_{0:d}.root".format(nSample))
+        nSample += 1
+#     sc1.take_samples2(1000, dir1+"Feb06a_noise_dc_ch19.root")
+#     sc1.take_samples2(5000, dir1+"Feb06b_noise_dc_ch19.root")
 
 #
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
