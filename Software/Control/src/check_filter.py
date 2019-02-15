@@ -89,10 +89,10 @@ def check0():
         ax2.plot(vx, 'g.')
 
 #         peakind = find_peaks_cwt(vx, np.arange(1,100))
-        peaks = find_peaks_cwt(vx, np.array([5, 10, 20,30,50,100,200,350]), min_snr=50)
-        print peaks, vx[peaks]
+#         peaks = find_peaks_cwt(vx, np.array([5, 10, 20,30,50,100,200,350]), min_snr=50)
+#         print peaks, vx[peaks]
 #         peaks, properties = signal.find_peaks(vx, prominence=1, width=20)
-        plt.plot(peaks, vx[peaks], "x")
+#         plt.plot(peaks, vx[peaks], "x")
 
         fig.tight_layout()
         plt.draw()
