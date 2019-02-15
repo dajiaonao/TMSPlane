@@ -31,6 +31,7 @@ def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
 #     for x in [50, 150, 200, -1.]: sp1.fltParam.push_back(x)
 #     for x in [50, 150, 200, 2500]: sp1.fltParam.push_back(x)
     for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [500, 450, 800, 2500]: sp1.fltParam.push_back(x)
 
     n1 = int(1/(0.2*freq*0.000001))
     sp1.sRanges.clear()
@@ -40,7 +41,8 @@ def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
 #         sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
 #         ip += n1
 
-    sp1.sRanges.push_back((0, 400))
+#     sp1.sRanges.push_back((0, 400))
+    sp1.sRanges.push_back((0, 3000))
 
     data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
     dataT = array('i',[0])
@@ -206,5 +208,6 @@ if __name__ == '__main__':
 #     readSignal2(inRoot = 'data/fpgaLin/Feb09a_data_1.root', oTag='sp0_')
 #     readSignal(inRoot = 'data/fpgaLin/Feb06b_data_1.root', outText='data/fpgaLin/Feb06b_data_1.dat', freq=100)
 #     check_calib()
+#     test_Feb09('sp3_')
     test_Feb09('sp2_')
 #     test_Feb06c('sp2_')

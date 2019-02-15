@@ -7,6 +7,8 @@
 #include <TF1.h>
 #include <TGraph.h>
 
+using namespace std;
+
 typedef ANALYSIS_WAVEFORM_BASE_TYPE AWBT;
 
 /// trapezoidal filter
@@ -134,6 +136,123 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
     return 0;
 }
 
+class Filter_ibb{
+ public:
+   int CF_wavLen{-1};
+   int CF_order{-1};
+   double CF_fl{-1};
+   double CF_fh{-1};
+   AWBT *outWav{nullptr};
+
+   Filter_ibb(int wavLen):CF_wavLen(wavLen){ if(wavLen>0) outWav = (AWBT *)malloc(wavLen *sizeof(AWBT)); }
+   ~Filter_ibb(){
+     if(outWav) free(outWav);
+     setup(0, -1,-1);
+   };
+   void setup(int order, double fl, double fh);
+   void apply(const AWBT *inWav);
+
+ private:
+  double *m_A{nullptr};
+  double *m_d1{nullptr};
+  double *m_d2{nullptr};
+  double *m_d3{nullptr};
+  double *m_d4{nullptr};
+  double *m_w0{nullptr};
+  double *m_w1{nullptr};
+  double *m_w2{nullptr};
+  double *m_w3{nullptr};
+  double *m_w4{nullptr};
+};
+
+void Filter_ibb::setup(int order, double fl, double fh){
+  CF_fl = fl;
+  CF_fh = fh;
+
+  if(abs(order) != abs(CF_order)){
+    /// free the existing momery
+    if(CF_order!=0){
+      free(m_A); free(m_d1); free(m_d2); free(m_d3); free(m_d4); free(m_w0); free(m_w1); free(m_w2); free(m_w3); free(m_w4);
+     }
+
+    //// create the new memory if needed
+    int order1 = abs(order)/4;
+    if(order1!=0){
+      m_A  = (double *)malloc(order1 *sizeof(double));
+      m_d1 = (double *)malloc(order1 *sizeof(double));
+      m_d2 = (double *)malloc(order1 *sizeof(double));
+      m_d3 = (double *)malloc(order1 *sizeof(double));
+      m_d4 = (double *)malloc(order1 *sizeof(double));
+      m_w0 = (double *)calloc(order1, sizeof(double));
+      m_w1 = (double *)calloc(order1, sizeof(double));
+      m_w2 = (double *)calloc(order1, sizeof(double));
+      m_w3 = (double *)calloc(order1, sizeof(double));
+      m_w4 = (double *)calloc(order1, sizeof(double));
+    }
+  }
+  CF_order = order;
+
+  return;
+ }
+
+
+void Filter_ibb::apply(const AWBT *inWav){
+    if(CF_order % 4 || CF_fl >= CF_fh) {
+        error_printf("%s(): improper arguments, CF_order(=%d) must be 4, 8, 16... and fl(=%g)<fh(=%g).\n", __FUNCTION__, CF_order, CF_fl, CF_fh);
+        return;
+    }
+
+    double a, a2, b, b2, r;
+
+    int pass = (CF_order>0);
+    int order = abs(CF_order)/4;
+    a = cos(M_PI*(CF_fh+CF_fl)) / cos(M_PI*(CF_fh-CF_fl));
+    a2 = a * a;
+    b = tan(M_PI*(CF_fh-CF_fl));
+    b2 = b * b;
+
+
+    for(ssize_t i=0; i<order; i++) {
+        r = sin(M_PI*(2.0*i+1.0)/(4.0*order));
+        double s = b2 + 2.0*b*r + 1.0;
+
+        if(pass) { /* bandpass */
+            m_A[i] = b2/s;
+        } else {   /* bandstop */
+            m_A[i] = 1.0/s;
+        }
+
+        m_d1[i] = 4.0*a*(1.0+b*r)/s;
+        m_d2[i] = 2.0*(b2-2.0*a2-1.0)/s;
+        m_d3[i] = 4.0*a*(1.0-b*r)/s;
+        m_d4[i] = -(b2 - 2.0*b*r + 1.0)/s;
+    }
+
+    if(pass == 0) { /* bandstop */
+        r = 4.0*a;
+        a = 4.0*a2+2.0;
+    }
+
+    for(ssize_t i=0; i<CF_wavLen; i++) {
+        double s = inWav[i];
+        for(ssize_t j=0; j<order; j++) {
+            m_w0[j] = m_d1[j]*m_w1[j] + m_d2[j]*m_w2[j]+ m_d3[j]*m_w3[j]+ m_d4[j]*m_w4[j] + s;
+            if(pass) {
+                s = m_A[j]*(m_w0[j] - 2.0*m_w2[j] + m_w4[j]);
+            } else {
+                s = m_A[j]*(m_w0[j] - r*m_w1[j] + a*m_w2[j]- r*m_w3[j] + m_w4[j]);
+            }
+            m_w4[j] = m_w3[j];
+            m_w3[j] = m_w2[j];
+            m_w2[j] = m_w1[j];
+            m_w1[j] = m_w0[j];
+        }
+        outWav[i] = s;
+    }
+
+    return;
+}
+
 class Filter_ibl{
  public:
    int CF_wavLen{-1};
@@ -160,23 +279,26 @@ class Filter_ibl{
 
 void Filter_ibl::setup(int order, double fc){
   CF_fc = fc;
-  if(order != CF_order){
+  if(abs(order) != abs(CF_order)){
     /// free the existing momery
-    if(CF_order>=0){
+    if(CF_order!=0){
       free(m_A); free(m_d1); free(m_d2); free(m_w0); free(m_w1); free(m_w2);
      }
-    CF_order = order;
 
     //// create the new memory if needed
-    if(CF_order>=0){
-      m_A  = (double *)malloc(order *sizeof(double));
-      m_d1 = (double *)malloc(order *sizeof(double));
-      m_d2 = (double *)malloc(order *sizeof(double));
-      m_w0 = (double *)calloc(order, sizeof(double));
-      m_w1 = (double *)calloc(order, sizeof(double));
-      m_w2 = (double *)calloc(order, sizeof(double));
+    int order1 = abs(order)/2;
+    if(order1!=0){
+      m_A  = (double *)malloc(order1 *sizeof(double));
+      m_d1 = (double *)malloc(order1 *sizeof(double));
+      m_d2 = (double *)malloc(order1 *sizeof(double));
+      m_w0 = (double *)calloc(order1, sizeof(double));
+      m_w1 = (double *)calloc(order1, sizeof(double));
+      m_w2 = (double *)calloc(order1, sizeof(double));
     }
+    cout << "Done " << order1 << endl;
   }
+  CF_order = order;
+
 
   return;
  }
@@ -189,10 +311,10 @@ void Filter_ibl::apply(const AWBT *inWav){
   double a = tan(M_PI * CF_fc);
   double a2 = a*a;
   int lowpass = (CF_order>0);
-  CF_order = abs(CF_order) / 2;
+  int order = abs(CF_order) / 2;
 
-  for(ssize_t i=0; i<CF_order; i++) {
-      double r = sin(M_PI*(2.0*i+1.0)/(4.0*CF_order));
+  for(ssize_t i=0; i<order; i++) {
+      double r = sin(M_PI*(2.0*i+1.0)/(4.0*order));
       double s = a2 + 2.0*a*r + 1.0;
       if(lowpass) {
           m_A[i] = a2/s;
@@ -205,7 +327,7 @@ void Filter_ibl::apply(const AWBT *inWav){
   if(lowpass) {a = 1.0;} else {a = -1.0;}
   for(ssize_t i=0; i<CF_wavLen; i++) {
       double s = inWav[i];
-      for(ssize_t j=0; j<CF_order; j++) {
+      for(ssize_t j=0; j<order; j++) {
           m_w0[j] = m_d1[j]*m_w1[j] + m_d2[j]*m_w2[j] + s;
           s = m_A[j]*(m_w0[j] + a*2.0*m_w1[j] + m_w2[j]);
           m_w2[j] = m_w1[j];

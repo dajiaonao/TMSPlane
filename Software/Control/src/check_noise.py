@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from ROOT import *
 import numpy as np
-from math import sqrt
+from math import sqrt, exp
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from ctypes import *
@@ -25,6 +25,158 @@ class var:
         m = self.sumx/self.nx
         ### see https://docs.scipy.org/doc/numpy-1.15.0/reference/routines.fft.html about the 1/sqrt(n_sample) normalization
         return self.norm*m, self.norm*sqrt(self.sumx2/self.nx - m*m)
+
+def test8():
+    '''Check the effect of the low pass filter'''
+    plotFun = plt.loglog
+#     plotFun = plt.semilogy
+    plotT = False
+
+    ### first get a waveform
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Feb09b_data_190.root')
+
+    ievt = 20
+    n = ch1.Draw('adc[19]','Entry$=={0:d}'.format(ievt),'goff')
+    v1 = ch1.GetV1()
+    var0 = [v1[i] for i in range(n)]
+    nx = 1./sqrt(n)
+
+    ### seccond, do a fft transform
+    sp = np.fft.rfft(var0, n)
+    fv = [np.abs(a)*nx for a in sp]
+
+    fx = np.arange(len(fv))
+    fx[0] = 0.01
+    print fx[:10]
+    if not plotT: plotFun(fx, fv, label='Orignal')
+
+
+    ### third, check the filtered
+    from ROOT import gROOT
+    gROOT.LoadMacro("sp.C+")
+    from ROOT import Filter_ibl, Filter_ibb
+
+
+    v1f = array('f',var0)
+#     fl1 = Filter_ibl(n)
+    fl1 = Filter_ibb(n)
+
+#     fl1.setup(-4,3.535e-3, 3.665e-3)
+#     fl1.setup(-4,3.601e-3, 3.602e-3)
+    fl1.setup(-4, 3.6005e-3, 3.6025e-3)
+#     fl1.setup(2,3e-3)
+    fl1.apply(v1f)
+    vf1 = np.array([fl1.outWav[i] for i in range(n)])
+
+    sp1 = np.fft.rfft(vf1, n)
+    fv1 = [np.abs(a)*nx for a in sp1]
+    if not plotT: plotFun(fx, fv1, label='Filtered')
+
+#     fl1.setup(2,3e-2)
+    F1 = 0.00360107421875
+    sk = 0.0015
+#     fl1.setup(-4,F1*(1.-sk),F1*(1.+sk))
+    fl1.setup(-4, 3.6005e-3, 3.6025e-3)
+#     fl1.setup(-4, 3.599e-3, 3.605e-3)
+#     fl1.setup(-4,2e-3, 9e-3)
+    fl1.apply(v1f)
+    vf2 = np.array([fl1.outWav[i] for i in range(n)])
+
+    sp2 = np.fft.rfft(vf2, n)
+    fv2 = [np.abs(a)*nx for a in sp2]
+    if not plotT: plotFun(fx, fv2, label='Filtered2')
+
+    if plotT:
+        plt.plot(var0, label='Orignal')
+#         plt.plot(vf1, label='Filtered1')
+#         plt.plot(vf2, label='Filtered2')
+
+
+    if plotT:
+        for i in range(50,70): sp[i] = sp[50]
+        vf3 = np.fft.irfft(sp)
+        plt.plot(vf3, label='rc')
+
+
+    ### show the plots
+    plt.xlabel('Frequency [kHz]')
+    plt.ylabel('Amplitude')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
+
+
+def test7():
+    '''Compare signal and background, 1 channel, average of multiple samples, based on test2()'''
+    plotFun = plt.loglog
+
+    ### first check the exponential
+
+    n = 16384
+    var0 = [0.7]*n
+    for i in range(101,n):
+        var0[i] = 0.7+0.05*exp(-i/2500.)
+
+    nx = 1./sqrt(n)
+    sp = np.fft.rfft(var0, n)
+#     fv = [np.abs(a)*nx for a in sp]
+    fv = [np.angle(a) for a in sp]
+#     plotFun(np.arange(len(fv)), fv, 'go', label='Ideal signal')
+#     plt.plot(np.arange(len(var0)), var0, 'go')
+    plt.plot(np.arange(len(fv)), fv, 'go')
+
+#     plt.show()
+#     return
+
+
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Feb09b_data_190.root')
+
+    fs = None
+    for ievt in range(ch1.GetEntries()):
+        n = ch1.Draw('adc[19]','Entry$=={0:d}'.format(ievt),'goff')
+        v1 = ch1.GetV1()
+        var1 = [v1[i] for i in range(n)]
+
+        sp = np.fft.rfft(var1, n)
+        if fs is None:
+            fs = [var() for i in range(sp.size)]
+        for i in range(sp.size):
+            fs[i].add(np.abs(sp[i]))
+
+    fv = [a.value()[0] for a in fs]
+    plotFun(np.arange(len(fs)), fv, 'bo', label='Noise')
+
+
+    ch2 = TChain('tree1')
+    ch2.Add('data/fpgaLin/Feb09b_data_8.root')
+
+    fs2 = None
+    for ievt in range(ch2.GetEntries()):
+        n = ch2.Draw('adc[19]','Entry$=={0:d}'.format(ievt),'goff')
+        v2 = ch2.GetV1()
+        var2 = [v2[i] for i in range(n)]
+
+        sp = np.fft.rfft(var2, n)
+        if fs2 is None:
+            fs2 = [var() for i in range(sp.size)]
+        for i in range(sp.size):
+            fs2[i].add(np.abs(sp[i]))
+
+    fv2 = [a.value()[0] for a in fs2]
+    plotFun(np.arange(len(fs2)), fv2, 'ro', label='Obs signal')
+
+    plt.xlabel('Frequency [kHz]')
+    plt.ylabel('Amplitude')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.legend(loc='best')
+    plt.show()
+
 
 def test6():
     '''Check the low and high frequency'''
@@ -239,7 +391,8 @@ def test3():
 def test2():
     '''Check one channel, for mutiple samples'''
     ch1 = TChain('tree1')
-    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+#     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+    ch1.Add('data/fpgaLin/Feb09b_data_190.root')
 
     fs = None
     for ievt in range(ch1.GetEntries()):
@@ -256,7 +409,9 @@ def test2():
     fv = [a.value()[0] for a in fs]
     fe = [a.value()[1] for a in fs]
 #     plt.loglog(np.arange(len(fs)), fv, 'bo')
-    plt.semilogy(np.arange(len(fs)), fv, 'bo')
+#     plotFun = plt.semilogx
+    plotFun = plt.loglog
+    plotFun(np.arange(len(fs)), fv, 'bo')
     plt.show()
 
 def test2b():
@@ -265,7 +420,8 @@ def test2b():
     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
 
     ch2 = TChain('tree1')
-    ch2.Add('data/fpgaLin/Jan25a_C2_225mV_f1000.root')
+#     ch2.Add('data/fpgaLin/Jan25a_C2_225mV_f1000.root')
+    ch2.Add('data/fpgaLin/Feb09b_data_0.root')
 
     color=iter(cm.rainbow(np.linspace(0,1,10)))
     fs = None
@@ -315,10 +471,11 @@ def test2b():
 def test1():
     '''Check one channel, using one sample'''
     ch1 = TChain('tree1')
-    ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
+    ch1.Add('data/fpgaLin/Feb09b_data_189.root')
+#     ch1.Add('data/fpgaLin/Jan31a_noise_dc.root')
 #     ch1.Add('data/fpgaLin/Jan25a_C2_225mV_f1000.root')
 
-    n = ch1.Draw('adc[12]','Entry$==50','goff')
+    n = ch1.Draw('adc[19]','Entry$==995','goff')
     v1 = ch1.GetV1()
     var1 = [v1[i] for i in range(n)]
 
@@ -339,4 +496,8 @@ def test1():
 
 if __name__ == '__main__':
 #     test3b()
-    test2b()
+#     test2b()
+#     test1()
+#     test2()
+#     test7()
+    test8()

@@ -14,7 +14,7 @@ import numpy as np
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 
-from ROOT import SignalProcessor
+from ROOT import SignalProcessor, Filter_ibl
 
 
 def check0():
@@ -66,7 +66,15 @@ def check0():
     ax2.set_ylabel('sin', color='r')
     ax2.tick_params('y', colors='r')
 
+
+#     fl1 = Filter_ibl(sp1.nSamples)
+#     fl1.setup(2,3e-3)
+    fl1 = Filter_ibb(sp1.nSamples)
+    fl1.setup(4,2e-3,5e-3)
+
+
 #     for i in range(10):
+
     for i in eRange:
         print i
         tree1.GetEntry(i)
@@ -75,7 +83,8 @@ def check0():
         ax2.clear()
 
         sp1.fltParam.clear()
-        for x in [500, 150, 200, 2500]: sp1.fltParam.push_back(x)
+#         for x in [500, 150, 200, 2500]: sp1.fltParam.push_back(x)
+        for x in [500, 800, 2000, 2500]: sp1.fltParam.push_back(x)
         sp1.measure_pulse(data1,ich)
         ax2.plot([sp1.scrAry[i] for i in range(sp1.nSamples)], 'r.')
 
@@ -87,6 +96,11 @@ def check0():
         
         vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
         ax2.plot(vx, 'g.')
+
+
+        fl1.apply(sp1.scrAry)
+        vf1 = np.array([fl1.outWav[i] for i in range(sp1.nSamples)])
+        ax2.plot(vf1, 'm.')
 
 #         peakind = find_peaks_cwt(vx, np.arange(1,100))
         peaks = find_peaks_cwt(vx, np.array([5, 10, 20,30,50,100,200,350]), min_snr=50)
