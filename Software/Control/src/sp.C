@@ -43,21 +43,23 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
 
 struct Sig{
   int im;
+  int idx;
+  int w0;
   int w1;
   int w2;
   float Q;
-  Sig(int t_im, int t_w1, int t_w2, float t_Q): im(t_im),w1(t_w1),w2(t_w2),Q(t_Q){};
+  Sig(int t_im, int t_idx, int t_w0, int t_w1, int t_w2, float t_Q): im(t_im),idx(t_idx),w0(t_w0),w1(t_w1),w2(t_w2),Q(t_Q){};
 };
 
 
 class SignalProcessor{
  public:
   size_t nSamples{16384};
-  size_t nAdcCh;
+  size_t nAdcCh{20};
   vector< double > fltParam{100,200,300,-1};
   double* measParam{nullptr};
   size_t nMeasParam{2};
-  float x_thre{0.05};
+  float x_thre{0.005};
   vector< pair<size_t, size_t> > sRanges;
   vector< vector <Sig>* > signals{nAdcCh, nullptr};
 
@@ -83,6 +85,9 @@ class SignalProcessor{
   int measure_pulse2(const AWBT *adcData, int chan=-1);
 
   float correction(size_t ich, float raw, int opt=0);
+
+ private:
+  int get_indices(float q, size_t m);
 };
 
 void SignalProcessor::test2(){
@@ -93,6 +98,16 @@ void SignalProcessor::test2(){
 float SignalProcessor::correction(size_t ich, float raw, int opt){
   /// need to add protections: empty function or graph; out of range
   return opt==0? corr_TF1[ich]->Eval(raw): corr_spine[ich]->Eval(raw);
+}
+
+
+int SignalProcessor::get_indices(float q, size_t m){
+  size_t il1 = m;
+  for(; il1>0; il1--){if(scrAry[il1]<q) break;}
+  size_t ih1 = m;
+  for(; ih1<nSamples; ih1++){if(scrAry[ih1]<q) break;}
+
+  return ih1-il1;
 }
 
 void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
@@ -106,28 +121,40 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
   size_t ih = idx;
   for(; ih<nSamples; ih++){if(scrAry[ih]<halfQ) break;}
 
+//   cout << "il=" << il << " ih=" << ih << endl;
+
   /// find the middle point
   size_t im = (size_t) (0.5*(il+ih));
   float newQ = 0.;
-  const size_t N = 10;
-  for(size_t i=-N; i<N; i++){newQ += scrAry[im+i];} 
-  newQ /= N;
-
-
-  float Q1 = 0.1*newQ;
-  size_t il1 = im;
-  for(; il1>0; il1--){if(scrAry[il1]<Q1) break;}
-  size_t ih1 = im;
-  for(; ih1<nSamples; ih1++){if(scrAry[ih1]<Q1) break;}
+  const int N = 10;
+  for(int i=-N; i<N; i++){
+//     cout << i << "->" << newQ << " / " << scrAry[idx] << " / " << scrAry[im] << endl;
+    newQ += scrAry[im+i];
+  } 
+  newQ /= (2*N);
 
   float Q2 = 0.9*newQ;
   size_t il2 = im;
-  for(; il2>0; il2--){if(scrAry[il2]<Q1) break;}
+  for(; il2>0; il2--){if(scrAry[il2]<Q2) break;}
   size_t ih2 = im;
-  for(; ih2<nSamples; ih2++){if(scrAry[ih2]<Q1) break;}
+  for(; ih2<nSamples; ih2++){if(scrAry[ih2]<Q2) break;}
+//   cout << "il2=" << il2 << " ih2=" << ih2 << endl;
+
+  float Q1 = 0.1*newQ;
+  size_t il1 = il2;
+  for(; il1>0; il1--){if(scrAry[il1]<Q1) break;}
+  size_t ih1 = ih2;
+  for(; ih1<nSamples; ih1++){if(scrAry[ih1]<Q1) break;}
+//   cout << "il1=" << il1 << " ih1=" << ih1 << endl;
+
+  size_t il0 = im;
+  for(; il0>0; il0--){if(scrAry[il0]<x_thre) break;}
+  size_t ih0 = im;
+  for(; ih0<nSamples; ih0++){if(scrAry[ih0]<x_thre) break;}
+//   cout << "il0=" << il0 << " ih0=" << ih0 << endl;
 
   //// save what? ih1-il1, ih2-il2, newQ, im
-  v->emplace_back(im, ih1-il1, ih2-il2, newQ);
+  v->emplace_back(im, idx, ih0-il0, ih1-il1, ih2-il2, newQ);
 
   return;
 }
@@ -136,11 +163,12 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 {
   /// do it for each channel
-  std::cout << "dda" << std::endl;
+//   std::cout << "dda" << std::endl;
+  if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     if(chan>=0 && chan != int(iCh)) continue;
 
-    std::cout << "chan " << iCh << std::endl;
+//     std::cout << "chan " << iCh << std::endl;
     /// create the vector if not exist yet
     if(signals[iCh]) {
       signals[iCh]->clear();
@@ -149,15 +177,16 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
       signals[iCh]->reserve(10);
      }
     auto sigV = signals[iCh];
-    std::cout << "dd1" << std::endl;
+//     std::cout << "sigV: " << sigV->size() << std::endl;
 
     /// locate samples
     const AWBT* adcChData = adcData + nSamples * iCh;
     double* measChParam = measParam + nMeasParam * iCh;
 
     //// apply the filter
+//     std::cout << "apply the filter" << std::endl;
     filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
-    return 0;
+//     std::cout << "apply the filter done" << std::endl;
 
     //// Start working on the filtered sample
     //// find the largest point, if it's bigger than the threshold, find other local maximum
@@ -166,14 +195,33 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     float g_max_x = -999.;
     float l_max_x = -1999.;
 
+    const float c_thre = 0.5;
+    const int nSmaller = 10; /// if nSmaller data less than the maximum, it will be considered as a local maximum. To avoid too many local maximum in vincinty due to fluctuation.
+    const int nLarger = 10; /// start recount 
+
+    int ismaller(0), ilarger(0);
     for(size_t i=0; i<nSamples; ++i){
       if(scrAry[i]>x_thre){
         if(scrAry[i]>l_max_x){
           l_max_i = i;
           l_max_x = scrAry[i];
+          ismaller = 0; /// reset the counter
+          ilarger++;
+          std::cout << "larger++" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+
          }else{
-          if(l_max_i>0){
-            check_signal(l_max_i, sigV);
+           if(scrAry[i]<l_max_x*c_thre) ismaller++;
+           if(ismaller>1) std::cout << i << " " << scrAry[i]  << " < " << l_max_x << " ->" << l_max_x*c_thre << " " << ismaller << endl;
+
+          if(ismaller>nSmaller){
+            std::cout << "hey : " << ilarger << std::endl;
+            if(ilarger>nLarger){
+              std::cout << "find local: " << l_max_i << std::endl;
+              check_signal(l_max_i, sigV);
+              ilarger = 0;
+             }else{
+               std::cout << "larger--" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+             }
             
             /// update the global maximum
             if(g_max_x<l_max_x){
@@ -189,12 +237,12 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
         if(l_max_i<-10 && scrAry[i]>g_max_x){
           g_max_i = i;
           g_max_x = scrAry[i];
-       } }
-
+     } } }
+      
       //// if the is no maxima pass the threshold, process the global maximum -- it should be lower than the threshold.
       if(l_max_i<-10){
         check_signal(g_max_i, sigV);
-   } } }
+     } }
 
   return 0;
 }
