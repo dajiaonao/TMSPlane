@@ -11,6 +11,52 @@ from multiprocessing import Pool
 from glob import glob
 import os, time, re
 
+def readSignal3(argX, runPattern='.*_data_(\d+).root'):
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print "Starting", inRoot, oTag
+
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m: run = int(m.group(1))
+        else: print "Run number not exatracted for file", iRoot
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+    sp1.fltParam.clear()
+    for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T')
+
+    chs = [19]
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse2(data1)
+        for ich in range(sp1.nAdcCh):
+            if ich not in chs: continue
+            ss = sp1.signals[ich]
+
+            iA = 0
+            for ii in ss:
+                tup1.Fill(run, ievt, ich, 0,0,iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
+                iA += 1
+
+    tup1.Write()
+    fout1.Close()
+
 def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
     if oTag is None:
         oTag = readSignal2.oTag
@@ -153,6 +199,15 @@ def test_Feb09(oTag):
     p.map(readSignal2, files)
 readSignal2.oTag = 'sp2_'
 
+def test_Feb09b(oTag):
+    p = Pool(6)
+
+    files = sorted([f for f in glob('data/fpgaLin/Feb09b*_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+    p.map(readSignal3, [f+';'+oTag for f in files])
 
 def check_Jan22by(fname):
     tag = 'sp_'
@@ -207,7 +262,9 @@ if __name__ == '__main__':
 #     readSignal2(inRoot = 'data/fpgaLin/Feb06c_data_50.root', oTag='t1_')
 #     readSignal2(inRoot = 'data/fpgaLin/Feb09a_data_1.root', oTag='sp0_')
 #     readSignal(inRoot = 'data/fpgaLin/Feb06b_data_1.root', outText='data/fpgaLin/Feb06b_data_1.dat', freq=100)
+#     readSignal3(argX='data/fpgaLin/Feb09b_data_2.root;tp1_')
 #     check_calib()
 #     test_Feb09('sp3_')
-    test_Feb09('sp2_')
+#     test_Feb09('sp2_')
+    test_Feb09b('sp3a_')
 #     test_Feb06c('sp2_')

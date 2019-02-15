@@ -162,9 +162,14 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 
 int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 {
-  /// do it for each channel
-//   std::cout << "dda" << std::endl;
+  /// create the needed memory 
   if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
+  if(!measParam){
+    nMeasParam = 2*sRanges.size()+2;
+    measParam = (double*) calloc(nMeasParam*nAdcCh, sizeof(double));
+   }
+
+  /// do it for each channel
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     if(chan>=0 && chan != int(iCh)) continue;
 
@@ -182,6 +187,19 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     /// locate samples
     const AWBT* adcChData = adcData + nSamples * iCh;
     double* measChParam = measParam + nMeasParam * iCh;
+
+
+    size_t nBl = (size_t)fltParam[0];
+    double bl = 0.0;
+    double bln = 0.0;
+    for(size_t i=0; i<nBl; i++) {
+      bl += adcChData[i];
+      bln += adcChData[i] * adcChData[i];
+     }
+    bl /= (double)nBl;
+    bln = (bln - (double)nBl * bl*bl)/(nBl - 1.0);
+    measChParam[0] = bl;
+    measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
 
     //// apply the filter
 //     std::cout << "apply the filter" << std::endl;
@@ -207,20 +225,20 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
           l_max_x = scrAry[i];
           ismaller = 0; /// reset the counter
           ilarger++;
-          std::cout << "larger++" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+//           std::cout << "larger++" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
 
          }else{
            if(scrAry[i]<l_max_x*c_thre) ismaller++;
-           if(ismaller>1) std::cout << i << " " << scrAry[i]  << " < " << l_max_x << " ->" << l_max_x*c_thre << " " << ismaller << endl;
+//            if(ismaller>1) std::cout << i << " " << scrAry[i]  << " < " << l_max_x << " ->" << l_max_x*c_thre << " " << ismaller << endl;
 
           if(ismaller>nSmaller){
-            std::cout << "hey : " << ilarger << std::endl;
+//             std::cout << "hey : " << ilarger << std::endl;
             if(ilarger>nLarger){
-              std::cout << "find local: " << l_max_i << std::endl;
+//               std::cout << "find local: " << l_max_i << std::endl;
               check_signal(l_max_i, sigV);
               ilarger = 0;
              }else{
-               std::cout << "larger--" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+//                std::cout << "larger--" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
              }
             
             /// update the global maximum
