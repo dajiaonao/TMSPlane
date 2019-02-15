@@ -76,46 +76,43 @@ def test2():
     tree1.SetBranchAddress('adc',data1)
 
     i = 56
-    tree1.GetEntry(i)
-
     ich = 19
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
     for x in [500, 15, 50, 2500]: sp1.fltParam.push_back(x)
-    sp1.measure_pulse2(data1, ich)
 
-    vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
-    vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+    for ievt in range(100):
+        tree1.GetEntry(ievt)
+        sp1.measure_pulse2(data1, ich)
 
-    fig, ax1 = plt.subplots()
-#     ax2 = ax1.twinx()
-    ax1.set_xlabel('time (s)')
-    # Make the y-axis label, ticks and tick labels match the line color.
-    ax1.set_ylabel('exp', color='b')
-    ax1.tick_params('y', colors='b')
-    ax2 = ax1.twinx()
-    ax2.set_ylabel('sin', color='r')
-    ax2.tick_params('y', colors='r')
+        vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
+        vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
 
+        fig, ax1 = plt.subplots()
+        ax1.set_xlabel('time index')
+        ax1.set_ylabel('U [V]', color='b')
+        ax1.tick_params('y', colors='b')
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('U [V]', color='r')
+        ax2.tick_params('y', colors='r')
 
-    ax1.plot(vo, label='Raw', color='b')
-    ax2.plot(vx, label='Filtered', color='r')
+        ax1.plot(vo, label='Raw', color='b')
+        ax2.plot(vx, label='Filtered', color='r')
 
-    print sp1.signals[ich].size()
-    x1 = []
-    y1 = []
-    for s in sp1.signals[ich]:
-        print s.idx, s.im, s.Q, s.w0, s.w1, s.w2
-        x1.append(s.im)
-        y1.append(s.Q)
+        print sp1.signals[ich].size()
+        x1 = []
+        y1 = []
+        for s in sp1.signals[ich]:
+            print s.idx, s.im, s.Q, s.w0, s.w1, s.w2
+            x1.append(s.im)
+            y1.append(s.Q)
 
-    ax2.scatter(x1,y1, label='Analysis')
+        ax2.scatter(x1,y1, label='Analysis')
 
-
-    fig.legend()
-    plt.show()
+        fig.legend()
+        plt.show()
 
 if __name__ == '__main__':
     test2()

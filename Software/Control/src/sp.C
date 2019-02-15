@@ -201,48 +201,74 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
     int ismaller(0), ilarger(0);
     for(size_t i=0; i<nSamples; ++i){
-      if(scrAry[i]>x_thre){
-        if(scrAry[i]>l_max_x){
-          l_max_i = i;
-          l_max_x = scrAry[i];
-          ismaller = 0; /// reset the counter
-          ilarger++;
-          std::cout << "larger++" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
-
-         }else{
-           if(scrAry[i]<l_max_x*c_thre) ismaller++;
-           if(ismaller>1) std::cout << i << " " << scrAry[i]  << " < " << l_max_x << " ->" << l_max_x*c_thre << " " << ismaller << endl;
-
-          if(ismaller>nSmaller){
-            std::cout << "hey : " << ilarger << std::endl;
-            if(ilarger>nLarger){
-              std::cout << "find local: " << l_max_i << std::endl;
-              check_signal(l_max_i, sigV);
-              ilarger = 0;
-             }else{
-               std::cout << "larger--" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
-             }
-            
-            /// update the global maximum
-            if(g_max_x<l_max_x){
-              g_max_i = l_max_i;
-              g_max_x = g_max_x;
-             }
-
-            /// reset, not the value of l_max_x is different with the inital one to indicate that there is at least one pass the threshold
-            l_max_i = -1;
-            l_max_x = -999.;
-         } }
+      if(scrAry[i]>l_max_x){
+        ilarger++;
+        l_max_i = i;
+        l_max_x = scrAry[i];
+        ismaller = 0;
        }else{
-        if(l_max_i<-10 && scrAry[i]>g_max_x){
-          g_max_i = i;
-          g_max_x = scrAry[i];
-     } } }
+        if(scrAry[i]<l_max_x*c_thre) ismaller++;
+
+        if(ismaller>nSmaller){
+          if(ilarger>nLarger && l_max_x > x_thre){
+            check_signal(l_max_i, sigV);
+           }
+
+          /// update the global maximum
+          if(g_max_x<l_max_x){
+            g_max_i = l_max_i;
+            g_max_x = g_max_x;
+           }
+
+          /// reset anyway
+          ilarger = 0;
+          l_max_i = -1;
+          l_max_x = -999.;
+   } } } }
+
+
+//       if(scrAry[i]>x_thre){
+//         if(scrAry[i]>l_max_x){
+//           l_max_i = i;
+//           l_max_x = scrAry[i];
+//           ismaller = 0; /// reset the counter
+//           ilarger++;
+//           std::cout << "larger++" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+// 
+//          }else{
+//           if(scrAry[i]<l_max_x*c_thre) ismaller++;
+//           if(ismaller>1) std::cout << i << " " << scrAry[i]  << " < " << l_max_x << " ->" << l_max_x*c_thre << " " << ismaller << endl;
+// 
+//           if(ismaller>nSmaller){
+//             std::cout << "hey : " << ilarger << std::endl;
+//             if(ilarger>nLarger){
+//               std::cout << "find local: " << l_max_i << std::endl;
+//               check_signal(l_max_i, sigV);
+//               ilarger = 0;
+//              }else{
+//                std::cout << "larger--" << l_max_i << " "  << l_max_x << " " << ilarger << endl;
+//              }
+//             
+//             /// update the global maximum
+//             if(g_max_x<l_max_x){
+//               g_max_i = l_max_i;
+//               g_max_x = g_max_x;
+//              }
+// 
+//             /// reset, not the value of l_max_x is different with the inital one to indicate that there is at least one pass the threshold
+//             l_max_i = -1;
+//             l_max_x = -999.;
+//          } }
+//        }else{
+//         if(l_max_i<-10 && scrAry[i]>g_max_x){
+//           g_max_i = i;
+//           g_max_x = scrAry[i];
+//      } } }
       
       //// if the is no maxima pass the threshold, process the global maximum -- it should be lower than the threshold.
-      if(l_max_i<-10){
-        check_signal(g_max_i, sigV);
-     } }
+//       if(l_max_i<-10){
+//         check_signal(g_max_i, sigV);
+//      } }
 
   return 0;
 }
