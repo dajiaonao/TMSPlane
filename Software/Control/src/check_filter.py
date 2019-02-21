@@ -182,6 +182,97 @@ def check1(inRoot, chRange=None, nEvt=None, oTag='_tt'):
     tup2.Write()
     fout1.Close()
 
+def check1b(argX, chs=None, nEvt=None, runPattern='.*_data_(\d+).root',step2=False):
+    '''Use various filters to extract the results'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    outRoot = os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot)
+#     outRoot = inRoot.rstrip('.root')+oTag+'.root'
+    print "Starting", inRoot, '->', outRoot
+
+    if os.path.exists(outRoot):
+        print "has:", inRoot, outRoot
+        return
+
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m: run = int(m.group(1))
+        else: print "Run number not exatracted for file", iRoot
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+
+    testPulseOnly = False
+    ### look for signal peak in the expected regions only
+    if testPulseOnly:
+        freq = 1000
+        n1 = int(1/(0.2*freq*0.000001))
+        sp1.sRanges.clear()
+        ip = 0
+        dn = 2500%n1 ## 2500 is the expected position of the signal
+        while ip+dn < sp1.nSamples:
+            sp1.sRanges.push_back((ip, min(ip+n1, sp1.nSamples)))
+            ip += n1
+
+    ### for storing data
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+    if nEvt is None: nEvt = tree1.GetEntries()
+    if chs is None: chs = range(sp1.nAdcCh)
+    ch = chs[0] if len(chs)==1 else -1
+
+    fout1 = TFile(outRoot,'recreate')
+#     tup1 = TNtuple('tup1',"filter analysis tuple",'evt:fR:fW:ich:b:bE:im:idx:A')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:fR:fW:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T')
+
+    chs = [19]
+
+    rRange = range(10, 200, 20)
+    wRange = range(50, 300, 20)
+    ### start processing
+    INTV = 1000 if nEvt>10000 else max(nEvt/10, 1)
+    for ievt in range(nEvt):
+        tree1.GetEntry(ievt)
+        if ievt%INTV==0: print ievt, ' events processed'
+
+        for R in rRange:
+            for W in wRange:
+                sp1.fltParam.clear()
+                for x in [500, R, W, 2500.]: sp1.fltParam.push_back(x)
+                sp1.measure_pulse2(data1,ch)
+
+                for ich in chs:
+                    ss = sp1.signals[ich]
+
+                    iA = 0
+                    for ii in ss:
+                        tup1.Fill(run, ievt, R, W, ich, 0,0,iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
+                        iA += 1
+    tup1.Write()
+
+    ### save the ENC results
+    tup2 = TNtuple('tup2',"filter analysis tuple enc",'ich:fR:fW:m:mE:sigma:sigmaE:fq:fStatus')
+    for R in rRange:
+        for W in wRange:
+            for ich in chs:
+                gDirectory.Delete('h1*')
+                tup1.Draw('A>>h1','int(fW)=={0:d}&&int(fR)=={1:d}&&ch=={2:d}'.format(W,R,ich),'goff')
+                h1 = gDirectory.Get('h1')
+                r = h1.Fit('gaus', 'S0')
+                fun1 = h1.GetFunction('gaus')
+                tup2.Fill(ich, R, W, fun1.GetParameter(1),fun1.GetParError(1), fun1.GetParameter(2),fun1.GetParError(2), r.Prob(), r.Status())
+
+    tup2.Write()
+    fout1.Close()
+
 def run1():
     inRoot = sys.argv[1]      if len(sys.argv)>1 else "test.root"
     ich    = sys.argv[2].split(',') if len(sys.argv)>2 else None
@@ -357,7 +448,8 @@ if __name__ == '__main__':
 #     main()
 #     scan_test()
 #     scan_run()
-    check0()
+#     check0()
+    check1b('data/fpgaLin/Feb09b_data_920.root;fp1a_')
 #     run1()
 #     process_check1()
 #     checkENC()

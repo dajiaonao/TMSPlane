@@ -20,14 +20,28 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     run = -1
     if runPattern is not None:
         m = re.match(runPattern, inRoot)
-        if m: run = int(m.group(1))
-        else: print "Run number not exatracted for file", iRoot
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+                return
+        else:
+            print "Run number not exatracted for file", iRoot
+            return
 
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
-    for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
+    sp1.x_thre = 0.1
+
+    # sp3a
+    for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [50, 5, 15, 2500]: sp1.fltParam.push_back(x)
+
+    # sp3b
+#     for x in [50, 500, 700, 2500]: sp1.fltParam.push_back(x)
 
     data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
     dataT = array('i',[0])
@@ -51,7 +65,7 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
 
             iA = 0
             for ii in ss:
-                tup1.Fill(run, ievt, ich, 0,0,iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
+                tup1.Fill(run, ievt, ich, sp1.measParam[0], sp1.measParam[1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
                 iA += 1
 
     tup1.Write()
@@ -263,8 +277,32 @@ if __name__ == '__main__':
 #     readSignal2(inRoot = 'data/fpgaLin/Feb09a_data_1.root', oTag='sp0_')
 #     readSignal(inRoot = 'data/fpgaLin/Feb06b_data_1.root', outText='data/fpgaLin/Feb06b_data_1.dat', freq=100)
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_2.root;tp1_')
+
+#     readSignal3(argX='data/fpgaLin/Feb09b_data_1066.root;tp2_')
+#     readSignal3(argX='data/fpgaLin/Feb09b_data_1067.root;tp2_')
+#     readSignal3(argX='data/fpgaLin/Feb09b_data_1068.root;tp2_')
+#     readSignal3(argX='data/fpgaLin/Feb09b_data_1069.root;tp2_')
+
+    pList = []
+#     pList.append((1489, 'tp3_'))
+#     pList.append((1497, 'tp4_'))
+#     pList.append((1500, 'tp5_'))
+    pList.append((1511, 'tp6_'))
+
+    for p in pList:
+        r = p[0]
+        while True:
+            fname = 'data/fpgaLin/Feb09b_data_{0:d}.root'.format(r)
+            r +=1
+
+            if os.path.exists(fname.replace('/Feb','/'+p[1]+'Feb')): continue
+            if not os.path.exists(fname) or time.time() - os.path.getmtime(fname) < 10: break
+
+            readSignal3(argX=fname+';'+p[1])
+
 #     check_calib()
 #     test_Feb09('sp3_')
 #     test_Feb09('sp2_')
-    test_Feb09b('sp3a_')
+#     test_Feb09b('sp3a_')
+#     test_Feb09b('sp3b_')
 #     test_Feb06c('sp2_')

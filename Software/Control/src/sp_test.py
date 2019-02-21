@@ -7,6 +7,8 @@ gROOT.LoadMacro("sp.C+")
 
 from ROOT import SignalProcessor
 from array import array
+import re, time
+from glob import glob
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -70,18 +72,60 @@ def test2():
     s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
     data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
     data1 = array('f',[0]*(16384*20))
-    inRoot = 'data/fpgaLin/Feb09b_data_587.root'
+
+
+    inRoot = 'data/fpgaLin/Feb09b_data_1138.root'
+    tag1 = 'Feb09b'
+    if len(sys.argv)>1:
+        if os.path.exists(sys.argv[1]):
+            inRoot = sys.argv[1]
+        elif os.path.exists('data/fpgaLin/Feb09b_data_'+sys.argv[1]+'.root'):
+            inRoot = 'data/fpgaLin/'+tag1+'_data_'+sys.argv[1]+'.root'
+        else:
+            files = sorted([f for f in glob('data/fpgaLin/'+tag1+'_data_*.root')], key=lambda f:os.path.getmtime(f))
+
+            a =  -1
+            try:
+                a = int(sys.argv[1])
+            except TypeError:
+                pass
+            if time.time() - os.path.getmtime(files[-1]) < 10:
+                print "dropping the latest file, which probably is still being written:", files[-1]
+                if a!=0: files.pop()
+                else: a = -1
+
+            if abs(a)<len(files):
+                inRoot = files[a]
+            else:
+                print "Index {0:d} out of range:{1:d}".format(a, len(files))
+                return
+
+    print "Using file:", inRoot
     fout1 = TFile(inRoot,'read')
     tree1 = fout1.Get('tree1')
     tree1.SetBranchAddress('adc',data1)
+
+    print "Entries in the tree:", tree1.GetEntries()
+
+    run = -1
+    runPattern = '.*_data_(\d+).root'
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
 
     i = 56
     ich = 19
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
+#     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
+#     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
-#     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
-    for x in [500, 15, 50, 2500]: sp1.fltParam.push_back(x)
+    for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+    sp1.x_thre = 0.1
 
     plt.ion()
     plt.show()
@@ -121,7 +165,9 @@ def test2():
             y1.append(s.Q)
             plt.axvline(x=s.im, linestyle='--', color='black')
 
-#         if x1: ax2.scatter(x1,y1, label='Analysis')
+        plt.text(0.04, 0.1, 'run {0:d} event {1:d}'.format(run, ievt), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
+        plt.xlim(auto=False)
+        if x1: ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
 
         fig.tight_layout()
         plt.draw()

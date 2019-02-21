@@ -60,6 +60,8 @@ class SignalProcessor{
   double* measParam{nullptr};
   size_t nMeasParam{2};
   float x_thre{0.005};
+  void set_threshold(float x){x_thre = x;}
+
   vector< pair<size_t, size_t> > sRanges;
   vector< vector <Sig>* > signals{nAdcCh, nullptr};
 
@@ -125,13 +127,14 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 
   /// find the middle point
   size_t im = (size_t) (0.5*(il+ih));
-  float newQ = 0.;
-  const int N = 10;
-  for(int i=-N; i<N; i++){
-//     cout << i << "->" << newQ << " / " << scrAry[idx] << " / " << scrAry[im] << endl;
-    newQ += scrAry[im+i];
-  } 
-  newQ /= (2*N);
+  float newQ = scrAry[im];
+//   float newQ = 0.;
+//   const int N = 10;
+//   for(int i=-N; i<N; i++){
+// //     cout << i << "->" << newQ << " / " << scrAry[idx] << " / " << scrAry[im] << endl;
+//     newQ += scrAry[im+i];
+//   } 
+//   newQ /= (2*N);
 
   float Q2 = 0.9*newQ;
   size_t il2 = im;
@@ -193,6 +196,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     double bl = 0.0;
     double bln = 0.0;
     for(size_t i=0; i<nBl; i++) {
+      cout << iCh << " " <<  i << " " << adcChData[i] << endl; 
       bl += adcChData[i];
       bln += adcChData[i] * adcChData[i];
      }
@@ -200,6 +204,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     bln = (bln - (double)nBl * bl*bl)/(nBl - 1.0);
     measChParam[0] = bl;
     measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
+    cout << " ------ " << measChParam[0] << " " << measChParam[1] << endl; 
 
     //// apply the filter
 //     std::cout << "apply the filter" << std::endl;
@@ -214,8 +219,8 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     float l_max_x = -1999.;
 
     const float c_thre = 0.5;
-    const int nSmaller = 10; /// if nSmaller data less than the maximum, it will be considered as a local maximum. To avoid too many local maximum in vincinty due to fluctuation.
-    const int nLarger = 10; /// start recount 
+    const int nSmaller = 20; /// if nSmaller data less than the maximum, it will be considered as a local maximum. To avoid too many local maximum in vincinty due to fluctuation.
+    const int nLarger = 20; /// start recount 
 
     int ismaller(0), ilarger(0);
     for(size_t i=0; i<nSamples; ++i){
@@ -229,6 +234,10 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
         if(ismaller>nSmaller){
           if(ilarger>nLarger && l_max_x > x_thre){
+//             cout << "l_max_i " << l_max_i << endl;
+//             cout << "l_max_x " << l_max_x << endl;
+//             cout << "ilarger " << ilarger << endl;
+//             cout << "ismaller " << ismaller << endl;
             check_signal(l_max_i, sigV);
            }
 
