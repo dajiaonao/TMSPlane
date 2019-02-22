@@ -248,7 +248,7 @@ def test1():
 #     sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
 #     sc1.take_samples2(5000, dir1+"Feb01a_noise_dc.root")
 #     sc1.take_samples2(5000, dir1+"Feb05a_noise_dc_ch19.root")
-    nSample = 0
+    nSample = 1882
 #     while True:
 #         sc1.take_samples2(1000, dir1+"Feb06c_data_{0:d}.root".format(nSample))
 #         nSample += 1
@@ -256,6 +256,8 @@ def test1():
 #         sc1.take_samples2(2000, dir1+"Feb08t1_data_{0:d}.root".format(nSample))
         sc1.take_samples2(1000, dir1+"Feb09b_data_{0:d}.root".format(nSample))
         nSample += 1
+
+        if nSample == 1885: break
 #     sc1.take_samples2(1000, dir1+"Feb06a_noise_dc_ch19.root")
 #     sc1.take_samples2(5000, dir1+"Feb06b_noise_dc_ch19.root")
 

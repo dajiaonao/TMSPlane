@@ -444,12 +444,58 @@ def main():
         x = raw_input("Press [enter] to continue.")
         if x=='q': break
 
+
+def overlayFilters(inRoot):
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384
+    sp1.nAdcCh = 20
+    sp1.fltParam.clear()
+    sp1.x_thre = 0.1
+
+    # sp3a
+    for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [50, 5, 15, 2500]: sp1.fltParam.push_back(x)
+
+    # sp3b
+#     for x in [50, 500, 700, 2500]: sp1.fltParam.push_back(x)
+    run = int(inRoot.rstrip('.root').split('_')[-1])
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    oTag = 'flt_'
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('flt',"filter analysis tuple",'run:evt:ch:ip:V')
+
+    NPOINTS = 200
+
+    ch = 19
+    NEVT = tree1.GetEntries()
+    for ievt in range(NEVT):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse2(data1, ch)
+
+        for ip in range(NPOINTS):
+            tup1.Fill(run, ievt, ch, ip, sp1.scrAry[ip])
+    tup1.Write()
+    fout1.Close()
+        
+def test1():
+    overlayFilters('data/fpgaLin/Feb09b_data_1713.root')
+
 if __name__ == '__main__':
+    test1()
 #     main()
 #     scan_test()
 #     scan_run()
 #     check0()
-    check1b('data/fpgaLin/Feb09b_data_920.root;fp1a_')
+#     check1b('data/fpgaLin/Feb09b_data_920.root;fp1a_')
 #     run1()
 #     process_check1()
 #     checkENC()

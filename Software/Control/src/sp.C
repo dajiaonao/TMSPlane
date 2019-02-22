@@ -196,7 +196,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     double bl = 0.0;
     double bln = 0.0;
     for(size_t i=0; i<nBl; i++) {
-      cout << iCh << " " <<  i << " " << adcChData[i] << endl; 
+//       cout << iCh << " " <<  i << " " << adcChData[i] << endl; 
       bl += adcChData[i];
       bln += adcChData[i] * adcChData[i];
      }
@@ -204,7 +204,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     bln = (bln - (double)nBl * bl*bl)/(nBl - 1.0);
     measChParam[0] = bl;
     measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
-    cout << " ------ " << measChParam[0] << " " << measChParam[1] << endl; 
+//     cout << " ------ " << measChParam[0] << " " << measChParam[1] << endl; 
 
     //// apply the filter
 //     std::cout << "apply the filter" << std::endl;
@@ -231,6 +231,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
         ismaller = 0;
        }else{
         if(scrAry[i]<l_max_x*c_thre) ismaller++;
+//         if(sigV->size()==0 && scrAry[i]>x_thre) cout << i << ": l_max_i " << l_max_i << ", l_max_x " << l_max_x << ", ilarger " << ilarger << ", ismaller " << ismaller << endl;
 
         if(ismaller>nSmaller){
           if(ilarger>nLarger && l_max_x > x_thre){

@@ -34,11 +34,15 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
-    sp1.x_thre = 0.1
+    sp1.x_thre = 0.05
 
     # sp3a
-    for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-#     for x in [50, 5, 15, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     flt = [50, 10, 100, 2500]
+#     flt = [50, 10, 150, 2500]
+#     flt = [50, 500, 600, 2500]
+    flt = [50, 5, 100, 2500]
+    for x in flt: sp1.fltParam.push_back(x)
 
     # sp3b
 #     for x in [50, 500, 700, 2500]: sp1.fltParam.push_back(x)
@@ -53,6 +57,9 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
 
     fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
     tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T')
+    a = TObjString("filter:"+str(flt))
+    a.Write('Info')
+
 
     chs = [19]
     for ievt in range(tree1.GetEntries()):
@@ -63,9 +70,10 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
             if ich not in chs: continue
             ss = sp1.signals[ich]
 
+            itmp = sp1.nMeasParam*ich
             iA = 0
             for ii in ss:
-                tup1.Fill(run, ievt, ich, sp1.measParam[0], sp1.measParam[1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
+                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
                 iA += 1
 
     tup1.Write()
@@ -287,7 +295,19 @@ if __name__ == '__main__':
 #     pList.append((1489, 'tp3_'))
 #     pList.append((1497, 'tp4_'))
 #     pList.append((1500, 'tp5_'))
-    pList.append((1511, 'tp6_'))
+#     pList.append((1511, 'tp6_'))
+#     pList.append((1511, 'tp6a_'))
+#     pList.append((1511, 'tp6b_'))
+#     pList.append((1511, 'tp6b_', 1520)) $ 
+#     pList.append((1511, 'tp6c_', 1520)) # [50, 10, 150, 2500]
+#     pList.append((1511, 'tp6d_', 1520)) # [50, 500, 600, 2500]
+    pList.append((1511, 'tp6e_', 1520)) # [50, 5, 100, 2500]
+
+#     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     flt = [50, 10, 100, 2500]
+#     flt = [50, 10, 150, 2500]
+#     flt = [50, 500, 600, 2500]
+
 
     for p in pList:
         r = p[0]
@@ -295,10 +315,12 @@ if __name__ == '__main__':
             fname = 'data/fpgaLin/Feb09b_data_{0:d}.root'.format(r)
             r +=1
 
-            if os.path.exists(fname.replace('/Feb','/'+p[1]+'Feb')): continue
+#             if os.path.exists(fname.replace('/Feb','/'+p[1]+'Feb')): continue
             if not os.path.exists(fname) or time.time() - os.path.getmtime(fname) < 10: break
 
             readSignal3(argX=fname+';'+p[1])
+
+            if len(p)>2 and r>p[2]: break
 
 #     check_calib()
 #     test_Feb09('sp3_')

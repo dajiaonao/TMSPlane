@@ -124,8 +124,10 @@ def test2():
 #     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-    sp1.x_thre = 0.1
+#     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 10, 100, 2500]: sp1.fltParam.push_back(x)
+    for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
+    sp1.x_thre = 0.05
 
     plt.ion()
     plt.show()
@@ -137,6 +139,7 @@ def test2():
     ax2 = ax1.twinx()
     ax2.set_ylabel('U [V]', color='r')
     ax2.tick_params('y', colors='r')
+
 
 #     for ievt in range(tree1.GetEntries()):
 
@@ -155,6 +158,14 @@ def test2():
         ax2.clear()
         ax1.plot(vo, label='Raw', color='b')
         ax2.plot(vx, label='Filtered', color='r')
+        ylim1 = ax1.get_ylim()
+        ylim2 = ax2.get_ylim()
+
+        x1 = min(ylim1[0], ylim2[0]+vo[0])
+        x2 = max(ylim1[1], ylim2[1]+vo[0])
+        print x1,x2
+        ax1.set_ylim(x1,x2)
+        ax2.set_ylim(x1-vo[0],x2-vo[0])
 
         print sp1.signals[ich].size()
         x1 = []
