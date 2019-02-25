@@ -10,6 +10,51 @@ from array import array
 from multiprocessing import Pool
 from glob import glob
 import os, time, re
+from scipy.signal import wiener
+import numpy as np
+import cmath
+
+class bkgEstimator:
+    def __init__(self):
+        self.data = None
+        self.npoints = None
+        self.F = 59
+        self.T = 16384/self.F
+        self.get_data()
+        self.scale = 0.6
+
+    def get_data(self, evt=20):
+        ch = TChain('tree1')
+        ch.Add('data/fpgaLin/Feb09b_data_1881.root')
+        n1 = ch.Draw('adc[19]','Entry$=={0:d}'.format(evt),'goff')
+        v1 = ch.GetV1()
+        x1 = np.array([v1[i] for i in range(n1)])
+
+        n = int(n1/self.F)
+        m1 = np.mean(x1)
+        self.data = [np.mean(x1[i::n])-m1 for i in range(n)]
+        self.npoints = n
+
+        N = 16384
+        self.Par = np.array([cmath.exp(-2*cmath.pi/N*59*k*1j) for k in range(N)])
+        self.phase1 = int(self.get_phase(x1))
+
+    def get_phase(self,x1):
+        return np.angle(sum(x1*self.Par))/(2*cmath.pi)*self.T
+
+    def correct(self, data,ich,n=16384): 
+        phase = int(self.get_phase(data[ich*n:((ich+1)*n)]))
+#         print phase, self.phase1
+#         for i in range(n): data[ich*n+i] -= self.data[(i-phase+self.phase1)%self.npoints]
+        for i in range(n): data[ich*n+i] -= self.scale*self.data[(i+phase-self.phase1)%self.npoints]
+
+    def show_data(self):
+        plt.plot(self.data)
+
+def apply_wiener_filter(data,ich,n=16384):
+    x = [data[ich*n+i] for i in range(n)]
+    y = wiener(x, mysize=500)
+    for i in range(n): data[ich*n+i] = y[i]
 
 def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
@@ -38,10 +83,11 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
 
     # sp3a
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-#     flt = [50, 10, 100, 2500]
+    flt = [50, 10, 100, 2500]
+#     flt = [30, 250, 350, 2500]
 #     flt = [50, 10, 150, 2500]
 #     flt = [50, 500, 600, 2500]
-    flt = [50, 5, 100, 2500]
+#     flt = [50, 5, 100, 2500]
     for x in flt: sp1.fltParam.push_back(x)
 
     # sp3b
@@ -60,10 +106,16 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     a = TObjString("filter:"+str(flt))
     a.Write('Info')
 
+    ### for background subtraction
+    be1 = bkgEstimator()
 
     chs = [19]
     for ievt in range(tree1.GetEntries()):
         tree1.GetEntry(ievt)
+
+#         apply_wiener_filter(data1, ich=19)
+        be1.correct(data1, 19)
+
 
         sp1.measure_pulse2(data1)
         for ich in range(sp1.nAdcCh):
@@ -96,9 +148,10 @@ def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
+    for x in [50, 150, 250, 2500]: sp1.fltParam.push_back(x)
 #     for x in [50, 150, 200, -1.]: sp1.fltParam.push_back(x)
 #     for x in [50, 150, 200, 2500]: sp1.fltParam.push_back(x)
-    for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [50, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 450, 800, 2500]: sp1.fltParam.push_back(x)
 
     n1 = int(1/(0.2*freq*0.000001))
@@ -301,7 +354,10 @@ if __name__ == '__main__':
 #     pList.append((1511, 'tp6b_', 1520)) $ 
 #     pList.append((1511, 'tp6c_', 1520)) # [50, 10, 150, 2500]
 #     pList.append((1511, 'tp6d_', 1520)) # [50, 500, 600, 2500]
-    pList.append((1511, 'tp6e_', 1520)) # [50, 5, 100, 2500]
+#     pList.append((1511, 'tp6e_', 1520)) # [50, 5, 100, 2500]
+#     pList.append((1511, 'tp7a_', 1520))   # [50, 10, 100, 2500] -- test with wiener filter
+#     pList.append((1511, 'tp7b_', 1520))   # [30, 250, 350, 2500] -- test with wiener filter with different trapoziodal filter parameters
+    pList.append((1511, 'tp8a_', 1520))   # [30, 10, 100, 2500] -- test with background subtraction with different trapoziodal filter parameters
 
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     flt = [50, 10, 100, 2500]
