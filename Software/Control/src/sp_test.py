@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 # from process_signal import apply_wiener_filter
 from scipy.signal import wiener
 import cmath
+from math import modf
 
 def apply_wiener_filter(data,ich,n=16384):
     x = [data[ich*n+i] for i in range(n)]
@@ -28,34 +29,54 @@ class bkgEstimator:
         self.data = None
         self.npoints = None
         self.F = 59
-        self.T = 16384/self.F
+        self.T = 16384./self.F
+        self.A = 1
+        self.scale = 0.48
         self.get_data()
-        self.scale = 0.6
+        print self.A, self.phase
 
-    def get_data(self, evt=20):
+    def get_data(self, evt=150):
         ch = TChain('tree1')
         ch.Add('data/fpgaLin/Feb09b_data_1881.root')
         n1 = ch.Draw('adc[19]','Entry$=={0:d}'.format(evt),'goff')
         v1 = ch.GetV1()
         x1 = np.array([v1[i] for i in range(n1)])
 
-        n = int(n1/self.F)
+        n = int(n1/self.F)*2
         m1 = np.mean(x1)
         self.data = [np.mean(x1[i::n])-m1 for i in range(n)]
         self.npoints = n
 
         N = 16384
         self.Par = np.array([cmath.exp(-2*cmath.pi/N*59*k*1j) for k in range(N)])
-        self.phase1 = int(self.get_phase(x1))
+        self.A, self.phase = self.get_phase(x1)
 
     def get_phase(self,x1):
-        return np.angle(sum(x1*self.Par))/(2*cmath.pi)*self.T
+        ### adding 1 to make sure it's positve
+#         p = lambda x: 
+#         return np.angle(sum(x1*self.Par))/(2*cmath.pi)+1
+        a = sum(x1*self.Par)
+        print a
+        return np.abs(a)/self.A, np.angle(a)/(2.*cmath.pi)+1
 
     def correct(self, data,ich,n=16384): 
-        phase = int(self.get_phase(data[ich*n:((ich+1)*n)]))
-        print phase, self.phase1
+        A, phase = self.get_phase(data[ich*n:((ich+1)*n)])
+#         scale = pow(A,2)
+        scale = A
+        print 'S,P:', scale, phase
+#         print phase, self.phase1
+#         a = modf(i/self.T+phase-self.phase1)[0]
+#         if a<0: a+=1
+#         b = int(a*self.T)
+        for i in range(n):
+#             print i/self.T+phase-self.phase
+#             print modf(i/self.T+phase-self.phase)
+#             print self.T*(modf(i/self.T+phase-self.phase)[0])
+#             data[ich*n+i] -= self.scale*self.data[int(self.T*modf(i/self.T+phase-self.phase1)[0])]
+            data[ich*n+i] -= scale*self.data[int(self.T*modf(i/self.T+phase-self.phase)[0])+20]
+
 #         for i in range(n): data[ich*n+i] -= self.data[(i-phase+self.phase1)%self.npoints]
-        for i in range(n): data[ich*n+i] -= self.scale*self.data[(i+phase-self.phase1)%self.npoints]
+#         for i in range(n): data[ich*n+i] -= self.scale*self.data[int(i+phase-self.phase1)%self.npoints]
 
     def show_data(self):
         plt.plot(self.data)
@@ -176,9 +197,9 @@ def test2():
 #     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-#     for x in [30, 10, 100, 2500]: sp1.fltParam.push_back(x)
+    for x in [30, 10, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
     sp1.x_thre = 0.05
 
     plt.ion()
@@ -216,23 +237,26 @@ def test2():
         ax1.plot(va, label='Raw', color='b')
         ax1.plot(vo, label='Wiener', color='g')
         ax2.plot(vx, label='Filtered', color='r')
+        ax2.plot([vo[i]-va[i] for i in range(sp1.nSamples)], label='Correction', color='k')
         ylim1 = ax1.get_ylim()
         ylim2 = ax2.get_ylim()
 
         x1 = min(ylim1[0], ylim2[0]+vo[0])
         x2 = max(ylim1[1], ylim2[1]+vo[0])
-        print x1,x2
+#         print x1,x2
         ax1.set_ylim(x1,x2)
         ax2.set_ylim(x1-vo[0],x2-vo[0])
 
-        print sp1.signals[ich].size()
+#         print sp1.signals[ich].size()
         x1 = []
         y1 = []
+        iss = 0
         for s in sp1.signals[ich]:
-            print s.idx, s.im, s.Q, s.w0, s.w1, s.w2
+            print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
             x1.append(s.im)
             y1.append(s.Q)
             plt.axvline(x=s.im, linestyle='--', color='black')
+            iss += 1
 
         plt.text(0.04, 0.1, 'run {0:d} event {1:d}'.format(run, ievt), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
         plt.xlim(auto=False)
