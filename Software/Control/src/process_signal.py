@@ -62,6 +62,17 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     oTag = args[1]
     print "Starting", inRoot, oTag
 
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print "Failed to get the dV in file:", iRoot
+
+    ### data check
     run = -1
     if runPattern is not None:
         m = re.match(runPattern, inRoot)
@@ -72,18 +83,34 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
                 print "Run number not exatracted for file", iRoot
                 return
         else:
-            print "Run number not exatracted for file", iRoot
-            return
+            if dV<0:
+                print "Run number not exatracted for file", iRoot
+                return
 
     sp1 = SignalProcessor()
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
     sp1.fltParam.clear()
-    sp1.x_thre = 0.05
+#     for i in range(sp1.nAdcCh): sp1.ch_thre[i] = 0.002
+#     sp1.ch_thre[19] = 0.05
+    thre = [0.002]*sp1.nAdcCh
+    thre[2] = 0.0008
+    thre[4] = 0.001
+    thre[6] = 0.001
+    thre[7] = 0.001
+    thre[10] = 0.001
+    thre[11] = 0.0007
+    thre[14] = 0.0007
+    thre[17] = 0.001
+    thre[19] = 0.05
+
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
 
     # sp3a
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-    flt = [50, 10, 100, 2500]
+#     flt = [50, 50, 250, 2500]
+    flt = [50, 50, 150, -1]
 #     flt = [30, 250, 350, 2500]
 #     flt = [50, 10, 150, 2500]
 #     flt = [50, 500, 600, 2500]
@@ -102,30 +129,32 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     tree1.SetBranchAddress('T',dataT)
 
     fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
-    tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T:dV')
     a = TObjString("filter:"+str(flt))
     a.Write('Info')
 
     ### for background subtraction
     be1 = bkgEstimator()
 
-    chs = [19]
+#     chs = [19]
+    chs = None
     for ievt in range(tree1.GetEntries()):
         tree1.GetEntry(ievt)
 
 #         apply_wiener_filter(data1, ich=19)
-        be1.correct(data1, 19)
+#         be1.correct(data1, 19)
 
 
         sp1.measure_pulse2(data1)
         for ich in range(sp1.nAdcCh):
-            if ich not in chs: continue
+            if chs and (ich not in chs): continue
+#             print "processing channle", ich
             ss = sp1.signals[ich]
 
             itmp = sp1.nMeasParam*ich
             iA = 0
             for ii in ss:
-                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200)
+                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200,dV)
                 iA += 1
 
     tup1.Write()
@@ -327,6 +356,39 @@ def check_calib():
         t = 1
         print sp1.correction(1,x)*t, sp1.correction(1,x, 1)*t, '|', sp1.correction(5,x)*t, sp1.correction(5,x, 1)*t
 
+
+
+def test3(pList, pTag='Feb25a', skipExist=True):
+    tasks = []
+    for p in pList:
+        r = p[0]
+        while True:
+            fname = 'data/fpgaLin/'+pTag+'_data_{0:d}.root'.format(r)
+            r +=1
+
+            if skipExist:
+                if os.path.exists(fname.replace('/Feb','/'+p[1]+'Feb')): continue
+            if not os.path.exists(fname) or time.time() - os.path.getmtime(fname) < 10: break
+
+            tasks.append(fname+';'+p[1])
+
+            if len(p)>2 and r>p[2]: break
+
+    p = Pool(6)
+    p.map(readSignal3, tasks)
+
+def process_all_match(pattern, oTag, skipExist=True):
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))))], key=lambda f:os.path.getmtime(f))
+    if len(files)==0:
+        print "No files matchs.... Aborting..."
+        return
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+    p = Pool(6)
+    p.map(readSignal3, [f+';'+oTag for f in files])
+
 if __name__ == '__main__':
 #     testJ()
 #     testK()
@@ -343,8 +405,11 @@ if __name__ == '__main__':
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1067.root;tp2_')
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1068.root;tp2_')
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1069.root;tp2_')
+#     test3(pList=[(0, 'tp09a_')])
+    process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
+#     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 
-    pList = []
+#     pList = []
 #     pList.append((1489, 'tp3_'))
 #     pList.append((1497, 'tp4_'))
 #     pList.append((1500, 'tp5_'))
@@ -357,7 +422,8 @@ if __name__ == '__main__':
 #     pList.append((1511, 'tp6e_', 1520)) # [50, 5, 100, 2500]
 #     pList.append((1511, 'tp7a_', 1520))   # [50, 10, 100, 2500] -- test with wiener filter
 #     pList.append((1511, 'tp7b_', 1520))   # [30, 250, 350, 2500] -- test with wiener filter with different trapoziodal filter parameters
-    pList.append((1511, 'tp8a_', 1520))   # [30, 10, 100, 2500] -- test with background subtraction with different trapoziodal filter parameters
+#     pList.append((1511, 'tp8a_', 1520))   # [30, 10, 100, 2500] -- test with background subtraction with different trapoziodal filter parameters
+#     pList.append((0, 'tp09a_'))   # [30, 10, 100, 2500] -- test with background subtraction with different trapoziodal filter parameters
 
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     flt = [50, 10, 100, 2500]
@@ -365,18 +431,19 @@ if __name__ == '__main__':
 #     flt = [50, 500, 600, 2500]
 
 
-    for p in pList:
-        r = p[0]
-        while True:
-            fname = 'data/fpgaLin/Feb09b_data_{0:d}.root'.format(r)
-            r +=1
-
+#     for p in pList:
+#         r = p[0]
+#         while True:
+# #             fname = 'data/fpgaLin/Feb09b_data_{0:d}.root'.format(r)
+#             fname = 'data/fpgaLin/Feb25a_data_{0:d}.root'.format(r)
+#             r +=1
+# 
 #             if os.path.exists(fname.replace('/Feb','/'+p[1]+'Feb')): continue
-            if not os.path.exists(fname) or time.time() - os.path.getmtime(fname) < 10: break
-
-            readSignal3(argX=fname+';'+p[1])
-
-            if len(p)>2 and r>p[2]: break
+#             if not os.path.exists(fname) or time.time() - os.path.getmtime(fname) < 10: break
+# 
+#             readSignal3(argX=fname+';'+p[1])
+# 
+#             if len(p)>2 and r>p[2]: break
 
 #     check_calib()
 #     test_Feb09('sp3_')

@@ -4,9 +4,173 @@ from ROOT import *
 from glob import glob
 import os, re
 from rootUtil import waitRootCmdX, useNxStyle, get_default_fig_dir
+from 
 
 sDir = get_default_fig_dir()
 sTag = 'test1_'
+
+
+def create_calibration_file2(infiles='data/fpgaLin/sp01a_Feb26b_*mV_f1000.dat',outfile='fout_calib1.root'):
+    '''Create a root file that contains a TF1 and a TGraph to map the measured voltage to the number of electron'''
+    nCh = 20
+    gr0 = [TGraphErrors() for j in range(nCh)]
+    grs = [TGraphErrors() for j in range(nCh)]
+    gEs = [TGraphErrors() for j in range(nCh)]
+    vx = [(int(os.path.basename(fname).split('_')[-2][:-2]),fname) for fname in glob(infiles)]
+
+    h_quality = TGraph2D()
+    h_ENC = TGraph2D()
+
+    fout = TFile(outfile,'recreate')
+
+    for vi in sorted(vx, key=lambda x:x[0]):
+        v = vi[0]
+        fname = vi[1] 
+        t1 = TChain('tup1')
+        t1.Add(fname)
+
+        for ch in range(nCh):
+            cut0 = '' if ch==19 else "imean>200&&"
+            t1.Draw('A>>h1',cut0+"ch=={0:d}".format(ch),"goff")
+            h1 = gDirectory.Get('h1')
+            h1.SetName('h'+str(v)+'_ch'+str(ch))
+
+#             r = h1.Fit('gaus','S')
+#             h1.Fit('gaus')
+# 
+#             fun1 = h1.GetFunction('gaus')
+# 
+            x1 = h1.GetXaxis().GetBinCenter(h1.GetMaximumBin())
+            std = h1.GetStdDev()
+            fun1 = TF1('fun1','gaus',x1-2.5*std, x1+2.5*std)
+# #             fun1.Draw()
+# #             waitRootCmdX()
+# #             fun1.SetRange(x1-2.5*std, x1+2.5*std)
+# #             print x1-2.5*std, x1+2.5*std
+            r = h1.Fit(fun1,'RS')
+
+            if (not fun1) or (not r):
+                h1.Draw()
+                print ch, v
+                waitRootCmdX()
+#             h1.Draw()
+#             waitRootCmdX()
+
+            h1.Write()
+
+
+            g1 = grs[ch]
+            n = g1.GetN()
+            g1.SetPoint(n,v,fun1.GetParameter(1))
+            g1.SetPointError(n,0,fun1.GetParError(1))
+
+            g2 = gEs[ch]
+            g2.SetPoint(n,v,fun1.GetParameter(2))
+            g2.SetPointError(n,0,fun1.GetParError(2))
+
+            h_quality.SetPoint(nCh*n+ch, v, ch, r.Chi2())
+            h_ENC.SetPoint(nCh*n+ch, v, ch, 7.40*v*fun1.GetParameter(2)/fun1.GetParameter(1))
+
+            g0 = gr0[ch]
+            g0.SetPoint(n,fun1.GetParameter(1),v)
+            g0.SetPointError(n,fun1.GetParError(1),0)
+
+
+    for i in range(nCh):
+        grs[i].Write('gr_mean_ch'+str(i))
+        gEs[i].Write('gr_sigma_ch'+str(i))
+
+        r = gr0[i].Fit('pol1','S')
+        h_quality.SetPoint(nCh*len(vx)+i, -1, i, r.Chi2())
+
+        gr0[i].Write('gr_calib_ch'+str(i))
+
+    h_quality.Write('fitQ')
+    h_ENC.Write('ENC')
+    fout.Close()
+
+
+
+def create_calibration_file1(infiles='data/fpgaLin/sp01a_Feb26b_*mV_f1000.dat',outfile='fout_calib1.root'):
+    '''Create a root file that contains a TF1 and a TGraph to map the measured voltage to the number of electron'''
+    nCh = 20
+    gr0 = [TGraphErrors() for j in range(nCh)]
+    grs = [TGraphErrors() for j in range(nCh)]
+    gEs = [TGraphErrors() for j in range(nCh)]
+    vx = [(int(os.path.basename(fname).split('_')[-2][:-2]),fname) for fname in glob(infiles)]
+
+    h_quality = TGraph2D()
+    h_ENC = TGraph2D()
+
+    fout = TFile(outfile,'recreate')
+
+    for vi in sorted(vx, key=lambda x:x[0]):
+        v = vi[0]
+        fname = vi[1] 
+        t1 = TChain('tup1')
+        t1.Add(fname)
+
+        for ch in range(nCh):
+            cut0 = '' if ch==19 else "imean>200&&"
+            t1.Draw('A>>h1',cut0+"ch=={0:d}".format(ch),"goff")
+            h1 = gDirectory.Get('h1')
+            h1.SetName('h'+str(v)+'_ch'+str(ch))
+
+#             r = h1.Fit('gaus','S')
+#             h1.Fit('gaus')
+# 
+#             fun1 = h1.GetFunction('gaus')
+# 
+            x1 = h1.GetXaxis().GetBinCenter(h1.GetMaximumBin())
+            std = h1.GetStdDev()
+            fun1 = TF1('fun1','gaus',x1-2.5*std, x1+2.5*std)
+# #             fun1.Draw()
+# #             waitRootCmdX()
+# #             fun1.SetRange(x1-2.5*std, x1+2.5*std)
+# #             print x1-2.5*std, x1+2.5*std
+            r = h1.Fit(fun1,'RS')
+
+            if (not fun1) or (not r):
+                h1.Draw()
+                print ch, v
+                waitRootCmdX()
+#             h1.Draw()
+#             waitRootCmdX()
+
+            h1.Write()
+
+
+            g1 = grs[ch]
+            n = g1.GetN()
+            g1.SetPoint(n,v,fun1.GetParameter(1))
+            g1.SetPointError(n,0,fun1.GetParError(1))
+
+            g2 = gEs[ch]
+            g2.SetPoint(n,v,fun1.GetParameter(2))
+            g2.SetPointError(n,0,fun1.GetParError(2))
+
+            h_quality.SetPoint(nCh*n+ch, v, ch, r.Chi2())
+            h_ENC.SetPoint(nCh*n+ch, v, ch, 7.40*v*fun1.GetParameter(2)/fun1.GetParameter(1))
+
+            g0 = gr0[ch]
+            g0.SetPoint(n,fun1.GetParameter(1),v)
+            g0.SetPointError(n,fun1.GetParError(1),0)
+
+
+    for i in range(nCh):
+        grs[i].Write('gr_mean_ch'+str(i))
+        gEs[i].Write('gr_sigma_ch'+str(i))
+
+        r = gr0[i].Fit('pol1','S')
+        h_quality.SetPoint(nCh*len(vx)+i, -1, i, r.Chi2())
+
+        gr0[i].Write('gr_calib_ch'+str(i))
+
+    h_quality.Write('fitQ')
+    h_ENC.Write('ENC')
+    fout.Close()
+
+
 
 def create_calibration_file(infiles='data/fpgaLin/Jan22b_C2_*mV_f1000.dat',outfile='fout_calib.root'):
     '''Create a root file that contains a TF1 and a TGraph to map the measured voltage to the number of electron'''
@@ -27,11 +191,12 @@ def create_calibration_file(infiles='data/fpgaLin/Jan22b_C2_*mV_f1000.dat',outfi
         t1.ReadFile(fname)
 
         for ch in range(nCh):
-            t1.Draw('A>>h1',"ch=={0:d}".format(ch),"goff")
+            t1.Draw('A>>h1',"ch=={0:d}&&A>0.003".format(ch),"goff")
             h1 = gDirectory.Get('h1')
             h1.SetName('h'+str(v)+'_ch'+str(ch))
             r = h1.Fit('gaus','S')
             fun1 = h1.GetFunction('gaus')
+
             h1.Write()
 
 
@@ -67,7 +232,7 @@ def create_calibration_file(infiles='data/fpgaLin/Jan22b_C2_*mV_f1000.dat',outfi
 def check_calibration(calibFile='fout_calib.root', tag1 = 'Jan22a_'):
     fout = TFile(calibFile,'read')
 
-    nCh = 19
+    nCh = 20
     nxt = TIter(fout.GetListOfKeys())
    
     hxs = [[] for i in range(nCh)]
@@ -131,15 +296,23 @@ def check_calibration(calibFile='fout_calib.root', tag1 = 'Jan22a_'):
         waitRootCmdX(sDir+tag1+'check_ch{0:d}'.format(ch))
 
 def test1():
-    print "testing"
 #     create_calibration_file()
 #     create_calibration_file('data/fpgaLin/Jan24a_C2_*mV_f1000.dat','Jan24a_calib.root')
-    create_calibration_file('data/fpgaLin/Jan25a_C2_*mV_f1000.dat','Jan25a_calib.root')
+#     create_calibration_file('data/fpgaLin/Jan25a_C2_*mV_f1000.dat','Jan25a_calib.root')
+#     create_calibration_file1('data/fpgaLin/sp01a_Feb26b_*mV_f1000.root','Feb26b_calib1.root')
+    create_calibration_file1('data/fpgaLin/sp02a_Feb26b_*mV_f1000.root','Feb26b_calib2.root')
 
-if __name__ == "__main__":
-#     test1()
+def test2():
     useNxStyle()
     gStyle.SetPalette(55)
     gStyle.SetOptFit(0)
     gStyle.SetPadRightMargin(0.1)
-    check_calibration('Jan25a_calib.root', 'Jan25a_')
+    gStyle.SetFuncColor(2)
+#     check_calibration('Jan25a_calib.root', 'Jan25a_')
+    check_calibration('Feb26b_calib1.root', 'Feb26b_')
+
+if __name__ == "__main__":
+    gStyle.SetFuncColor(2)
+    test1()
+#     test2()
+

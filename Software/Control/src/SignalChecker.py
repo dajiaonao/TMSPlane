@@ -215,6 +215,21 @@ def setPulse(v,f):
     cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.3f} {1:d}'.format(v,f)
     call(cmd, shell=True)
 
+def take_calibration_samples(sTag, vs, n=5000):
+    sc1 = SignalChecker()
+    sc1.control_ip_port = "localhost:1024"
+    dir1 = 'data/fpgaLin/'
+
+    for v in vs:
+#     for iv in range(22):
+#         v = 0.025+iv*0.025
+#         if v<0.175: continue
+#         v = 0.05+iv*0.025
+        setPulse(v,1000)
+        time.sleep(20)
+        print "Taking sample with dU={0:.3f} mV".format(v*1000)
+        sc1.take_samples2(n, dir1+sTag+"_{0:d}mV_f1000.root".format(int(v*1000)))
+
 def test1():
     sc1 = SignalChecker()
     sc1.control_ip_port = "localhost:1024"
@@ -299,6 +314,9 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
-    test1()
+#     take_calibration_samples(sTag='Feb26a',n=5000)
+#     take_calibration_samples(sTag='Feb26a',n=3000)
+    take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
+#     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')

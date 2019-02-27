@@ -59,8 +59,9 @@ class SignalProcessor{
   vector< double > fltParam{100,200,300,-1};
   double* measParam{nullptr};
   size_t nMeasParam{2};
+  vector< float > ch_thre{20, 0.005};
   float x_thre{0.005};
-  void set_threshold(float x){x_thre = x;}
+//   void set_threshold(float x){x_thre = x;}
 
   vector< pair<size_t, size_t> > sRanges;
   vector< vector <Sig>* > signals{nAdcCh, nullptr};
@@ -176,6 +177,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     if(chan>=0 && chan != int(iCh)) continue;
 
+    x_thre = ch_thre[iCh];
 //     std::cout << "chan " << iCh << std::endl;
     /// create the vector if not exist yet
     if(signals[iCh]) {
@@ -252,7 +254,9 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
           ilarger = 0;
           l_max_i = -1;
           l_max_x = -999.;
-   } } } }
+     } } }
+    if(sigV->size()==0) check_signal(g_max_i, sigV);
+   }
 
 
 //       if(scrAry[i]>x_thre){

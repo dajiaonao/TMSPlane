@@ -146,15 +146,17 @@ def test2():
     data1 = array('f',[0]*(16384*20))
 
 
-    inRoot = 'data/fpgaLin/Feb09b_data_1138.root'
-    tag1 = 'Feb09b'
+#     pTag = 'Feb09b'
+    pTag = 'Feb25a'
+    tagA = 'data/fpgaLin/'+pTag+'_data_'
+    inRoot = 'data/fpgaLin/'+pTag+'_data_1138.root'
     if len(sys.argv)>1:
         if os.path.exists(sys.argv[1]):
             inRoot = sys.argv[1]
-        elif os.path.exists('data/fpgaLin/Feb09b_data_'+sys.argv[1]+'.root'):
-            inRoot = 'data/fpgaLin/'+tag1+'_data_'+sys.argv[1]+'.root'
+        elif os.path.exists(tagA+sys.argv[1]+'.root'):
+            inRoot = tagA+sys.argv[1]+'.root'
         else:
-            files = sorted([f for f in glob('data/fpgaLin/'+tag1+'_data_*.root')], key=lambda f:os.path.getmtime(f))
+            files = sorted([f for f in glob(tagA+'*.root')], key=lambda f:os.path.getmtime(f))
 
             a =  -1
             try:
@@ -190,17 +192,24 @@ def test2():
                 print "Run number not exatracted for file", iRoot
 
     i = 56
-    ich = 19
+    ich = 11
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
 #     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 10, 100, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
+    for x in [30, 50, 150, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
-    sp1.x_thre = 0.05
+#     sp1.x_thre = 0.002
+#     for i in range(20): sp1.ch_thre[i] = 0.002
+#     sp1.ch_thre[19] = 0.05
+    thre = [0.002]*sp1.nAdcCh
+    thre[19] = 0.05
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
 
     plt.ion()
     plt.show()
@@ -224,7 +233,7 @@ def test2():
         tree1.GetEntry(ievt)
 
         va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
-        be1.correct(data1, ich)
+#         be1.correct(data1, ich)
 #         apply_wiener_filter(data1, ich)
 
         sp1.measure_pulse2(data1, ich)
@@ -235,9 +244,9 @@ def test2():
         ax1.clear()
         ax2.clear()
         ax1.plot(va, label='Raw', color='b')
-        ax1.plot(vo, label='Wiener', color='g')
+#         ax1.plot(vo, label='Wiener', color='g')
         ax2.plot(vx, label='Filtered', color='r')
-        ax2.plot([vo[i]-va[i] for i in range(sp1.nSamples)], label='Correction', color='k')
+#         ax2.plot([vo[i]-va[i] for i in range(sp1.nSamples)], label='Correction', color='k')
         ylim1 = ax1.get_ylim()
         ylim2 = ax2.get_ylim()
 
@@ -258,7 +267,7 @@ def test2():
             plt.axvline(x=s.im, linestyle='--', color='black')
             iss += 1
 
-        plt.text(0.04, 0.1, 'run {0:d} event {1:d}'.format(run, ievt), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
+        plt.text(0.04, 0.1, 'run {0:d} event {1:d}, ch {2:d}'.format(run, ievt, ich), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
         plt.xlim(auto=False)
         if x1: ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
 
@@ -278,6 +287,13 @@ def test2():
                     if not os.path.exists(dirx): os.makedirs(dirx)
                     plt.savefig(name)
                     print "saved figure to", name
+            elif len(x)>2 and x[:2] == 'ch':
+                try:
+                    ich = int(x[2:])
+                    print "Switching to channel:", ich
+                    break
+                except ValueError:
+                    continue
             else:
                 try:
                     ievt = int(x)
