@@ -116,8 +116,8 @@ class DataPanelGUI(object):
         self.master.wm_protocol("WM_DELETE_WINDOW", self.quit)
 
         #
-        button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
-        button.pack(side=tk.BOTTOM, fill=tk.X)
+#         button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
+#         button.pack(side=tk.BOTTOM, fill=tk.X)
 
         # frame for plotting
         self.dataPlotsFrame = tk.Frame(self.master)

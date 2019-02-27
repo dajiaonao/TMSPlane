@@ -4,7 +4,7 @@ from ROOT import *
 from glob import glob
 import os, re
 from rootUtil import waitRootCmdX, useNxStyle, get_default_fig_dir
-from 
+from rootHelper import getRDF  
 
 sDir = get_default_fig_dir()
 sTag = 'test1_'
@@ -23,38 +23,40 @@ def create_calibration_file2(infiles='data/fpgaLin/sp01a_Feb26b_*mV_f1000.dat',o
 
     fout = TFile(outfile,'recreate')
 
+#     d0,ch0 = getRDF(infiles, treename='tup1')
+# 
+#     h0 = d0.Histo1D('A')
+#     h0.Draw()
     for vi in sorted(vx, key=lambda x:x[0]):
         v = vi[0]
-        fname = vi[1] 
-        t1 = TChain('tup1')
-        t1.Add(fname)
+        d1,ch1 = getRDF(vi[1], treename='tup1')
 
         for ch in range(nCh):
-            cut0 = '' if ch==19 else "imean>200&&"
-            t1.Draw('A>>h1',cut0+"ch=={0:d}".format(ch),"goff")
-            h1 = gDirectory.Get('h1')
-            h1.SetName('h'+str(v)+'_ch'+str(ch))
-
-#             r = h1.Fit('gaus','S')
-#             h1.Fit('gaus')
-# 
-#             fun1 = h1.GetFunction('gaus')
-# 
-            x1 = h1.GetXaxis().GetBinCenter(h1.GetMaximumBin())
-            std = h1.GetStdDev()
-            fun1 = TF1('fun1','gaus',x1-2.5*std, x1+2.5*std)
-# #             fun1.Draw()
-# #             waitRootCmdX()
-# #             fun1.SetRange(x1-2.5*std, x1+2.5*std)
-# #             print x1-2.5*std, x1+2.5*std
+            d2 = d1.Filter('ch=={0:d}'.format(ch))
+            mx = d2.Max('A').GetValue()
+            x0 = 0 if mx<0.002 else 0.002
+            d3 = d2.Filter('A>{0:.4f}'.format(x0))
+            m0 = d3.Mean('A').GetValue()
+            md = 0.15*m0
+#             md = d3.StdDev('A').GetValue()
+            print "----", mx
+            print x0
+            fun1 = TF1('fun1','gaus',min(m0-2.5*md,0.003), m0+3.*md)
+            h1 = d2.Histo1D('A')
             r = h1.Fit(fun1,'RS')
-
-            if (not fun1) or (not r):
-                h1.Draw()
-                print ch, v
-                waitRootCmdX()
+            h1.SetName('h'+str(v)+'_ch'+str(ch))
 #             h1.Draw()
+ 
+
 #             waitRootCmdX()
+#             continue
+# 
+#             if (not fun1) or (not r):
+#                 h1.Draw()
+#                 print ch, v
+#                 waitRootCmdX()
+# #             h1.Draw()
+# #             waitRootCmdX()
 
             h1.Write()
 
@@ -74,7 +76,6 @@ def create_calibration_file2(infiles='data/fpgaLin/sp01a_Feb26b_*mV_f1000.dat',o
             g0 = gr0[ch]
             g0.SetPoint(n,fun1.GetParameter(1),v)
             g0.SetPointError(n,fun1.GetParError(1),0)
-
 
     for i in range(nCh):
         grs[i].Write('gr_mean_ch'+str(i))
@@ -300,7 +301,8 @@ def test1():
 #     create_calibration_file('data/fpgaLin/Jan24a_C2_*mV_f1000.dat','Jan24a_calib.root')
 #     create_calibration_file('data/fpgaLin/Jan25a_C2_*mV_f1000.dat','Jan25a_calib.root')
 #     create_calibration_file1('data/fpgaLin/sp01a_Feb26b_*mV_f1000.root','Feb26b_calib1.root')
-    create_calibration_file1('data/fpgaLin/sp02a_Feb26b_*mV_f1000.root','Feb26b_calib2.root')
+#     create_calibration_file1('data/fpgaLin/sp02a_Feb26b_*mV_f1000.root','Feb26b_calib2.root')
+    create_calibration_file2('data/fpgaLin/sp02a_Feb26b_*mV_f1000.root','Feb26b_calib2.root')
 
 def test2():
     useNxStyle()
@@ -310,9 +312,10 @@ def test2():
     gStyle.SetFuncColor(2)
 #     check_calibration('Jan25a_calib.root', 'Jan25a_')
     check_calibration('Feb26b_calib1.root', 'Feb26b_')
+#     check_calibration('Feb26b_calib2.root', 'Feb26b_')
 
 if __name__ == "__main__":
     gStyle.SetFuncColor(2)
-    test1()
-#     test2()
+#     test1()
+    test2()
 

@@ -53,8 +53,9 @@ class SignalChecker:
             s1.demux_fifodata(ret,data1,data2)
             s1.save_data([name1+'.adc', name1+'.sdm'], data1, data2)
 
-    def take_samples2(self, n=10, outRootName='test_sample.root'):
+    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0):
         if not self.connected: self.connect()
+        nMonitor = 20
 
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
@@ -80,6 +81,9 @@ class SignalChecker:
             ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
             s1.demux_fifodata(ret,data1,data2)
             tree1.Fill()
+
+            if i%nMonitor == 1: tree1.AutoSave("SaveSelf");
+
         fout1.Write()
 
     def show_signal(self):
@@ -230,6 +234,17 @@ def take_calibration_samples(sTag, vs, n=5000):
         print "Taking sample with dU={0:.3f} mV".format(v*1000)
         sc1.take_samples2(n, dir1+sTag+"_{0:d}mV_f1000.root".format(int(v*1000)))
 
+def take_data(sTag, n=5000, N=-1):
+    sc1 = SignalChecker()
+    sc1.control_ip_port = "localhost:1024"
+    dir1 = 'data/fpgaLin/'
+
+    nSample = 0
+    while nSample != N:
+        print "Start sample {0:d}".format(nSample)
+        sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        nSample += 1
+
 def test1():
     sc1 = SignalChecker()
     sc1.control_ip_port = "localhost:1024"
@@ -316,7 +331,8 @@ def test1():
 if __name__ == '__main__':
 #     take_calibration_samples(sTag='Feb26a',n=5000)
 #     take_calibration_samples(sTag='Feb26a',n=3000)
-    take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
+#     take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
+      take_data(sTag='Feb27a',n=1000)
 #     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')

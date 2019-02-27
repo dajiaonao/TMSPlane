@@ -199,7 +199,7 @@ def test2():
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 50, 150, -1]: sp1.fltParam.push_back(x)
+    for x in [30, 100, 500, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
 #     sp1.x_thre = 0.002
