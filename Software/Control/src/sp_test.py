@@ -93,7 +93,7 @@ def test1():
     # print type(byref(data1[0]))
     print type(pointer(data1))
     data1 = array('f',[0]*(16384*20))
-    inRoot = 'data/fpgaLin/Feb09b_data_2.root'
+    inRoot = 'data/fpgaLin/Feb09b_data_581.root'
     fout1 = TFile(inRoot,'read')
     tree1 = fout1.Get('tree1')
     tree1.SetBranchAddress('adc',data1)
@@ -144,7 +144,6 @@ def test2():
     s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
     data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
     data1 = array('f',[0]*(16384*20))
-
 
 #     pTag = 'Feb09b'
     pTag = 'Feb25a'
@@ -276,7 +275,6 @@ def test2():
         plt.legend()
         plt.grid(True)
         plt.pause(0.001)
-
 
         while True:
             x = raw_input("Next:")
