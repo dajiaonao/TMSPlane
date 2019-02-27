@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import socket
+import socket, os
 # import argparse
 # import pprint
 from command import *
@@ -26,6 +26,7 @@ class SignalChecker:
         self.cmd = Cmd()
         self.s = None
         self.connected = False
+        self.fileSuffix = '.1'
 #         self.connect()
 
     def connect(self):
@@ -62,6 +63,8 @@ class SignalChecker:
         data2 = s1.generate_sdmDataBuf()
 
         T = array.array('i',[0])
+        if self.fileSuffix:
+            while os.path.exists(outRootName): outRootName += self.fileSuffix
         fout1 = TFile(outRootName,'recreate')
         tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         tree1.Branch('T',T,'T/i')
@@ -332,7 +335,7 @@ if __name__ == '__main__':
 #     take_calibration_samples(sTag='Feb26a',n=5000)
 #     take_calibration_samples(sTag='Feb26a',n=3000)
 #     take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
-      take_data(sTag='Feb27a',n=1000)
+      take_data(sTag='Feb27b',n=2000)
 #     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')

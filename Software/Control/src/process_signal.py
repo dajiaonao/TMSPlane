@@ -110,7 +110,8 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     # sp3a
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     flt = [50, 50, 250, 2500]
-    flt = [50, 50, 150, -1]
+#     flt = [50, 50, 150, -1]
+    flt = [50, 100, 500, -1] # dp01a
 #     flt = [30, 250, 350, 2500]
 #     flt = [50, 10, 150, 2500]
 #     flt = [50, 500, 600, 2500]
@@ -406,7 +407,8 @@ if __name__ == '__main__':
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1068.root;tp2_')
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1069.root;tp2_')
 #     test3(pList=[(0, 'tp09a_')])
-    process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
+#     process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
+    process_all_match('data/fpgaLin/Feb27a_data_*.root', 'dp01a_', True)
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 
 #     pList = []

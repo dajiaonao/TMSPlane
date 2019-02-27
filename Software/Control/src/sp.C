@@ -158,7 +158,9 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 //   cout << "il0=" << il0 << " ih0=" << ih0 << endl;
 
   //// save what? ih1-il1, ih2-il2, newQ, im
+//   cout << v->size() << ": " << im << " " << idx << " " << ih0-il0 << " " << ih1-il1 << " " << ih2-il2 << " " << newQ << endl;
   v->emplace_back(im, idx, ih0-il0, ih1-il1, ih2-il2, newQ);
+//   cout << "here" << endl;
 
   return;
 }
@@ -186,7 +188,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
       signals[iCh] = new vector< Sig >();
       signals[iCh]->reserve(10);
      }
-    auto sigV = signals[iCh];
+    auto& sigV = signals[iCh];
 //     std::cout << "sigV: " << sigV->size() << std::endl;
 
     /// locate samples
@@ -247,14 +249,21 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
           /// update the global maximum
           if(g_max_x<l_max_x){
             g_max_i = l_max_i;
-            g_max_x = g_max_x;
+            g_max_x = l_max_x;
            }
 
           /// reset anyway
           ilarger = 0;
           l_max_i = -1;
           l_max_x = -999.;
-     } } }
+       } }
+      /// update the global maximum
+      if(g_max_x<l_max_x){
+        g_max_i = l_max_i;
+        g_max_x = l_max_x;
+       }
+
+     }
     if(sigV->size()==0) check_signal(g_max_i, sigV);
    }
 

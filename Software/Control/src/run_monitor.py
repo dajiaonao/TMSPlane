@@ -22,6 +22,7 @@ class DataUpdater(threading.Thread):
         self.currentFile = None
         self.dataT = array('i',[0])
         self.on = True
+        self.tFile = None
 
     def get_file(self):
         files = sorted(glob(self.fPattern), key=lambda f:os.path.getmtime(f))
@@ -33,6 +34,7 @@ class DataUpdater(threading.Thread):
         tree = tFile.Get('tree1')
         if not tree: return
 
+        if self.tFile: self.tFile.Close()
         self.currentFile = f
         self.tFile = tFile
         self.tree = tree
@@ -47,23 +49,24 @@ class DataUpdater(threading.Thread):
                 self.get_file()
                 self.tree.Refresh()
                 n = self.tree.GetEntries()
-                print 'Event', n
                 if n==0:
                     print "0 Entry, waiting...."
                     continue
                 self.tree.GetEntry(n-1)
+                print 'Event', n-1
 
                 if n != n_old:
                     self.dataPanel.plot_data()
                 time.sleep(self.dT)
  
-def test1():
+def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     cd = CommonData()
     root = tk.Tk()
     dataPanelMaster = tk.Toplevel(root)
     dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=None)
 
     du1 = DataUpdater(cd, dataPanel)
+    du1.fPattern = pattern
     du1.start()
 
     root.mainloop()
@@ -72,4 +75,4 @@ def test1():
     du1.join()
 
 if __name__ == '__main__':
-    test1()
+    monitor('data/fpgaLin/Feb27b_data_*.root')
