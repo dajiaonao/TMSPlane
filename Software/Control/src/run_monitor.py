@@ -21,7 +21,6 @@ class DataUpdater(threading.Thread):
         self.fPattern = 'data/fpgaLin/Feb27a_data_*.root'
         self.currentFile = None
         self.dataT = array('i',[0])
-        self.on = True
         self.tFile = None
 
     def get_file(self):
@@ -57,21 +56,22 @@ class DataUpdater(threading.Thread):
 
                 if n != n_old:
                     self.dataPanel.plot_data()
-                time.sleep(self.dT)
+
+                ### to get notified from the data pannel
+                self.cd.cv.acquire()
+                self.cd.cv.wait(self.dT)
+                self.cd.cv.release()
  
 def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     cd = CommonData()
     root = tk.Tk()
-    dataPanelMaster = tk.Toplevel(root)
-    dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=None)
+    dataPanel = DataPanelGUI(root, cd, visibleChannels=None)
 
     du1 = DataUpdater(cd, dataPanel)
     du1.fPattern = pattern
     du1.start()
 
     root.mainloop()
-
-    du1.on = False
     du1.join()
 
 if __name__ == '__main__':
