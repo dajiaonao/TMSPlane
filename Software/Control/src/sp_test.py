@@ -5,7 +5,7 @@ from sigproc import SigProc
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 
-from ROOT import SignalProcessor
+from ROOT import SignalProcessor, Event, Sig, showEvents, showEvent
 from array import array
 import re, time
 from glob import glob
@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import wiener
 import cmath
 from math import modf
+from rootUtil import waitRootCmdX
 
 def apply_wiener_filter(data,ich,n=16384):
     x = [data[ich*n+i] for i in range(n)]
@@ -327,8 +328,45 @@ def test3():
     sp1.ch_thre.clear()
     for x in thre: sp1.ch_thre.push_back(x)
 
-    print sp1.reco()
+    sp1.reco()
+    h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',20,-3,3,20,-3,3,100,0,1000)
+#     for e in sp1.IO_evts:
+    for e in sp1.get_events():
+        print e.trigID, len(e.sigs)
+        h3.Reset()
+        showEvent(e, h3)
+
+        h3.Draw('BOX2Z')
+        waitRootCmdX()
+#         for j in range(sp1.nAdcCh): print j, e.sigs[j].im
+#         d = [e.sigs[j].Q for j in range(sp1.nAdcCh)]
+#         print d
+#         showA(d)
+
+    e1 = sp1.IO_evts[0]
+    print dir(e1)
+    print dir(e1.sigs[0])
+    print '****', e1.sigs[0].im
+
+    showEvents(sp1.IO_evts)
+
+def showA(d):
+    from ROOT import TH2Poly, gStyle
+    gStyle.SetOptStat(0)
+
+    hc = TH2Poly();
+    hc.SetTitle("TMS19Plane");
+    hc.Honeycomb(-4.3,-4,1,5,5);
+    listA = [(0,0),(2,0),(1,1.5),(-1,1.5),(-2,0),(-1,-1.5),(1,-1.5),(4,0),(3,2),(1,3),(0,3),(-1,3),(-3,2),(-4,0),(-3,-2),(-1,-3),(0,-3),(1,-3),(3,-2)]
+
+    for i in range(len(listA)):
+       hc.Fill(listA[i][0],listA[i][1],d[i])
+
+    hc.Draw("text colz0");
+    raw_input('next:')
 
 if __name__ == '__main__':
+    gStyle.SetPalette(55)
+    gStyle.SetPadRightMargin(0.15)
 #     test2()
     test3()

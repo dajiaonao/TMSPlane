@@ -6,6 +6,8 @@
 #include "common.h"
 #include <TF1.h>
 #include <TGraph.h>
+#include <TH3F.h>
+#include "helix.C"
 
 using namespace std;
 
@@ -42,23 +44,32 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
 }
 
 struct Sig{
-  int im;
+  float Q;//!
+  int im; //!
   int idx;
   int w0;
   int w1;
   int w2;
-  float Q;
+//   Int_t Q;//!
+//   Int_t im; //!
+//   Int_t idx;
+//   Int_t w0;
+//   Int_t w1;
+//   Int_t w2;
+//   Sig():im(-1),idx(-2),w0(-3),w1(-4),w2(-5),Q(-6){};
   Sig(){};
-  Sig(int t_im, int t_idx, int t_w0, int t_w1, int t_w2, float t_Q): im(t_im),idx(t_idx),w0(t_w0),w1(t_w1),w2(t_w2),Q(t_Q){};
+  Sig(float t_Q, int t_im, int t_idx, int t_w0, int t_w1, int t_w2): im(t_im),idx(t_idx),w0(t_w0),w1(t_w1),w2(t_w2),Q(t_Q){};
+//   Sig(Sig& s): im(s.im),idx(s.idx),w0(s.w0),w1(s.w1),w2(s.w2),Q(s.Q){};
 };
 
 struct Event{
 //   float Qs[20];
 //   int   idx[20];
   int   trigID;
-  Sig   sigs[20];
+  Sig   sigs[20]; //!
 
-  Event(int id):trigID(id){};
+  Event():trigID(-1){};
+  Event(int id):trigID(id),sigs{}{};
 };
 
 class SignalProcessor{
@@ -77,6 +88,7 @@ class SignalProcessor{
 
   vector< TF1* > corr_TF1;
   vector< TGraph* > corr_spine;
+  vector < Event > IO_evts;
 
 //   SignalProcessor():scrAry(nullptr){};
   ~SignalProcessor(){
@@ -86,6 +98,7 @@ class SignalProcessor{
 //  private:
   AWBT* scrAry{nullptr};
   vector< AWBT* > scrArys{20, nullptr};
+
   int CF_trig_ch{19};
   int CF_dSize{200};
   int CF_uSize{50};
@@ -99,12 +112,14 @@ class SignalProcessor{
   void check_signal(size_t idx, vector< Sig >* v);
   int measure_pulse(const AWBT *adcData, int chan=-1);
   int measure_pulse2(const AWBT *adcData, int chan=-1);
+  vector < Event >* get_events(){return &IO_evts;}
 
   float correction(size_t ich, float raw, int opt=0);
   int build_events();
   int fillter_all_channels();
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
+  void show_events();
 
   /// to be removed
   int build_events(const AWBT *adcData);
@@ -236,14 +251,14 @@ int SignalProcessor::reco(){
   size_t trig_ch = CF_trig_ch;
   fillter_all_channels();
   find_sigs(trig_ch);
-  vector < Event > evts;
+  IO_evts.clear();
 
   cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
   for(size_t ii=0; ii<signals[trig_ch]->size(); ii++){
     cout << "checking trigger " << ii << endl;
     auto&s = signals[trig_ch]->at(ii);
-    evts.emplace_back(ii);
-    auto& evt = evts.back();
+    IO_evts.emplace_back(ii);
+    auto& evt = IO_evts.back();
 
     cout << s.im << endl;
     evt.trigID = ii;
@@ -251,16 +266,11 @@ int SignalProcessor::reco(){
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
       if(iCh == trig_ch) continue;
-//       cout << "----- channel " << iCh << endl;
-//       signals[iCh]->clear();
-//       cout << "----- t " << iCh << endl;
       find_sigs(iCh, s.im-CF_uSize, s.im+CF_dSize);
-//       cout << "----- A " << iCh << endl;
 
       if(signals[iCh]->size()>1){
         cout << "Multiple signal in channel" << iCh << endl;
        }
-//       cout << "----- B " << iCh << endl;
 
       //// what to do with mutiple signal? There are a few options:
       // 1. the first one
@@ -270,17 +280,8 @@ int SignalProcessor::reco(){
       // 5. All combinations
       // Let's try the simple option 1 first
       evt.sigs[iCh] = signals[iCh]->at(0);
-//       cout << "----- done channel " << iCh << endl;
      }
     cout << "Done in checking trigger " << ii << endl;
-
-   }
-
-  for(auto& t: evts){
-    cout << t.trigID << endl;
-    for(size_t ii=0; ii<nAdcCh; ii++){
-      cout << "---" << ii << "---" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
-     }
    }
 
   cout << "Done in reco <<<<<<<" << endl;
@@ -296,6 +297,18 @@ int SignalProcessor::reco(){
    build_event
 
 */
+
+void SignalProcessor::show_events(){
+  for(auto& t: IO_evts){
+    cout << t.trigID << endl;
+    for(size_t ii=0; ii<nAdcCh; ii++){
+      cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+     }
+   }
+
+  return;
+}
+
 
 int SignalProcessor::get_indices(float q, size_t m){
   size_t il1 = m;
@@ -352,7 +365,7 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 
   //// save what? ih1-il1, ih2-il2, newQ, im
 //   cout << v->size() << ": " << im << " " << idx << " " << ih0-il0 << " " << ih1-il1 << " " << ih2-il2 << " " << newQ << endl;
-  v->emplace_back(im, idx, ih0-il0, ih1-il1, ih2-il2, newQ);
+  v->emplace_back(newQ, im, idx, ih0-il0, ih1-il1, ih2-il2);
 //   cout << "here" << endl;
 
   return;
@@ -760,6 +773,36 @@ void Filter_ibl::apply(const AWBT *inWav){
       }
       outWav[i] = s;
   }
+
+  return;
+}
+//////////////////////////////////////////////////////////////////
+// useful Functions
+void showEvents(vector < Event >& evts){
+  for(auto& t: evts){
+    cout << t.trigID << endl;
+    for(size_t ii=0; ii<20; ii++){
+      cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+     }
+   }
+
+  return;
+}
+
+void showEvent(Event& t, TH3F* h3){
+    cout << t.trigID << endl;
+    double x, y;
+    for(size_t ii=0; ii<19; ii++){
+      cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+      hex_l2xy(0.8, ii, &x, &y);
+      h3->Fill(x,y,t.sigs[ii].im, t.sigs[ii].Q);
+     }
+
+//    double x, y;
+//    for(int l=0; l<20; l++){
+//     hex_l2xy(0.8, l, &x, &y);
+//     cout << l << ": " << x << " " << y << endl;
+//    }
 
   return;
 }

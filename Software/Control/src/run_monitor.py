@@ -75,4 +75,5 @@ def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     du1.join()
 
 if __name__ == '__main__':
-    monitor('data/fpgaLin/Feb27b_data_*.root')
+#     monitor('data/fpgaLin/Feb27b_data_*.root')
+    monitor('data/fpgaLin/Feb28a_data_*.root')
