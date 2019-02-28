@@ -797,12 +797,13 @@ void showEvent(Event& t, TH3F* h3, TH2F* h2=nullptr){
     const float Unit(0.2);
     double x, y;
     int t0 = t.sigs[19].im;
-    for(size_t ii=0; ii<19; ii++){
+    for(size_t ii=0; ii<20; ii++){
 //       cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+      if(ii==19) continue;
+      if(h2) h2->Fill((t.sigs[ii].im-t0)*Unit, ii, t.sigs[ii].Q);
+
       hex_l2xy(0.8, ii, &x, &y);
       h3->Fill(x,y,(t.sigs[ii].im-t0)*Unit, t.sigs[ii].Q);
-
-      if(h2) h2->Fill((t.sigs[ii].im-t0)*Unit, ii, t.sigs[ii].Q);
      }
 
 //    double x, y;

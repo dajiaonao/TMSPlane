@@ -307,8 +307,11 @@ def test2():
 def test3():
     gStyle.SetOptStat(0)
     gROOT.ProcessLine('.L Pal.C')
-    from ROOT import Pal2
-    Pal2()
+    gStyle.SetPalette(55)
+    gStyle.SetPadRightMargin(0.15)
+
+#     from ROOT import Pal2
+#     Pal2()
 
     '''To test the event reconstruction'''
     data1 = array('f',[0]*(16384*20))
@@ -332,9 +335,9 @@ def test3():
 
     Unit = 0.2
     h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize)
-    h2 = TH2F('h2','h2;t [ps];Channel;Q',(sp1.CF_uSize+sp1.CF_dSize),-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize,19,0,19)
+    h2 = TH2F('h2','h2;t [ps];Channel;Q',(sp1.CF_uSize+sp1.CF_dSize),-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize,20,0,20)
 
-    cx = TCanvas('cx','cx', 1500,600)
+    cx = TCanvas('cx','cx', 1500,700)
     cx.Divide(2,1)
     for i in range(tree1.GetEntries()):
         tree1.GetEntry(i)
@@ -349,7 +352,10 @@ def test3():
             cx.cd(1)
             h3.Draw('BOX2')
             cx.cd(2)
+            t = h2.GetBinContent(h2.GetMaximumBin())*1.06
+            h2.GetZaxis().SetRangeUser(-0.05*t,t*0.95)
             h2.Draw('colz')
+#             h2.Draw('axis same')
 
             cx.cd(0)
             waitRootCmdX()
@@ -418,7 +424,5 @@ def showA(d):
     raw_input('next:')
 
 if __name__ == '__main__':
-#     gStyle.SetPalette(55)
-    gStyle.SetPadRightMargin(0.15)
 #     test2()
     test3()
