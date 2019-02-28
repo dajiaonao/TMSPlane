@@ -48,9 +48,18 @@ struct Sig{
   int w1;
   int w2;
   float Q;
+  Sig(){};
   Sig(int t_im, int t_idx, int t_w0, int t_w1, int t_w2, float t_Q): im(t_im),idx(t_idx),w0(t_w0),w1(t_w1),w2(t_w2),Q(t_Q){};
 };
 
+struct Event{
+//   float Qs[20];
+//   int   idx[20];
+  int   trigID;
+  Sig   sigs[20];
+
+  Event(int id):trigID(id){};
+};
 
 class SignalProcessor{
  public:
@@ -76,6 +85,10 @@ class SignalProcessor{
 
 //  private:
   AWBT* scrAry{nullptr};
+  vector< AWBT* > scrArys{20, nullptr};
+  int CF_trig_ch{19};
+  int CF_dSize{200};
+  int CF_uSize{50};
 
  public:
   void test(){
@@ -88,6 +101,14 @@ class SignalProcessor{
   int measure_pulse2(const AWBT *adcData, int chan=-1);
 
   float correction(size_t ich, float raw, int opt=0);
+  int build_events();
+  int fillter_all_channels();
+  int find_sigs(int chan, int start=0, int end=-1);
+  int reco();
+
+  /// to be removed
+  int build_events(const AWBT *adcData);
+  AWBT *IO_adcData{nullptr};
 
  private:
   int get_indices(float q, size_t m);
@@ -103,6 +124,178 @@ float SignalProcessor::correction(size_t ich, float raw, int opt){
   return opt==0? corr_TF1[ich]->Eval(raw): corr_spine[ich]->Eval(raw);
 }
 
+int SignalProcessor::build_events(const AWBT *adcData){
+  size_t trig_ch = 19;
+  //// we already have the data loaded, so do the filter first
+  //// starting with the tigger filter, which can be used to defind the windows 
+  measure_pulse2(adcData, trig_ch);
+
+  //// then we can defind the windows
+  sRanges.clear();
+  for(auto s: (*signals[trig_ch])){
+    sRanges.emplace_back(std::make_pair(s.im-50,s.im+200));
+   }
+
+  for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    if(iCh == trig_ch) continue;
+    measure_pulse2(adcData, iCh);
+   }
+
+  //// save them to the signal event
+  for(size_t ii=0; ii<sRanges.size(); ii++){
+//     auto& t = Event();
+    Event t(ii);
+    t.trigID = ii;
+
+//     t.sigs[trig_ch] = signals[trig_ch];
+
+   }
+
+  return 0;
+}
+
+int SignalProcessor::fillter_all_channels(){
+  cout << "in fillter_all_channels" << endl;
+  for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    const AWBT* adcChData = IO_adcData + nSamples * iCh;
+    if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
+    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+   }
+  cout << "Done in fillter_all_channels" << endl;
+
+  return 0;
+}
+
+int SignalProcessor::find_sigs(int chan, int start, int end){
+//   cout << "in find_sigs for chan " << chan << endl;
+  if(start < 0) start = 0;
+  if(end<0 || end>int(nSamples)) end = nSamples;
+
+  if(signals[chan]) {
+    signals[chan]->clear();
+   }else{
+    signals[chan] = new vector< Sig >();
+    signals[chan]->reserve(10);
+   }
+
+  auto& sigV = signals[chan];
+  auto t_scrAry = scrArys[chan];
+  scrAry = t_scrAry;
+  x_thre = ch_thre[chan];
+
+  /// start the search...
+  int g_max_i = -999;
+  int l_max_i = -999;
+  float g_max_x = -999.;
+  float l_max_x = -1999.;
+
+  const float c_thre = 0.5;
+  const int nSmaller = 20; 
+  const int nLarger = 20; /// start recount 
+
+  int ismaller(0), ilarger(0);
+  for(int i=start; i<end; ++i){
+    if(t_scrAry[i]>l_max_x){
+      ilarger++;
+      l_max_i = i;
+      l_max_x = t_scrAry[i];
+      ismaller = 0;
+     }else{
+      if(t_scrAry[i]<l_max_x*c_thre) ismaller++;
+      if(ismaller>nSmaller){
+        if(ilarger>nLarger && l_max_x > x_thre){
+          check_signal(l_max_i, sigV);
+         }
+
+        /// update the global maximum
+        if(g_max_x<l_max_x){
+          g_max_i = l_max_i;
+          g_max_x = l_max_x;
+         }
+
+        /// reset anyway
+        ilarger = 0;
+        l_max_i = -1;
+        l_max_x = -999.;
+     } }
+    /// update the global maximum
+    if(g_max_x<l_max_x){
+      g_max_i = l_max_i;
+      g_max_x = l_max_x;
+     }
+
+   }
+  if(sigV->size()==0) check_signal(g_max_i, sigV);
+
+//   cout << "Done in find_sigs for chan " << chan << endl;
+  return 0;
+}
+
+int SignalProcessor::reco(){
+  cout << "in reco" << endl;
+  size_t trig_ch = CF_trig_ch;
+  fillter_all_channels();
+  find_sigs(trig_ch);
+  vector < Event > evts;
+
+  cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
+  for(size_t ii=0; ii<signals[trig_ch]->size(); ii++){
+    cout << "checking trigger " << ii << endl;
+    auto&s = signals[trig_ch]->at(ii);
+    evts.emplace_back(ii);
+    auto& evt = evts.back();
+
+    cout << s.im << endl;
+    evt.trigID = ii;
+    evt.sigs[trig_ch] = s;
+
+    for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+      if(iCh == trig_ch) continue;
+//       cout << "----- channel " << iCh << endl;
+//       signals[iCh]->clear();
+//       cout << "----- t " << iCh << endl;
+      find_sigs(iCh, s.im-CF_uSize, s.im+CF_dSize);
+//       cout << "----- A " << iCh << endl;
+
+      if(signals[iCh]->size()>1){
+        cout << "Multiple signal in channel" << iCh << endl;
+       }
+//       cout << "----- B " << iCh << endl;
+
+      //// what to do with mutiple signal? There are a few options:
+      // 1. the first one
+      // 2. The largest one
+      // 3. The total
+      // 4. Add other checks to reduce the mutiplicity...
+      // 5. All combinations
+      // Let's try the simple option 1 first
+      evt.sigs[iCh] = signals[iCh]->at(0);
+//       cout << "----- done channel " << iCh << endl;
+     }
+    cout << "Done in checking trigger " << ii << endl;
+
+   }
+
+  for(auto& t: evts){
+    cout << t.trigID << endl;
+    for(size_t ii=0; ii<nAdcCh; ii++){
+      cout << "---" << ii << "---" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+     }
+   }
+
+  cout << "Done in reco <<<<<<<" << endl;
+  return 0;
+}
+/*
+ filter all channles
+ find trigger in trigger channel
+ find_sigs(trig_ch)
+ for sig in trig_sigs:
+   for ch in chanels:
+      find_sigs(ch, start, end)
+   build_event
+
+*/
 
 int SignalProcessor::get_indices(float q, size_t m){
   size_t il1 = m;

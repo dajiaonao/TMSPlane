@@ -199,7 +199,7 @@ def test2():
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 100, 500, -1]: sp1.fltParam.push_back(x)
+    for x in [30, 100, 900, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
 #     sp1.x_thre = 0.002
@@ -303,5 +303,32 @@ def test2():
 #         fig.legend()
 #         plt.show()
 
+def test3():
+    '''To test the event reconstruction'''
+    data1 = array('f',[0]*(16384*20))
+    inRoot = 'data/fpgaLin/Feb27a_data_40.root'
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    i = 81
+    tree1.GetEntry(i)
+
+    ### here comes the constructor
+    sp1 = SignalProcessor()
+    sp1.nAdcCh=20
+    sp1.IO_adcData = data1
+
+    sp1.fltParam.clear()
+    for x in [30, 100, 300, -1]: sp1.fltParam.push_back(x)
+    thre = [0.001]*sp1.nAdcCh
+    thre[19] = 0.02
+
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
+
+    print sp1.reco()
+
 if __name__ == '__main__':
-    test2()
+#     test2()
+    test3()
