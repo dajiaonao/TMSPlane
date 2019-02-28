@@ -305,6 +305,57 @@ def test2():
 #         plt.show()
 
 def test3():
+    gStyle.SetOptStat(0)
+    gROOT.ProcessLine('.L Pal.C')
+    from ROOT import Pal2
+    Pal2()
+
+    '''To test the event reconstruction'''
+    data1 = array('f',[0]*(16384*20))
+    inRoot = 'data/fpgaLin/Feb27a_data_40.root'
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    ### here comes the constructor
+    sp1 = SignalProcessor()
+    sp1.nAdcCh=20
+    sp1.IO_adcData = data1
+
+    sp1.fltParam.clear()
+    for x in [30, 100, 300, -1]: sp1.fltParam.push_back(x)
+    thre = [0.001]*sp1.nAdcCh
+    thre[19] = 0.02
+
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
+
+    Unit = 0.2
+    h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize)
+    h2 = TH2F('h2','h2;t [ps];Channel;Q',(sp1.CF_uSize+sp1.CF_dSize),-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize,19,0,19)
+
+    cx = TCanvas('cx','cx', 1500,600)
+    cx.Divide(2,1)
+    for i in range(tree1.GetEntries()):
+        tree1.GetEntry(i)
+        sp1.reco()
+
+        for e in sp1.IO_evts:
+            print e.trigID, len(e.sigs)
+            h3.Reset()
+            h2.Reset()
+            showEvent(e, h3, h2)
+
+            cx.cd(1)
+            h3.Draw('BOX2')
+            cx.cd(2)
+            h2.Draw('colz')
+
+            cx.cd(0)
+            waitRootCmdX()
+
+
+def test3a():
     '''To test the event reconstruction'''
     data1 = array('f',[0]*(16384*20))
     inRoot = 'data/fpgaLin/Feb27a_data_40.root'
@@ -329,12 +380,13 @@ def test3():
     for x in thre: sp1.ch_thre.push_back(x)
 
     sp1.reco()
-    h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',20,-3,3,20,-3,3,100,0,1000)
+    Unit = 0.2
+    h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize)
 #     for e in sp1.IO_evts:
     for e in sp1.get_events():
         print e.trigID, len(e.sigs)
         h3.Reset()
-        showEvent(e, h3)
+        showEvent(e, h3, h2)
 
         h3.Draw('BOX2Z')
         waitRootCmdX()
@@ -366,7 +418,7 @@ def showA(d):
     raw_input('next:')
 
 if __name__ == '__main__':
-    gStyle.SetPalette(55)
+#     gStyle.SetPalette(55)
     gStyle.SetPadRightMargin(0.15)
 #     test2()
     test3()

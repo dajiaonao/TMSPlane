@@ -6,7 +6,10 @@
 #include "common.h"
 #include <TF1.h>
 #include <TGraph.h>
+#include <TH2F.h>
 #include <TH3F.h>
+// #include <TColor.h>
+// #include <TStyle.h>
 #include "helix.C"
 
 using namespace std;
@@ -170,13 +173,13 @@ int SignalProcessor::build_events(const AWBT *adcData){
 }
 
 int SignalProcessor::fillter_all_channels(){
-  cout << "in fillter_all_channels" << endl;
+//   cout << "in fillter_all_channels" << endl;
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     const AWBT* adcChData = IO_adcData + nSamples * iCh;
     if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
     filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
    }
-  cout << "Done in fillter_all_channels" << endl;
+//   cout << "Done in fillter_all_channels" << endl;
 
   return 0;
 }
@@ -247,15 +250,15 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
 }
 
 int SignalProcessor::reco(){
-  cout << "in reco" << endl;
+//   cout << "in reco" << endl;
   size_t trig_ch = CF_trig_ch;
   fillter_all_channels();
   find_sigs(trig_ch);
   IO_evts.clear();
 
-  cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
+//   cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
   for(size_t ii=0; ii<signals[trig_ch]->size(); ii++){
-    cout << "checking trigger " << ii << endl;
+//     cout << "checking trigger " << ii << endl;
     auto&s = signals[trig_ch]->at(ii);
     IO_evts.emplace_back(ii);
     auto& evt = IO_evts.back();
@@ -281,10 +284,10 @@ int SignalProcessor::reco(){
       // Let's try the simple option 1 first
       evt.sigs[iCh] = signals[iCh]->at(0);
      }
-    cout << "Done in checking trigger " << ii << endl;
+//     cout << "Done in checking trigger " << ii << endl;
    }
 
-  cout << "Done in reco <<<<<<<" << endl;
+//   cout << "Done in reco <<<<<<<" << endl;
   return 0;
 }
 /*
@@ -789,13 +792,17 @@ void showEvents(vector < Event >& evts){
   return;
 }
 
-void showEvent(Event& t, TH3F* h3){
+void showEvent(Event& t, TH3F* h3, TH2F* h2=nullptr){
     cout << t.trigID << endl;
+    const float Unit(0.2);
     double x, y;
+    int t0 = t.sigs[19].im;
     for(size_t ii=0; ii<19; ii++){
-      cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
+//       cout << "=== " << ii << " ===" << t.sigs[ii].Q << " " << t.sigs[ii].im << endl;
       hex_l2xy(0.8, ii, &x, &y);
-      h3->Fill(x,y,t.sigs[ii].im, t.sigs[ii].Q);
+      h3->Fill(x,y,(t.sigs[ii].im-t0)*Unit, t.sigs[ii].Q);
+
+      if(h2) h2->Fill((t.sigs[ii].im-t0)*Unit, ii, t.sigs[ii].Q);
      }
 
 //    double x, y;
