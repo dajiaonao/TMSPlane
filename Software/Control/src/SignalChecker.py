@@ -75,19 +75,23 @@ class SignalChecker:
         nBytes = nWords * 4
         buf = bytearray(nBytes)
 
-        for i in range(n):
-            if i%100==0: print(str(i)+' samples taken.')
-            self.s.sendall(self.cmd.send_pulse(1<<2));
-#             time.sleep(0.5)
+        status = 0
+        try:
+            for i in range(n):
+                if i%100==0: print(str(i)+' samples taken.')
+                self.s.sendall(self.cmd.send_pulse(1<<2));
 
-            T[0] = int(time.time())
-            ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
-            s1.demux_fifodata(ret,data1,data2)
-            tree1.Fill()
+                T[0] = int(time.time())
+                ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
+                s1.demux_fifodata(ret,data1,data2)
+                tree1.Fill()
 
-            if i%nMonitor == 1: tree1.AutoSave("SaveSelf");
+                if i%nMonitor == 1: tree1.AutoSave("SaveSelf");
+        except KeyboardInterrupt:
+            status = 1
 
         fout1.Write()
+        return status
 
     def show_signal(self):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -245,7 +249,8 @@ def take_data(sTag, n=5000, N=-1):
     nSample = 0
     while nSample != N:
         print "Start sample {0:d}".format(nSample)
-        sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        if status: break
         nSample += 1
 
 def test1():
@@ -335,7 +340,7 @@ if __name__ == '__main__':
 #     take_calibration_samples(sTag='Feb26a',n=5000)
 #     take_calibration_samples(sTag='Feb26a',n=3000)
 #     take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
-      take_data(sTag='Feb28a',n=2000)
+      take_data(sTag='Feb28b',n=2000)
 #     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')

@@ -797,7 +797,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
 
   TFile* tfile(nullptr);
   if(!treeOut){
-    tfile = new TFile(outfilename.c_str(), "new");
+    tfile = new TFile(outfilename.c_str(), "recreate");
     treeOut = new TTree("reco","reco tree");
     treeOut->Branch("run", &run, "run/I");
     treeOut->Branch("evt", &event, "evt/I");

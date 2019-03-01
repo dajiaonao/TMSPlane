@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import sys, os
+import os
 from ctypes import *
 from sigproc import SigProc 
 from ROOT import *
@@ -151,6 +152,7 @@ def test2():
     tagA = 'data/fpgaLin/'+pTag+'_data_'
     inRoot = 'data/fpgaLin/'+pTag+'_data_1138.root'
     if len(sys.argv)>1:
+        import os
         if os.path.exists(sys.argv[1]):
             inRoot = sys.argv[1]
         elif os.path.exists(tagA+sys.argv[1]+'.root'):
@@ -424,5 +426,5 @@ def showA(d):
     raw_input('next:')
 
 if __name__ == '__main__':
-#     test2()
-    test3()
+    test2()
+#     test3()

@@ -114,7 +114,9 @@ def readSignal4(argX, runPattern='.*_data_(\d+).root'):
     tree1 = fin1.Get('tree1')
 
     tree2 = 0
-    sp1.processFile(tree1, tree2, 'test1.root', run)
+    outRoot = os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
 
 def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
@@ -450,8 +452,20 @@ def process_all_match(pattern, oTag, skipExist=True):
     p = Pool(6)
     p.map(readSignal3, [f+';'+oTag for f in files])
 
+def process_all_match4(pattern, oTag, skipExist=True):
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))))], key=lambda f:os.path.getmtime(f))
+    if len(files)==0:
+        print "No files matchs.... Aborting..."
+        return
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+    p = Pool(6)
+    p.map(readSignal4, [f+';'+oTag for f in files])
+
 if __name__ == '__main__':
-    readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
+#     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
 #     testK()
 #     test_Jan22b()
@@ -470,6 +484,9 @@ if __name__ == '__main__':
 #     test3(pList=[(0, 'tp09a_')])
 #     process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
 #     process_all_match('data/fpgaLin/Feb27a_data_*.root', 'dp01a_', True)
+    process_all_match4('data/fpgaLin/Feb27a_data_*.root', 'dp02a_', False)
+    process_all_match4('data/fpgaLin/Feb27b_data_*.root', 'dp02a_', False)
+    process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 
 #     pList = []
