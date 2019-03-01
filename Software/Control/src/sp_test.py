@@ -194,7 +194,7 @@ def test2():
                 print "Run number not exatracted for file", iRoot
 
     i = 56
-    ich = 11
+    ich = 1
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
 #     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
@@ -202,7 +202,7 @@ def test2():
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 100, 900, -1]: sp1.fltParam.push_back(x)
+    for x in [30, 50, 200, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
 #     sp1.x_thre = 0.002
@@ -425,6 +425,38 @@ def showA(d):
     hc.Draw("text colz0");
     raw_input('next:')
 
+def test4():
+    s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+#     data1 = s1.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
+    data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+
+    sp = SignalProcessor()
+    sp.fltParam.clear()
+    for x in [30, 50, 200, -1]: sp.fltParam.push_back(x)
+#     sp.IO_adcData = data1
+#     sp.allocAdcData()
+    sp.CF_chan_en.clear()
+    sp.IO_mAvg.clear()
+    for i in range(20):
+        sp.CF_chan_en.push_back(1)
+        sp.IO_mAvg.push_back(0.)
+
+    inRoot = 'data/fpgaLin/Feb28t3_data_0.root'
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    N = 2000 # 2500 Hz
+
+    for ievt in range(1):
+        tree1.GetEntry(ievt)
+        sp.measure_multiple(data1, N)
+
+#         print sp.IO_mAvg.size()
+        print ievt, [sp.IO_mAvg[i] for i in range(20)] 
+
+
 if __name__ == '__main__':
-    test2()
+#     test2()
+    test4()
 #     test3()

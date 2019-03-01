@@ -95,6 +95,7 @@ class SignalProcessor{
   vector< TGraph* > corr_spine;
   vector < Event > IO_evts;
 
+
 //   SignalProcessor():scrAry(nullptr){};
   ~SignalProcessor(){
     if(scrAry) free(scrAry); 
@@ -121,19 +122,61 @@ class SignalProcessor{
 
   float correction(size_t ich, float raw, int opt=0);
   int build_events();
-  int fillter_all_channels();
+  int filter_channels();
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
+  void measure_multiple(const AWBT *adcData, size_t N);
 
   /// to be removed
   int build_events(const AWBT *adcData);
   AWBT *IO_adcData{nullptr};
+  vector < int > CF_chan_en{20,1};
+  vector < float > IO_mAvg{20,0};
 
+  void allocAdcData(){if(!IO_adcData) IO_adcData = (AWBT*)calloc(nSamples, sizeof(AWBT));}
  private:
   int get_indices(float q, size_t m);
 };
+
+void SignalProcessor::measure_multiple(const AWBT *adcData, size_t N){
+  /// should already get data
+  //
+  for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    if (CF_chan_en[iCh] == 0) continue;
+//     cout << "A" << endl;
+    /// for each enabled channels
+    const AWBT* adcChData = adcData + nSamples * iCh;
+    if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
+//     cout << "B" << endl;
+
+    /// - filter
+    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+//     cout << "C " << iCh << endl;
+
+    /// - find largest
+    size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
+//     cout << "D " << M << endl;
+
+    /// - find others
+    size_t a = M;
+    float sum(0);
+    size_t n = 0;
+    for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1;}
+//     for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
+    for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1;}
+//     for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
+//     cout << "L sum=" << sum << " n=" << n << endl;
+
+    /// - calculate average
+    IO_mAvg[iCh] =  sum/n;
+//     cout << "J " << IO_mAvg[iCh] << endl;
+   }
+//     cout << "E" << endl;
+
+  return;
+ }
 
 void SignalProcessor::test2(){
   std::cout << "testing 2" << std::endl;
@@ -175,14 +218,16 @@ int SignalProcessor::build_events(const AWBT *adcData){
   return 0;
 }
 
-int SignalProcessor::fillter_all_channels(){
-//   cout << "in fillter_all_channels" << endl;
+int SignalProcessor::filter_channels(){
+//   cout << "in filter_channels" << endl;
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    if (CF_chan_en[iCh] == 0) continue;
+
     const AWBT* adcChData = IO_adcData + nSamples * iCh;
     if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
     filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
    }
-//   cout << "Done in fillter_all_channels" << endl;
+//   cout << "Done in filter_channels" << endl;
 
   return 0;
 }
@@ -255,7 +300,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
 int SignalProcessor::reco(){
 //   cout << "in reco" << endl;
   size_t trig_ch = CF_trig_ch;
-  fillter_all_channels();
+  filter_channels();
   find_sigs(trig_ch);
   IO_evts.clear();
 

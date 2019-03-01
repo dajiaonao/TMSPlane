@@ -11,6 +11,9 @@ from command import *
 import numpy as nm
 import matplotlib.pyplot as plt
 import array
+from ROOT import *
+gROOT.LoadMacro("sp.C+")
+from ROOT import SignalProcessor
 
 class tuner(threading.Thread):
     def __init__(self, idx):
@@ -68,6 +71,17 @@ class Train(threading.Thread):
         self.pltCnt = 0
         self.pltN = 20
 
+        self.sp = SignalProcessor()
+        self.sp.fltParam.clear()
+        for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
+#         self.sp.IO_adcData = self.cd.adcData
+        self.sp.CF_chan_en.clear()
+        self.sp.IO_mAvg.clear()
+        for i in range(20):
+            self.sp.CF_chan_en.push_back(1)
+            self.sp.IO_mAvg.push_back(0.)
+
+
     def plot_data(self):
 #         item = self.q.get()
         if self.axs is None:
@@ -107,31 +121,44 @@ class Train(threading.Thread):
 
     def take_data(self):
         '''return an array of FOM'''
-        meas = [[0]*self.cd.atMeasNavg for i in range(self.cd.nAdcCh)]
-        for i in range(self.cd.atMeasNavg):
-            # reset data fifo
-            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
-            time.sleep(0.05)
-            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-            self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+        s1 = self.cd.sigproc
+        self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+        buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+        data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+        s1.demux_fifodata(buf, data1, self.cd.sdmData)
+#         s1.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
 
-            currMeasP = self.cd.sigproc.measure_pulse(self.cd.adcData)
+        self.sp.measure_multiple(data1, 2000)
 
-            for j in range(self.cd.nAdcCh):
-#                 if j==12: print(j,list(currMeasP[j]),self.cd.atTbounds[0],self.cd.atTbounds[1],currMeasP[j][3])
-                meas[j][i] = 0. if (currMeasP[j][2] < self.cd.atTbounds[0] or currMeasP[j][2] > self.cd.atTbounds[1] or currMeasP[j][3] < 0) else -currMeasP[j][3]/currMeasP[j][1]
-#                 meas[j][i] = -currMeasP[j][3]/currMeasP[j][1]
+#         print([self.sp.IO_mAvg[i] for i in range(20)])
+        return [self.sp.IO_mAvg[i] for i in range(20)]
 
-        ret = [0]*self.cd.nAdcCh
-        for j in range(self.cd.nAdcCh):
-            ### return the mean of the variance is small enough, otherwise 0
-#             if j==12: print(j,meas[j],nm.mean(meas[j]), nm.std(meas[j]), nm.mean(meas[j])/nm.std(meas[j]))
-            m1 = nm.mean(meas[j])
-            if m1<0 and -m1>self.nSig*nm.std(meas[j]): ret[j] = m1
 
-        print(ret)
-        return ret
-
+#         meas = [[0]*self.cd.atMeasNavg for i in range(self.cd.nAdcCh)]
+#         for i in range(self.cd.atMeasNavg):
+#             # reset data fifo
+#             self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+#             time.sleep(0.05)
+#             buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+#             self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+# 
+#             currMeasP = self.cd.sigproc.measure_pulse(self.cd.adcData)
+# 
+#             for j in range(self.cd.nAdcCh):
+#                 if j==0: print(j,list(currMeasP[j]),self.cd.atTbounds[0],self.cd.atTbounds[1],currMeasP[j][3])
+#                 meas[j][i] = 0. if (currMeasP[j][2] < self.cd.atTbounds[0] or currMeasP[j][2] > self.cd.atTbounds[1] or currMeasP[j][3] < 0) else -currMeasP[j][3]/currMeasP[j][1]
+# #                 meas[j][i] = -currMeasP[j][3]/currMeasP[j][1]
+# 
+#         ret = [0]*self.cd.nAdcCh
+#         for j in range(self.cd.nAdcCh):
+#             ### return the mean of the variance is small enough, otherwise 0
+# #             if j==12: print(j,meas[j],nm.mean(meas[j]), nm.std(meas[j]), nm.mean(meas[j])/nm.std(meas[j]))
+#             m1 = nm.mean(meas[j])
+#             if m1<0 and -m1>self.nSig*nm.std(meas[j]): ret[j] = m1
+# 
+#         print(ret)
+#         return ret
+# 
 
     def run(self):
         while self.on:
@@ -212,11 +239,14 @@ class TestClass:
         self.atBounds = None
 
     def test_tune(self):
-        dataIpPort = '192.168.2.3:1024'.split(':')
+        host='192.168.2.3'
+        if socket.gethostname() == 'FPGALin': host = 'localhost'
+
+        dataIpPort = (host+':1024').split(':')
         sD = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         sD.connect((dataIpPort[0],int(dataIpPort[1])))
 
-        ctrlIpPort = '192.168.2.3:1025'.split(':')
+        ctrlIpPort = (host+':1025').split(':')
         sC = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
 
@@ -226,7 +256,8 @@ class TestClass:
         cd.x2gain = 2 # BufferX2 gain 
         cd.sdmMode = 0 # SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection 
         cd.bufferTest = 0 #
-        cd.atTbounds = (2650,2750)
+#         cd.atTbounds = (2650,2750)
+        cd.atTbounds = (4050,4150)
 
         sc1 = SensorConfig(cd, configFName='config.json')
 
@@ -253,7 +284,8 @@ class TestClass:
 
 def test1():
     tc1 = TestClass()
-    tc1.muteList = [3,5,6,8,12,18]
+#     tc1.muteList = [3,5,6,8,12,18]
+    tc1.muteList = []
     tc1.test_tune()
 
 if __name__ == '__main__':
