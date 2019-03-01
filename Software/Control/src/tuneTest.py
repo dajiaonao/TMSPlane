@@ -81,6 +81,17 @@ class Train(threading.Thread):
             self.sp.CF_chan_en.push_back(1)
             self.sp.IO_mAvg.push_back(0.)
 
+        s1 = self.cd.sigproc
+        self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+        self.ret1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nAdcCh)()
+
+        outRootName = 'tt_test.root'
+        self.fout1 = TFile(outRootName,'recreate')
+        self.tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+        self.T = array.array('i',[0])
+        self.tree1.Branch('T',self.T,'T/i')
+        self.tree1.Branch('adc',self.data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
+        self.tree1.Branch('ret',self.ret1, "ret[{0:d}]/F".format(s1.nAdcCh))
 
     def plot_data(self):
 #         item = self.q.get()
@@ -99,7 +110,8 @@ class Train(threading.Thread):
             self.axs[i].cla()
 #             self.axs[i].plot(self.cd.adcData[i])
 #             self.axs[i].step(array.array('f', self.cd.adcData[i]), where='post')
-            self.axs[i].plot(self.plot_x, array.array('f', self.cd.adcData[i]))
+#             self.axs[i].plot(self.plot_x, array.array('f', self.cd.adcData[i]))
+            self.axs[i].plot(self.plot_x, self.data1[i*self.cd.nSamples : (i+1)*self.cd.nSamples])
         plt.draw()
 #         self.q.task_done()
 
@@ -124,41 +136,20 @@ class Train(threading.Thread):
         s1 = self.cd.sigproc
         self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
         buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
-        s1.demux_fifodata(buf, data1, self.cd.sdmData)
-#         s1.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
+        s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
 
-        self.sp.measure_multiple(data1, 2000)
+        self.sp.measure_multiple(self.data1, 2000)
+        for i in range(s1.nAdcCh): self.ret1[i] = self.sp.IO_mAvg[i]
 
-#         print([self.sp.IO_mAvg[i] for i in range(20)])
-        return [self.sp.IO_mAvg[i] for i in range(20)]
+        T0 = int(time.time())
+        dT = T0 - self.T[0]
 
+        self.T[0] = T0
+        print(self.ret1[3])
+        self.tree1.Fill()
 
-#         meas = [[0]*self.cd.atMeasNavg for i in range(self.cd.nAdcCh)]
-#         for i in range(self.cd.atMeasNavg):
-#             # reset data fifo
-#             self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
-#             time.sleep(0.05)
-#             buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-#             self.cd.sigproc.demux_fifodata(buf, self.cd.adcData, self.cd.sdmData)
-# 
-#             currMeasP = self.cd.sigproc.measure_pulse(self.cd.adcData)
-# 
-#             for j in range(self.cd.nAdcCh):
-#                 if j==0: print(j,list(currMeasP[j]),self.cd.atTbounds[0],self.cd.atTbounds[1],currMeasP[j][3])
-#                 meas[j][i] = 0. if (currMeasP[j][2] < self.cd.atTbounds[0] or currMeasP[j][2] > self.cd.atTbounds[1] or currMeasP[j][3] < 0) else -currMeasP[j][3]/currMeasP[j][1]
-# #                 meas[j][i] = -currMeasP[j][3]/currMeasP[j][1]
-# 
-#         ret = [0]*self.cd.nAdcCh
-#         for j in range(self.cd.nAdcCh):
-#             ### return the mean of the variance is small enough, otherwise 0
-# #             if j==12: print(j,meas[j],nm.mean(meas[j]), nm.std(meas[j]), nm.mean(meas[j])/nm.std(meas[j]))
-#             m1 = nm.mean(meas[j])
-#             if m1<0 and -m1>self.nSig*nm.std(meas[j]): ret[j] = m1
-# 
-#         print(ret)
-#         return ret
-# 
+        if dT>200:
+            self.tree1.AutoSave()
 
     def run(self):
         while self.on:
@@ -209,7 +200,8 @@ class Train(threading.Thread):
             time.sleep(5.0)
             if t is not None: t.join()
 
-            ret = self.take_data()
+            self.take_data()
+            ret = self.ret1
 
             ### return
             needUpdate = False
@@ -227,7 +219,8 @@ class Train(threading.Thread):
             if needUpdate:
                 self.sc.write_config_fileX(self.bestConfigFile, self.sensorVcodes)
         print('Stopping the train.....')
-
+        self.tree1.Write()
+        self.fout1.Close()
 
 class TestClass:
     def __init__(self, nAdcCh=19):
