@@ -8,6 +8,8 @@
 #include <TGraph.h>
 #include <TH2F.h>
 #include <TH3F.h>
+#include <TTree.h>
+#include <TFile.h>
 // #include <TColor.h>
 // #include <TStyle.h>
 #include "helix.C"
@@ -123,6 +125,7 @@ class SignalProcessor{
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
   void show_events();
+  TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
 
   /// to be removed
   int build_events(const AWBT *adcData);
@@ -263,7 +266,6 @@ int SignalProcessor::reco(){
     IO_evts.emplace_back(ii);
     auto& evt = IO_evts.back();
 
-    cout << s.im << endl;
     evt.trigID = ii;
     evt.sigs[trig_ch] = s;
 
@@ -779,6 +781,59 @@ void Filter_ibl::apply(const AWBT *inWav){
 
   return;
 }
+
+TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfilename, int run){
+  //// set branch address for the input tree
+  IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
+  UInt_t dataT;
+  treeIn.SetBranchAddress("adc", IO_adcData);
+  treeIn.SetBranchAddress("T",  &dataT);
+
+  //// create the output tree if it is nullptr, then we need to have a tfile
+  /// create the outfile
+  int event, tID;
+  float Q[20];
+  int   im[20];
+
+  TFile* tfile(nullptr);
+  if(!treeOut){
+    tfile = new TFile(outfilename.c_str(), "new");
+    treeOut = new TTree("reco","reco tree");
+    treeOut->Branch("run", &run, "run/I");
+    treeOut->Branch("evt", &event, "evt/I");
+    treeOut->Branch("tID", &tID, "tID/I");
+    treeOut->Branch("Q", &Q, "Q[20]/F");
+    treeOut->Branch("im", &im, "im[20]/I");
+   }else{
+    treeOut->SetBranchAddress("run", &run);
+    treeOut->SetBranchAddress("evt", &event);
+    treeOut->SetBranchAddress("tID", &tID);
+    treeOut->SetBranchAddress("Q", &Q);
+    treeOut->SetBranchAddress("im", &im);
+   }
+
+  //// loop over the events
+  size_t NEVT = treeIn.GetEntries();
+  for(size_t ievt=0; ievt<NEVT; ++ievt){
+    treeIn.GetEntry(ievt);
+    event = ievt;
+    reco();
+    for(auto& t: IO_evts){
+      tID = t.trigID;
+      for(size_t ii=0; ii<20; ii++){
+        Q[ii] = t.sigs[ii].Q;
+        im[ii] = t.sigs[ii].im;
+       }
+      treeOut->Fill();
+     }
+   }
+
+  treeOut->Write();
+  free(IO_adcData);
+  IO_adcData = nullptr;
+  return tfile;
+}
+
 //////////////////////////////////////////////////////////////////
 // useful Functions
 void showEvents(vector < Event >& evts){

@@ -56,6 +56,66 @@ def apply_wiener_filter(data,ich,n=16384):
     y = wiener(x, mysize=500)
     for i in range(n): data[ich*n+i] = y[i]
 
+def readSignal4(argX, runPattern='.*_data_(\d+).root'):
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print "Starting", inRoot, oTag
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print "Failed to get the dV in file:", iRoot
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+                return
+        else:
+            if dV<0:
+                print "Run number not exatracted for file", iRoot
+                return
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+    sp1.fltParam.clear()
+#     for i in range(sp1.nAdcCh): sp1.ch_thre[i] = 0.002
+#     sp1.ch_thre[19] = 0.05
+    thre = [0.002]*sp1.nAdcCh
+    thre[2] = 0.0008
+    thre[4] = 0.001
+    thre[6] = 0.001
+    thre[7] = 0.001
+    thre[10] = 0.001
+    thre[11] = 0.0007
+    thre[14] = 0.0007
+    thre[17] = 0.001
+    thre[19] = 0.05
+
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
+
+    flt = [50, 100, 500, -1] # dp01a
+    for x in flt: sp1.fltParam.push_back(x)
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    sp1.processFile(tree1, tree2, 'test1.root', run)
+
 def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
@@ -391,6 +451,7 @@ def process_all_match(pattern, oTag, skipExist=True):
     p.map(readSignal3, [f+';'+oTag for f in files])
 
 if __name__ == '__main__':
+    readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
 #     testK()
 #     test_Jan22b()
@@ -408,7 +469,7 @@ if __name__ == '__main__':
 #     readSignal3(argX='data/fpgaLin/Feb09b_data_1069.root;tp2_')
 #     test3(pList=[(0, 'tp09a_')])
 #     process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
-    process_all_match('data/fpgaLin/Feb27a_data_*.root', 'dp01a_', True)
+#     process_all_match('data/fpgaLin/Feb27a_data_*.root', 'dp01a_', True)
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 
 #     pList = []
