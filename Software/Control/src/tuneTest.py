@@ -88,9 +88,10 @@ class Train(threading.Thread):
         self.ret1 = array.array('f',[0]*s1.nAdcCh)
         self.par1 = array.array('f',[0]*(self.cd.nCh*len(self.cd.inputVs)))
 
+        self.saveT0 = -1
         outRootName = 'tt_test.root'
         self.fout1 = TFile(outRootName,'recreate')
-        self.tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+        self.tree1 = TTree('tree1',"tune data for {0:d} channels, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         self.T = array.array('i',[0])
         self.tree1.Branch('T',self.T,'T/i')
         self.tree1.Branch('adc',self.data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
@@ -145,15 +146,13 @@ class Train(threading.Thread):
         self.sp.measure_multiple(self.data1, 2000)
         for i in range(s1.nAdcCh): self.ret1[i] = -self.sp.IO_mAvg[i]
 
-        T0 = int(time.time())
-        dT = T0 - self.T[0]
-
-        self.T[0] = T0
+        self.T[0] = int(time.time())
         print(self.ret1[3],self.ret1[0])
         self.tree1.Fill()
 
-        if dT>200:
+        if self.T[0]-self.saveT0>200:
             self.tree1.AutoSave('SaveSelf')
+            self.saveT0 = self.T[0]
 
     def run(self):
         nPar = len(self.cd.inputVs)
