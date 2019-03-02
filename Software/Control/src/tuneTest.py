@@ -22,7 +22,7 @@ class tuner(threading.Thread):
         self.rx_qs = None
         self.tx_qs = None
         self.atBounds = [(-10,10),(-10,10),(-10,10),(-10,10),(-10,10),(-10,10)] 
-        self.atMaxIters = 100
+        self.atMaxIters = 1000
 
     def run(self):
         de = DE(self.auto_tune_fun, self.atBounds, maxiters=self.atMaxIters)
@@ -56,8 +56,10 @@ class Train(threading.Thread):
         self.tx_qs = None
         self.rx_qs = None
         self.on = True
-        self.mask = [0]*cd.nAdcCh
+        self.mask = [0]*cd.nCh
         self.nSig = 3
+
+        ### this copy of sensorVcodes is used to save the best value find so far
         self.sensorVcodes = [[v for v in cd.sensorVcodes[i]] for i in range(cd.nCh)]
         self.bestConfigFile = 'current_best_config.json'
         self.retBest = [0.]*cd.nAdcCh
@@ -83,7 +85,8 @@ class Train(threading.Thread):
 
         s1 = self.cd.sigproc
         self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
-        self.ret1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nAdcCh)()
+        self.ret1 = array.array('f',[0]*s1.nAdcCh)
+        self.par1 = array.array('f',[0]*(self.cd.nCh*len(self.cd.inputVs)))
 
         outRootName = 'tt_test.root'
         self.fout1 = TFile(outRootName,'recreate')
@@ -92,6 +95,7 @@ class Train(threading.Thread):
         self.tree1.Branch('T',self.T,'T/i')
         self.tree1.Branch('adc',self.data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
         self.tree1.Branch('ret',self.ret1, "ret[{0:d}]/F".format(s1.nAdcCh))
+        self.tree1.Branch('par',self.par1, "par[{0:d}][{1:d}]/F".format(self.cd.nCh, len(self.cd.inputVs)))
 
     def plot_data(self):
 #         item = self.q.get()
@@ -139,19 +143,26 @@ class Train(threading.Thread):
         s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
 
         self.sp.measure_multiple(self.data1, 2000)
-        for i in range(s1.nAdcCh): self.ret1[i] = self.sp.IO_mAvg[i]
+        for i in range(s1.nAdcCh): self.ret1[i] = -self.sp.IO_mAvg[i]
 
         T0 = int(time.time())
         dT = T0 - self.T[0]
 
         self.T[0] = T0
-        print(self.ret1[3])
+        print(self.ret1[3],self.ret1[0])
         self.tree1.Fill()
 
         if dT>200:
-            self.tree1.AutoSave()
+            self.tree1.AutoSave('SaveSelf')
 
     def run(self):
+        nPar = len(self.cd.inputVs)
+
+        ### save the initial values
+        for i in range(self.cd.nCh):
+            for kk in range(nPar): 
+                self.par1[i*nPar+kk] = self.cd.tms1mmReg.dac_code2volt(self.sensorVcodes[i][kk])
+
         while self.on:
             cnt = 0
 #             cnt1 = 0
@@ -170,6 +181,7 @@ class Train(threading.Thread):
 #                     self.pars[i] = x
 #                     print(i,x)
                     self.cd.set_sensor(i,x)
+                    for kk in range(nPar): self.par1[i*nPar+kk] = x[kk] 
                     ss.add(self.sc.tms1mmX19chainSensors[self.sc.tms1mmX19sensorInChain[i]][0])
 
 
@@ -212,22 +224,26 @@ class Train(threading.Thread):
 
                     ### save the values if it's the best so far
                     if ret[i]<self.retBest[i]:
+                        print("find better parameters for channel", i)
+                        print('old:',self.sensorVcodes[i], self.retBest[i])
                         self.retBest[i] = ret[i]
                         self.sensorVcodes[i] = [a for a in self.cd.sensorVcodes[i]]
+                        print('new:',self.sensorVcodes[i], self.retBest[i])
                         needUpdate = True
 #                     print("--- {0:d} {1:g}".format(i, self.meas[i]))
             if needUpdate:
                 self.sc.write_config_fileX(self.bestConfigFile, self.sensorVcodes)
         print('Stopping the train.....')
+        plt.close('all')
         self.tree1.Write()
         self.fout1.Close()
 
 class TestClass:
-    def __init__(self, nAdcCh=19):
+    def __init__(self, nCh=19):
         self.x = None
-        self.tx_qs = [None]*nAdcCh
-        self.rx_qs = [None]*nAdcCh
-        self.nAdcCh = nAdcCh
+        self.tx_qs = [None]*nCh
+        self.rx_qs = [None]*nCh
+        self.nCh = nCh
         self.muteList = []
         self.atBounds = None
 
@@ -263,7 +279,7 @@ class TestClass:
 #         tr1.test_update_sensor()
 #         tr1.take_data()
 
-        for i in range(self.nAdcCh):
+        for i in range(self.nCh):
             if i in self.muteList: continue
             self.tx_qs[i] = Queue()
             self.rx_qs[i] = Queue()
