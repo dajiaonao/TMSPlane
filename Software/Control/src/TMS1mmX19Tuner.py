@@ -346,9 +346,14 @@ class ControlPanelGUI(object):
         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
         self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.autoTuneButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
+        self.autoTuneButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
 
         # self-updating functions
         self.update_values_display()
+    def save_config(self):
+        pass
 
     def quit(self):
         with self.cd.cv:
@@ -472,7 +477,7 @@ class SensorConfig(threading.Thread):
                 self.cd.cv.wait(self.cd.tI)
                 if self.cd.vUpdated:
                     self.update_sensor(self.cd.currentSensor)
-                    self.write_config_file()
+#                     self.write_config_file()
                     self.cd.vUpdated = False
                 self.get_inputs()
 

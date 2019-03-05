@@ -44,5 +44,12 @@ def showPars():
 
     plt.show()
 
+def checkPars(fname,ch):
+    pars1 = read_config_file(fname)
+    print pars1[ch]
+
 if __name__ == '__main__':
-    showPars()
+#     showPars()
+#     checkPars('current_best_config.json',17)
+    checkPars('Mar01Td_best_config.json',17)
+    checkPars('config.json',17)
