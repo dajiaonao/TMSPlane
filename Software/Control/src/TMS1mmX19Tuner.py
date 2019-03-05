@@ -104,7 +104,7 @@ class DataPanelGUI(object):
 
     ##
     # @param [in] dataFigSize (w, h) in inches for the data plots figure assuming dpi=72
-    def __init__(self, master, cd, dataFigSize=(13, 12.5), visibleChannels=None):
+    def __init__(self, master, cd, dataFigSize=(13, 12.5), visibleChannels=None, guiI=True):
         self.master = master
         self.cd = cd
         self.nAdcCh = self.cd.nAdcCh
@@ -145,12 +145,13 @@ class DataPanelGUI(object):
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
         #
-        self.buttonFrame = tk.Frame(self.master)
-        self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
-        self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
-        self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
+        if guiI:
+            self.buttonFrame = tk.Frame(self.master)
+            self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
+            self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
+            self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
         #
         self.plot_data()
 
