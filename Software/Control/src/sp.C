@@ -107,7 +107,7 @@ class SignalProcessor{
 
   int CF_trig_ch{19};
   int CF_dSize{200};
-  int CF_uSize{50};
+  int CF_uSize{-50};
 
  public:
   void test(){
@@ -235,7 +235,7 @@ int SignalProcessor::filter_channels(){
 int SignalProcessor::find_sigs(int chan, int start, int end){
   if(start < 0) start = 0;
   if(end<0 || end>int(nSamples)) end = nSamples;
-//   cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
+  cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
 
   if(signals[chan]) {
     signals[chan]->clear();
@@ -316,7 +316,7 @@ int SignalProcessor::reco(){
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
       if(iCh == trig_ch) continue;
-      find_sigs(iCh, s.im-CF_uSize, s.im+CF_dSize);
+      find_sigs(iCh, s.im+CF_uSize, s.im+CF_dSize);
 
       if(signals[iCh]->size()>1){
         cout << "Multiple signal in channel" << iCh << endl;

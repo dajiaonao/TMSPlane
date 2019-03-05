@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F, TChain
+from ROOT import TTree, TCanvas, TLatex, gDirectory, TH1F, TChain, TGraphErrors, gPad
 from rootUtil import waitRootCmdX, useLHCbStyle
 
 lt = TLatex()
 c1 = TCanvas()
-c1.Divide(6,3)
+c1.Divide(5,4)
 
 dofit_src = '''
 void fitENC(TObject *c){
@@ -56,6 +56,37 @@ def test1(fname='tt2.dat'):
     c1.cd()
     waitRootCmdX()
 
+def test1a(fname='data/fpgaLin/dp02a_Mar04C1a_data_0.root'):
+    add_fit_menu()
+
+    t1 = TChain('reco')
+    t1.Add(fname)
+
+    t1.Show(0)
+    V = 200
+    gr1 = TGraphErrors()
+
+    for i in range(19):
+        c1.cd(i+1)
+        lt.DrawLatexNDC(0.2,0.4,'Ch={0:d}'.format(i))
+        t1.Draw('Q[{0:d}]>>hx{0:d}'.format(i),'tID!=7')
+        hx = gPad.GetPrimitive('hx{0:d}'.format(i))
+        hx.Fit('gaus')
+        fun1 = hx.GetFunction('gaus')
+        encN = 7.40*V*fun1.GetParameter(2)/fun1.GetParameter(1)
+        encE = 7.40*V*fun1.GetParError(2)/fun1.GetParameter(1)
+
+        gr1.SetPoint(i,i,encN)
+        gr1.SetPointError(i,0,encE)
+
+    c1.cd(20)
+    gr1.Draw('AP')
+
+    c1.cd()
+    waitRootCmdX()
+
+
+
 def test2():
     add_fit_menu()
     t150 = TTree()
@@ -93,5 +124,6 @@ if __name__ == '__main__':
 #     compareX()
 #     test1('Jan08a_100mV_r50p0us.dat')
 #     test1('Jan05a_100mV.dat')
-    test1('temp1.dat')
+#     test1('temp1.dat')
+    test1a()
 #     test2()

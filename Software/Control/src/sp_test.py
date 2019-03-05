@@ -203,6 +203,7 @@ def test2():
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
     for x in [30, 50, 200, -1]: sp1.fltParam.push_back(x)
+#     for x in [50, 100, 500, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
 #     sp1.x_thre = 0.002
@@ -262,6 +263,9 @@ def test2():
         x1 = []
         y1 = []
         iss = 0
+        if len(sp1.signals[ich])>0:
+            print "idx: iMax iMidian A w0 w1 w2"
+            print '-'*30
         for s in sp1.signals[ich]:
             print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
             x1.append(s.im)
@@ -458,6 +462,6 @@ def test4():
 
 
 if __name__ == '__main__':
-#     test2()
-    test4()
+    test2()
+#     test4()
 #     test3()
