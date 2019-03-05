@@ -5,7 +5,7 @@ import threading
 from TMS1mmX19Tuner import DataPanelGUI, CommonData
 from array import array
 from glob import glob
-from ROOT import TFile, TChain
+from ROOT import TFile, TChain, gDirectory
 
 if sys.version_info[0] < 3:
     import Tkinter as tk
@@ -31,12 +31,20 @@ class DataViewer():
         if self.tree is None:
             if self.fName is not None:
                 self.get_file(self.fName)
-
+        elist = None
         ievt = 0
         while True:
-            print 'Event:', ievt
-            self.tree.GetEntry(ievt)
-            self.dataPanel.plot_data()
+            ievt1 = ievt
+            if elist is not None:
+                ievt1 = self.tree.GetEntryNumber(ievt)
+                print 'Entry:', ievt,
+
+            print 'Event:', ievt1
+            if ievt1 >= 0:
+                self.tree.GetEntry(ievt1)
+                self.dataPanel.plot_data()
+            else:
+                print "Invalid event number!!!!"
 
             x = raw_input("Next:")
 #             if x=='q': sys.exit()
@@ -55,6 +63,18 @@ class DataViewer():
                     ievt = 0
                 except ValueError:
                     print "Error in parsing the file name:",fname
+            elif len(x)>2 and x[:2] == 'c ':
+                try:
+                    self.tree.SetEntryList(0)
+                    self.tree.Draw('>>elist',x[2:],'entrylist')
+                    elist = gDirectory.Get('elist')
+                    self.tree.SetEntryList(elist)
+                    print "selection",x[2:], 'applied (', elist.GetN(), 'entries)'
+                    ievt = 0
+                except ValueError:
+                    print "failed to set the entrylist"
+                    self.tree.SetEntryList(0)
+                    elist = None
             else:
                 try:
                     ievt = int(x)
