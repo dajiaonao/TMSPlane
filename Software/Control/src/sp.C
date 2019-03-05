@@ -233,9 +233,9 @@ int SignalProcessor::filter_channels(){
 }
 
 int SignalProcessor::find_sigs(int chan, int start, int end){
-//   cout << "in find_sigs for chan " << chan << endl;
   if(start < 0) start = 0;
   if(end<0 || end>int(nSamples)) end = nSamples;
+  cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
 
   if(signals[chan]) {
     signals[chan]->clear();

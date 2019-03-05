@@ -484,9 +484,11 @@ if __name__ == '__main__':
 #     test3(pList=[(0, 'tp09a_')])
 #     process_all_match('data/fpgaLin/Feb26b_*mV_f*.root', 'sp02a_', False)
 #     process_all_match('data/fpgaLin/Feb27a_data_*.root', 'dp01a_', True)
-    process_all_match4('data/fpgaLin/Feb27a_data_*.root', 'dp02a_', False)
-    process_all_match4('data/fpgaLin/Feb27b_data_*.root', 'dp02a_', False)
-    process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
+#     process_all_match4('data/fpgaLin/Feb27a_data_*.root', 'dp02a_', False)
+#     process_all_match4('data/fpgaLin/Feb27b_data_*.root', 'dp02a_', False)
+#     process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
+    readSignal4('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
+
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 
 #     pList = []
