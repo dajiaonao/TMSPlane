@@ -85,6 +85,7 @@ class SignalProcessor{
   double* measParam{nullptr};
   size_t nMeasParam{2};
   vector< float > ch_thre{20, 0.005};
+//   vector< float > IO_values;
   float x_thre{0.005};
 //   void set_threshold(float x){x_thre = x;}
 
@@ -128,6 +129,7 @@ class SignalProcessor{
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
   void measure_multiple(const AWBT *adcData, size_t N);
+  void measure_multipleX(const AWBT *adcData, size_t N, float* values);
 
   /// to be removed
   int build_events(const AWBT *adcData);
@@ -139,6 +141,32 @@ class SignalProcessor{
  private:
   int get_indices(float q, size_t m);
 };
+
+
+void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* values){
+  for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    if (CF_chan_en[iCh] == 0) continue;
+
+    /// for each enabled channels
+    const AWBT* adcChData = adcData + nSamples * iCh;
+    if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
+
+    /// - filter
+    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+
+    int L = 8;
+    /// - find largest
+    size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
+    values[iCh*L] = scrAry[M]; 
+
+    /// save values
+    size_t j = 1;
+    for(int a=M-N; a>20; a-=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+    for(int a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+   }
+
+  return;
+}
 
 void SignalProcessor::measure_multiple(const AWBT *adcData, size_t N){
   /// should already get data

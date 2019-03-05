@@ -197,12 +197,16 @@ def test2():
     ich = 1
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
+
+#     P is the constant using 0.2 ps as unit wit
+#     0.006 is the constant using 1/2500/1024 as unit 1/0.006 T = 1/0.006 * 1/2500/1024 s = 1/0.006 *1/2500/1024* 5000000 pts
 #     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 50, 200, -1]: sp1.fltParam.push_back(x)
+    P = 1./0.006/2500/1024*5000000;
+    for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
 #     for x in [50, 100, 500, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
@@ -460,8 +464,49 @@ def test4():
 #         print sp.IO_mAvg.size()
         print ievt, [sp.IO_mAvg[i] for i in range(20)] 
 
+def test5():
+    '''Test the measure_multipleX function in sp.C, which trys to locate the signal by seaching the maximum and use the period info to find others. It's used used only for calibration.'''
+    s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+    data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+
+    sp = SignalProcessor()
+    sp.fltParam.clear()
+
+    P = 1./0.006/2500/1024*5000000;
+    for x in [30, 50, 200, P]: sp.fltParam.push_back(x)
+
+    sp.CF_chan_en.clear()
+    sp.IO_mAvg.clear()
+    for i in range(20):
+        sp.CF_chan_en.push_back(1)
+        sp.IO_mAvg.push_back(0.)
+
+#     inRoot = 'data/fpgaLin/Feb28t3_data_0.root'
+    inRoot = 'data/fpgaLin/Mar05T1a_data_0.root'
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    N = 2000 # 2500 Hz
+
+    Vs = array('f',[0]*(20*8))
+#     for i in range(20*8)
+
+    for ievt in range(3):
+        tree1.GetEntry(ievt)
+        sp.measure_multipleX(data1, N, Vs)
+
+        for i in range(20):
+            print i,':',
+            for j in range(8):
+#                 print i*8+j,
+                print Vs[i*8+j],
+            print
+
+
 
 if __name__ == '__main__':
-    test2()
+#     test2()
+    test5()
 #     test4()
 #     test3()

@@ -8,7 +8,7 @@ import time
 from TMS1mmX19Tuner import SensorConfig, CommonData
 import socket
 from command import *
-import numpy as nm
+import numpy as np
 import matplotlib.pyplot as plt
 import array
 from ROOT import *
@@ -75,7 +75,10 @@ class Train(threading.Thread):
 
         self.sp = SignalProcessor()
         self.sp.fltParam.clear()
-        for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
+#         for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
+        P = 1./0.006/2500/1024*5000000;
+        for x in [30, 50, 200, P]: self.sp.fltParam.push_back(x)
+
 #         self.sp.IO_adcData = self.cd.adcData
         self.sp.CF_chan_en.clear()
         self.sp.IO_mAvg.clear()
@@ -87,6 +90,7 @@ class Train(threading.Thread):
         self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
         self.ret1 = array.array('f',[0]*s1.nAdcCh)
         self.par1 = array.array('f',[0]*(self.cd.nCh*len(self.cd.inputVs)))
+        self.t_values = array.array('f',[0]*(20*8))
 
         self.saveT0 = -1
         outRootName = 'tt_test.root'
@@ -139,15 +143,37 @@ class Train(threading.Thread):
     def take_data(self):
         '''return an array of FOM'''
         s1 = self.cd.sigproc
-        self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
-        buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
 
-        self.sp.measure_multiple(self.data1, 2000)
-        for i in range(s1.nAdcCh): self.ret1[i] = -self.sp.IO_mAvg[i]
+        NV = 8
+        NEVT = 100
+        Values = [[0.]*(NV*NEVT) for i in range(self.cd.nAdcCh)]
+
+        for ievt in range(NEVT):
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
+
+            self.sp.measure_multipleX(self.data1, 2000, self.t_values)
+#             if ievt == 0:
+#                 print("EVT",ievt) 
+# #                 print([self.t_values[i] for i in range(NV*self.cd.nAdcCh)])
+#                 print([self.t_values[6*NV+i] for i in range(NV)])
+
+            for ich in range(self.cd.nAdcCh):
+                for ipeak in range(NV):
+                    Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
+
+        for i in range(s1.nAdcCh):
+#             self.ret1[i] = np.std(Values[i])/np.mean(Values[i])
+            self.ret1[i] = -np.mean(Values[i])/np.std(Values[i])
+            #             if i==6:
+# #                 print(i,'->', Values[i][20*8:21*8])
+#                 print(i,'->', Values[i][0*8:1*8])
+#             print(i, np.std(Values[i]), np.mean(Values[i]), self.ret1[i])
 
         self.T[0] = int(time.time())
-        print(self.ret1[3],self.ret1[0])
+#         print(self.ret1[3],self.ret1[0])
+#         for i in range(self.cd.nAdcCh): print(i,self.ret1[i])
         self.tree1.Fill()
 
         if self.T[0]-self.saveT0>200:
@@ -209,7 +235,7 @@ class Train(threading.Thread):
 #                 t.start()
 #                 self.q.put('run')
 
-            time.sleep(15.0)
+            time.sleep(30)
             if t is not None: t.join()
 
             self.take_data()
@@ -277,28 +303,29 @@ class TestClass:
         tr1.on = True
 
 #         tr1.test_update_sensor()
-#         tr1.take_data()
+        tr1.take_data()
+#         return
         ### for the chip #3? the default one in LBL
-        better_bounds = [None]*self.nCh
-        better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
-        better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
-        better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
-        better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
-        better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
-        better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
-        better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
-        better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
-        better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
-        better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
-        better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
-        better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
-        better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
-        better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
-        better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds = [None]*self.nCh
+#         better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
+#         better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
+#         better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
+#         better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+#         better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+#         better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
+#         better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
+#         better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
+#         better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+#         better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
+#         better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
+#         better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+#         better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
+#         better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
+#         better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
 
 
         for i in range(self.nCh):
@@ -308,8 +335,8 @@ class TestClass:
             th1 = tuner(i)
             th1.tx_qs = self.tx_qs
             th1.rx_qs = self.rx_qs            
-#             th1.atBounds = cd.atBounds
-            th1.atBounds = better_bounds[i]
+            th1.atBounds = cd.atBounds
+#             th1.atBounds = better_bounds[i]
 #             th1.atBounds = better_bounds[i] if better_bounds[i] is not None else cd.atBounds
             th1.atMaxIters = cd.atMaxIters
             th1.start()
