@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+import sys
+from array import array
+from rootUtil import waitRootCmdX
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor, Event, Sig, showEvents, showEvent
-from array import array
-from rootUtil import waitRootCmdX
 
-def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root'):
+def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root', ievt=0):
     '''To test the event reconstruction'''
     gStyle.SetOptStat(0)
     gROOT.ProcessLine('.L Pal.C')
@@ -41,8 +42,9 @@ def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root'):
 
     cx = TCanvas('cx','cx', 1500,700)
     cx.Divide(2,1)
-    for i in range(tree1.GetEntries()):
-        tree1.GetEntry(i)
+#     for i in range(tree1.GetEntries()):
+    while ievt>=0:
+        tree1.GetEntry(ievt)
         sp1.reco()
 
         for e in sp1.IO_evts:
@@ -60,9 +62,16 @@ def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root'):
 #             h2.Draw('axis same')
 
             cx.cd(0)
-            gPad.Update()
-            a = raw_input("x:")
-#             waitRootCmdX()
+#             gPad.Update()
+#             a = raw_input("x:")
+            waitRootCmdX(cx)
+        ievt += 1
+
+def main():
+    fname = sys.argv[1] if len(sys.argv)>1 else 'data/fpgaLin/Feb27a_data_40.root'
+    ievt = int(sys.argv[2]) if len(sys.argv)>2 else 0
+    display_test(fname, ievt)
 
 if __name__ == '__main__':
-    display_test()
+#     display_test()
+    main()
