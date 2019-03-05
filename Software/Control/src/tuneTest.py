@@ -203,12 +203,13 @@ class Train(threading.Thread):
             self.pltCnt += 1
             t = None
             if self.pltCnt%self.pltN == 0:
-                t = threading.Thread(target=self.plot_data)
-                t.daemon = True
-                t.start()
+                self.plot_data()
+#                 t = threading.Thread(target=self.plot_data)
+#                 t.daemon = True
+#                 t.start()
 #                 self.q.put('run')
 
-            time.sleep(5.0)
+            time.sleep(15.0)
             if t is not None: t.join()
 
             self.take_data()
@@ -277,6 +278,28 @@ class TestClass:
 
 #         tr1.test_update_sensor()
 #         tr1.take_data()
+        ### for the chip #3? the default one in LBL
+        better_bounds = [None]*self.nCh
+        better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
+        better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
+        better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
+        better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+        better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+        better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
+        better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
+        better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
+        better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+        better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
+        better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
+        better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+        better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
+        better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
+        better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+
 
         for i in range(self.nCh):
             if i in self.muteList: continue
@@ -285,7 +308,9 @@ class TestClass:
             th1 = tuner(i)
             th1.tx_qs = self.tx_qs
             th1.rx_qs = self.rx_qs            
-            th1.atBounds = cd.atBounds
+#             th1.atBounds = cd.atBounds
+            th1.atBounds = better_bounds[i]
+#             th1.atBounds = better_bounds[i] if better_bounds[i] is not None else cd.atBounds
             th1.atMaxIters = cd.atMaxIters
             th1.start()
         tr1.start()

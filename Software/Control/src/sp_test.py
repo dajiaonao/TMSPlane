@@ -426,6 +426,7 @@ def showA(d):
     raw_input('next:')
 
 def test4():
+    '''Test the measure_multiple function in sp.C, which trys to locate the signal by seaching the maximum and use the period info to find others. It's used used only for calibration.'''
     s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
 #     data1 = s1.generate_adcDataBuf() # ((ctypes.c_float * self.nSamples) * self.nAdcCh)()
     data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
