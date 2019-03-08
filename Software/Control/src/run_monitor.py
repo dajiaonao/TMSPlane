@@ -16,10 +16,21 @@ class DataViewer():
     def __init__(self,cd,dp):
         self.cd = cd
         self.dataPanel = dp
-        self.fName = 'data/fpgaLin/Feb27a_data_*.root'
         self.dataT = array('i',[0])
         self.tree = None
         self.treename = 'tree1'
+        self.fName = 'data/fpgaLin/Feb27a_data_*.root'
+        self.fIndx = 0
+        self.fList = None
+
+    def get_file_list(self, show=True):
+        self.fList = glob(self.fName)
+        if len(self.fList)>1:
+            self.fName = self.fList[0]
+            self.fIndx = 0
+        if show:
+            for i,f in enumerate(self.fList):
+                print(i, f)
 
     def get_file(self, fname):
         self.tree = TChain(self.treename)
@@ -144,7 +155,7 @@ def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     du1.join()
 
 def view(fname='data/fpgaLin/tt_test.root'):
-    if len(sys.argv)>1: fname = sys.argv[1]
+#     if len(sys.argv)>1: fname = sys.argv[1]
 
     cd = CommonData()
     root = tk.Tk()
@@ -154,9 +165,25 @@ def view(fname='data/fpgaLin/tt_test.root'):
     dv1.fName = fname
     dv1.run()
 
+def main():
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-m", "--monitor", dest="monitorPattern", help="the file or pattern to monitor")
+    parser.add_option("-v", "--view",    dest="viewPattern",    help="the file or pattern to view")
+
+    (options, args) = parser.parse_args()
+
+    if options.monitorPattern:
+        monitor(options.monitorPattern)
+    elif options.viewPattern:
+        view(options.viewPattern)
+    else:
+        print("Unknown pattern")
+
 if __name__ == '__main__':
 #     monitor('data/fpgaLin/Feb27b_data_*.root')
 #     monitor('data/fpgaLin/Feb28a_data_*.root')
 #     monitor('data/fpgaLin/Mar07C*.root')
-    monitor('data/fpgaLin/Mar07D*.root')
+#     monitor('data/fpgaLin/Mar07D*.root')
 #     view()
+    main()
