@@ -236,7 +236,7 @@ def take_calibration_samples(sTag, vs, n=5000):
 #         v = 0.025+iv*0.025
 #         if v<0.175: continue
 #         v = 0.05+iv*0.025
-        setPulse(v,1000)
+        setPulse(v,100)
         time.sleep(20)
         print "Taking sample with dU={0:.3f} mV".format(v*1000)
         sc1.take_samples2(n, dir1+sTag+"_{0:d}mV_f1000.root".format(int(v*1000)))
@@ -338,11 +338,13 @@ def test1():
 
 if __name__ == '__main__':
 #     take_calibration_samples(sTag='Feb26a',n=5000)
+#     take_calibration_samples(sTag='Mar07C1a',vs=[0.2+0.025*i for i in range(16)],n=3000)
 #     take_calibration_samples(sTag='Feb26a',n=3000)
 #     take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
 #       take_data(sTag='Mar01t1b',n=200, N=1)
 #       take_data(sTag='Mar04C1a',n=2000, N=1)
-      take_data(sTag='Mar05T1a',n=200, N=1)
+#       take_data(sTag='Mar05T1a',n=200, N=1)
+      take_data(sTag='Mar07D1b',n=1000, N=-1)
 #     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')
