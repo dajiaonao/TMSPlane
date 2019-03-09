@@ -55,7 +55,10 @@ def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root', ievt=0):
 
             cx.cd(1)
 #             h3.Draw('BOX2')
-            h3.Draw()
+#             h3.Draw()
+#             h3.SetMarkerStyle(20)
+#             h3.SetMarkerSize(1)
+            h3.Draw('COLZ')
             cx.cd(2)
             t = h2.GetBinContent(h2.GetMaximumBin())*1.06
             h2.GetZaxis().SetRangeUser(-0.05*t,t*0.95)

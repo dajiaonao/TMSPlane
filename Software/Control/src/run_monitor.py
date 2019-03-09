@@ -144,6 +144,8 @@ def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     du1.join()
 
 def view(fname='data/fpgaLin/tt_test.root'):
+    if len(sys.argv)>1: fname = sys.argv[1]
+
     cd = CommonData()
     root = tk.Tk()
     dataPanel = DataPanelGUI(root, cd, visibleChannels=None, guiI=False)
@@ -155,4 +157,6 @@ def view(fname='data/fpgaLin/tt_test.root'):
 if __name__ == '__main__':
 #     monitor('data/fpgaLin/Feb27b_data_*.root')
 #     monitor('data/fpgaLin/Feb28a_data_*.root')
-    view()
+#     monitor('data/fpgaLin/Mar07C*.root')
+    monitor('data/fpgaLin/Mar07D*.root')
+#     view()

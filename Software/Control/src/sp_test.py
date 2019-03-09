@@ -1,3 +1,4 @@
+#!/usr/bin/python2
 #!/usr/bin/env python
 import sys, os
 import os
@@ -13,6 +14,8 @@ from glob import glob
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib import artist
 # from process_signal import apply_wiener_filter
 from scipy.signal import wiener
 import cmath
@@ -138,6 +141,185 @@ def test1():
         print
     sp1.test2()
 
+def test2a():
+    be1 = bkgEstimator()
+#     be1.show_data()
+
+    s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+    data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+    data1 = array('f',[0]*(16384*20))
+
+#     pTag = 'Feb09b'
+    pTag = 'Feb25a'
+    tagA = 'data/fpgaLin/'+pTag+'_data_'
+    inRoot = 'data/fpgaLin/'+pTag+'_data_1138.root'
+    if len(sys.argv)>1:
+        import os
+        if os.path.exists(sys.argv[1]):
+            inRoot = sys.argv[1]
+        elif os.path.exists(tagA+sys.argv[1]+'.root'):
+            inRoot = tagA+sys.argv[1]+'.root'
+        else:
+            files = sorted([f for f in glob(tagA+'*.root')], key=lambda f:os.path.getmtime(f))
+
+            a =  -1
+            try:
+                a = int(sys.argv[1])
+            except TypeError:
+                pass
+            if time.time() - os.path.getmtime(files[-1]) < 10:
+                print "dropping the latest file, which probably is still being written:", files[-1]
+                if a!=0: files.pop()
+                else: a = -1
+
+            if abs(a)<len(files):
+                inRoot = files[a]
+            else:
+                print "Index {0:d} out of range:{1:d}".format(a, len(files))
+                return
+
+    print "Using file:", inRoot
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    print "Entries in the tree:", tree1.GetEntries()
+
+    run = -1
+    runPattern = '.*_data_(\d+).root'
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+
+    i = 56
+    ich = 1
+    sp1 = SignalProcessor()
+    sp1.fltParam.clear()
+
+#     P is the constant using 0.2 ps as unit wit
+#     0.006 is the constant using 1/2500/1024 as unit 1/0.006 T = 1/0.006 * 1/2500/1024 s = 1/0.006 *1/2500/1024* 5000000 pts
+#     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
+#     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
+#     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
+    P = 1./0.006/2500/1024*5000000;
+    for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
+#     for x in [50, 100, 500, -1]: sp1.fltParam.push_back(x)
+#     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
+#     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
+#     sp1.x_thre = 0.002
+#     for i in range(20): sp1.ch_thre[i] = 0.002
+#     sp1.ch_thre[19] = 0.05
+    thre = [0.002]*sp1.nAdcCh
+    thre[19] = 0.05
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
+
+    plt.ion()
+    fig,axs = plt.subplots(nrows=20, ncols=1, sharex=True, sharey=False, squeeze=True, figsize=(13, 12.5), dpi=72)
+    plt.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
+    plt.show()
+
+
+#     fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
+#     fig.set_size_inches(11,8)
+#     ax1.set_xlabel('time index')
+#     ax1.set_ylabel('U [V]', color='b')
+#     ax1.tick_params('y', colors='b')
+#     ax2 = ax1.twinx()
+#     ax2.set_ylabel('U [V]', color='r')
+#     ax2.tick_params('y', colors='r')
+
+
+#     for ievt in range(tree1.GetEntries()):
+
+    NMax = tree1.GetEntries()
+    ievt = 0
+    while ievt< NMax:
+
+        print "Event:", ievt
+        tree1.GetEntry(ievt)
+
+        va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+#         be1.correct(data1, ich)
+#         apply_wiener_filter(data1, ich)
+
+        sp1.measure_pulse2(data1, ich)
+
+        vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
+        vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+
+        axs[0].plot(vo)
+#         ax1.clear()
+#         ax2.clear()
+#         ax1.plot(va, label='Raw', color='b')
+# #         ax1.plot(vo, label='Wiener', color='g')
+#         ax2.plot(vx, label='Filtered', color='r')
+# #         ax2.plot([vo[i]-va[i] for i in range(sp1.nSamples)], label='Correction', color='k')
+#         ylim1 = ax1.get_ylim()
+#         ylim2 = ax2.get_ylim()
+# 
+#         x1 = min(ylim1[0], ylim2[0]+vo[0])
+#         x2 = max(ylim1[1], ylim2[1]+vo[0])
+# #         print x1,x2
+#         ax1.set_ylim(x1,x2)
+#         ax2.set_ylim(x1-vo[0],x2-vo[0])
+# 
+# #         print sp1.signals[ich].size()
+#         x1 = []
+#         y1 = []
+#         iss = 0
+#         if len(sp1.signals[ich])>0:
+#             print "idx: iMax iMidian A w0 w1 w2"
+#             print '-'*30
+#         for s in sp1.signals[ich]:
+#             print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
+#             x1.append(s.im)
+#             y1.append(s.Q)
+#             plt.axvline(x=s.im, linestyle='--', color='black')
+#             iss += 1
+# 
+#         plt.text(0.04, 0.1, 'run {0:d} event {1:d}, ch {2:d}'.format(run, ievt, ich), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
+#         plt.xlim(auto=False)
+#         if x1: ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
+# 
+#         fig.tight_layout()
+        plt.draw()
+#         plt.legend()
+        plt.grid(True)
+        plt.pause(0.001)
+
+        while True:
+            x = raw_input("Next:")
+            if x=='q': sys.exit()
+            elif len(x)>0 and x[0] == 's':
+                for name in x.split()[1:]:
+                    dirx = os.path.dirname(name)
+                    if not os.path.exists(dirx): os.makedirs(dirx)
+                    plt.savefig(name)
+                    print "saved figure to", name
+            elif len(x)>2 and x[:2] == 'ch':
+                try:
+                    ich = int(x[2:])
+                    print "Switching to channel:", ich
+                    break
+                except ValueError:
+                    continue
+            else:
+                try:
+                    ievt = int(x)
+                except ValueError:
+                    ievt += 1
+                break
+            
+
+#         fig.legend()
+#
 
 def test2():
     be1 = bkgEstimator()
@@ -197,12 +379,17 @@ def test2():
     ich = 1
     sp1 = SignalProcessor()
     sp1.fltParam.clear()
+
+#     P is the constant using 0.2 ps as unit wit
+#     0.006 is the constant using 1/2500/1024 as unit 1/0.006 T = 1/0.006 * 1/2500/1024 s = 1/0.006 *1/2500/1024* 5000000 pts
 #     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
 #     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    for x in [30, 50, 200, -1]: sp1.fltParam.push_back(x)
+    P = 1./0.006/2500/1024*5000000;
+    for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
+#     for x in [50, 100, 500, -1]: sp1.fltParam.push_back(x)
 #     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
 #     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
 #     sp1.x_thre = 0.002
@@ -262,6 +449,9 @@ def test2():
         x1 = []
         y1 = []
         iss = 0
+        if len(sp1.signals[ich])>0:
+            print "idx: iMax iMidian A w0 w1 w2"
+            print '-'*30
         for s in sp1.signals[ich]:
             print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
             x1.append(s.im)
@@ -456,8 +646,50 @@ def test4():
 #         print sp.IO_mAvg.size()
         print ievt, [sp.IO_mAvg[i] for i in range(20)] 
 
+def test5():
+    '''Test the measure_multipleX function in sp.C, which trys to locate the signal by seaching the maximum and use the period info to find others. It's used used only for calibration.'''
+    s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+    data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+
+    sp = SignalProcessor()
+    sp.fltParam.clear()
+
+    P = 1./0.006/2500/1024*5000000;
+    for x in [30, 50, 200, P]: sp.fltParam.push_back(x)
+
+    sp.CF_chan_en.clear()
+    sp.IO_mAvg.clear()
+    for i in range(20):
+        sp.CF_chan_en.push_back(1)
+        sp.IO_mAvg.push_back(0.)
+
+#     inRoot = 'data/fpgaLin/Feb28t3_data_0.root'
+    inRoot = 'data/fpgaLin/Mar05T1a_data_0.root'
+    fout1 = TFile(inRoot,'read')
+    tree1 = fout1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+
+    N = 2000 # 2500 Hz
+
+    Vs = array('f',[0]*(20*8))
+#     for i in range(20*8)
+
+    for ievt in range(3):
+        tree1.GetEntry(ievt)
+        sp.measure_multipleX(data1, N, Vs)
+
+        for i in range(20):
+            print i,':',
+            for j in range(8):
+#                 print i*8+j,
+                print Vs[i*8+j],
+            print
+
+
 
 if __name__ == '__main__':
-#     test2()
-    test4()
+    test2()
+#     test2a()
+#     test5()
+#     test4()
 #     test3()

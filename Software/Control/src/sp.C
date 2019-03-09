@@ -85,6 +85,7 @@ class SignalProcessor{
   double* measParam{nullptr};
   size_t nMeasParam{2};
   vector< float > ch_thre{20, 0.005};
+//   vector< float > IO_values;
   float x_thre{0.005};
 //   void set_threshold(float x){x_thre = x;}
 
@@ -107,7 +108,7 @@ class SignalProcessor{
 
   int CF_trig_ch{19};
   int CF_dSize{200};
-  int CF_uSize{50};
+  int CF_uSize{-50};
 
  public:
   void test(){
@@ -128,6 +129,7 @@ class SignalProcessor{
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
   void measure_multiple(const AWBT *adcData, size_t N);
+  void measure_multipleX(const AWBT *adcData, size_t N, float* values);
 
   /// to be removed
   int build_events(const AWBT *adcData);
@@ -139,6 +141,32 @@ class SignalProcessor{
  private:
   int get_indices(float q, size_t m);
 };
+
+
+void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* values){
+  for(size_t iCh=0; iCh<nAdcCh; iCh++) {
+    if (CF_chan_en[iCh] == 0) continue;
+
+    /// for each enabled channels
+    const AWBT* adcChData = adcData + nSamples * iCh;
+    if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
+
+    /// - filter
+    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+
+    int L = 8;
+    /// - find largest
+    size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
+    values[iCh*L] = scrAry[M]; 
+
+    /// save values
+    size_t j = 1;
+    for(int a=M-N; a>20; a-=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+    for(int a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+   }
+
+  return;
+}
 
 void SignalProcessor::measure_multiple(const AWBT *adcData, size_t N){
   /// should already get data
@@ -235,7 +263,7 @@ int SignalProcessor::filter_channels(){
 int SignalProcessor::find_sigs(int chan, int start, int end){
   if(start < 0) start = 0;
   if(end<0 || end>int(nSamples)) end = nSamples;
-//   cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
+  cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
 
   if(signals[chan]) {
     signals[chan]->clear();
@@ -316,7 +344,7 @@ int SignalProcessor::reco(){
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
       if(iCh == trig_ch) continue;
-      find_sigs(iCh, s.im-CF_uSize, s.im+CF_dSize);
+      find_sigs(iCh, s.im+CF_uSize, s.im+CF_dSize);
 
       if(signals[iCh]->size()>1){
         cout << "Multiple signal in channel" << iCh << endl;

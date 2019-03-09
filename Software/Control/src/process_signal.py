@@ -56,6 +56,74 @@ def apply_wiener_filter(data,ich,n=16384):
     y = wiener(x, mysize=500)
     for i in range(n): data[ich*n+i] = y[i]
 
+def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print "Starting", inRoot, oTag
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print "Failed to get the dV in file:", iRoot
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+                return
+        else:
+            if dV<0:
+                print "Run number not exatracted for file", iRoot
+                return
+
+    sp1 = SignalProcessor()
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+    sp1.fltParam.clear()
+#     for i in range(sp1.nAdcCh): sp1.ch_thre[i] = 0.002
+#     sp1.ch_thre[19] = 0.05
+    thre = [0.002]*sp1.nAdcCh
+    thre[2] = 0.0008
+    thre[4] = 0.001
+    thre[6] = 0.001
+    thre[7] = 0.001
+    thre[10] = 0.001
+    thre[11] = 0.0007
+    thre[14] = 0.0007
+    thre[17] = 0.001
+    thre[19] = 0.05
+
+    sp1.CF_uSize = 600
+    sp1.CF_dSize = 1100
+
+    sp1.ch_thre.clear()
+    for x in thre: sp1.ch_thre.push_back(x)
+
+    sp1.CF_chan_en.clear()
+    for i in range(20): sp1.CF_chan_en.push_back(1)
+
+    flt = [50, 100, 500, -1] # dp01a
+    for x in flt: sp1.fltParam.push_back(x)
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    outRoot = os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
+
 def readSignal4(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
@@ -106,6 +174,9 @@ def readSignal4(argX, runPattern='.*_data_(\d+).root'):
 
     sp1.ch_thre.clear()
     for x in thre: sp1.ch_thre.push_back(x)
+
+    sp1.CF_chan_en.clear()
+    for i in range(20): sp1.CF_chan_en.push_back(1)
 
     flt = [50, 100, 500, -1] # dp01a
     for x in flt: sp1.fltParam.push_back(x)
@@ -487,7 +558,7 @@ if __name__ == '__main__':
 #     process_all_match4('data/fpgaLin/Feb27a_data_*.root', 'dp02a_', False)
 #     process_all_match4('data/fpgaLin/Feb27b_data_*.root', 'dp02a_', False)
 #     process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
-    readSignal4('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
+    readSignal4a('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 

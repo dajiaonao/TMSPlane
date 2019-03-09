@@ -8,9 +8,10 @@ import time
 from TMS1mmX19Tuner import SensorConfig, CommonData
 import socket
 from command import *
-import numpy as nm
+import numpy as np
 import matplotlib.pyplot as plt
 import array
+import json
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
@@ -75,7 +76,10 @@ class Train(threading.Thread):
 
         self.sp = SignalProcessor()
         self.sp.fltParam.clear()
-        for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
+#         for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
+        P = 1./0.006/2500/1024*5000000;
+        for x in [30, 50, 200, P]: self.sp.fltParam.push_back(x)
+
 #         self.sp.IO_adcData = self.cd.adcData
         self.sp.CF_chan_en.clear()
         self.sp.IO_mAvg.clear()
@@ -83,20 +87,27 @@ class Train(threading.Thread):
             self.sp.CF_chan_en.push_back(1)
             self.sp.IO_mAvg.push_back(0.)
 
+        self.NVAL = 8
         s1 = self.cd.sigproc
         self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
         self.ret1 = array.array('f',[0]*s1.nAdcCh)
         self.par1 = array.array('f',[0]*(self.cd.nCh*len(self.cd.inputVs)))
-
+        self.t_values = array.array('f',[0]*(s1.nAdcCh*self.NVAL))
+        self.keepAllData = False
         self.saveT0 = -1
-        outRootName = 'tt_test.root'
+        self.T = array.array('i',[0])
+        self.Tag = array.array('i',[0])
+
+    def setupOutput(self, outRootName='tt_test.root'):
+        s1 = self.cd.sigproc
         self.fout1 = TFile(outRootName,'recreate')
         self.tree1 = TTree('tree1',"tune data for {0:d} channels, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
-        self.T = array.array('i',[0])
+        self.tree1.Branch('tag',self.Tag,'tag/I')
         self.tree1.Branch('T',self.T,'T/i')
         self.tree1.Branch('adc',self.data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
         self.tree1.Branch('ret',self.ret1, "ret[{0:d}]/F".format(s1.nAdcCh))
         self.tree1.Branch('par',self.par1, "par[{0:d}][{1:d}]/F".format(self.cd.nCh, len(self.cd.inputVs)))
+        self.tree1.Branch('val',self.t_values, "val[{0:d}][{1:d}]/F".format(self.cd.nAdcCh, self.NVAL))
 
     def plot_data(self):
 #         item = self.q.get()
@@ -121,12 +132,14 @@ class Train(threading.Thread):
 #         self.q.task_done()
 
 
-    def test_update_sensor(self):
+    def test_update_sensor(self, inputVs=None):
         print('/'*40)
-        inputVs = [[1.379, 1.546, 1.626, 1.169, 1.357, 2.458],[1.379, 1.546, 1.626, 1.169, 1., 2.]]
+        if inputVs is None:
+            inputVs = [[1.379, 1.546, 1.626, 1.169, 1.357, 2.458],[1.379, 1.546, 1.626, 1.169, 1., 2.]]
         #### update sensor configurations
         ss = set()
         for i,p in enumerate(inputVs):
+            if p is None: continue
             self.cd.set_sensor(i,p)
             ss.add(self.sc.tms1mmX19chainSensors[self.sc.tms1mmX19sensorInChain[i]][0])
 
@@ -136,18 +149,56 @@ class Train(threading.Thread):
             self.sc.update_sensor(isr)
         print('\\'*40)
 
+    def take_data2(self, NEVT = 100):
+        '''return an array of FOM'''
+        s1 = self.cd.sigproc
+
+        for ievt in range(NEVT):
+            self.T[0] = int(time.time())
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
+
+            ### measure
+            self.sp.measure_multipleX(self.data1, 2000, self.t_values)
+
+            ### save
+            self.tree1.Fill()
+
     def take_data(self):
         '''return an array of FOM'''
         s1 = self.cd.sigproc
-        self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
-        buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
-        s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
 
-        self.sp.measure_multiple(self.data1, 2000)
-        for i in range(s1.nAdcCh): self.ret1[i] = -self.sp.IO_mAvg[i]
+        NV = 8
+        NEVT = 100
+        Values = [[0.]*(NV*NEVT) for i in range(self.cd.nAdcCh)]
+
+        for ievt in range(NEVT):
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
+
+            self.sp.measure_multipleX(self.data1, 2000, self.t_values)
+#             if ievt == 0:
+#                 print("EVT",ievt) 
+# #                 print([self.t_values[i] for i in range(NV*self.cd.nAdcCh)])
+#                 print([self.t_values[6*NV+i] for i in range(NV)])
+
+            for ich in range(self.cd.nAdcCh):
+                for ipeak in range(NV):
+                    Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
+
+        for i in range(s1.nAdcCh):
+#             self.ret1[i] = np.std(Values[i])/np.mean(Values[i])
+            self.ret1[i] = -np.mean(Values[i])/np.std(Values[i])
+            #             if i==6:
+# #                 print(i,'->', Values[i][20*8:21*8])
+#                 print(i,'->', Values[i][0*8:1*8])
+#             print(i, np.std(Values[i]), np.mean(Values[i]), self.ret1[i])
 
         self.T[0] = int(time.time())
-        print(self.ret1[3],self.ret1[0])
+#         print(self.ret1[3],self.ret1[0])
+#         for i in range(self.cd.nAdcCh): print(i,self.ret1[i])
         self.tree1.Fill()
 
         if self.T[0]-self.saveT0>200:
@@ -209,7 +260,7 @@ class Train(threading.Thread):
 #                 t.start()
 #                 self.q.put('run')
 
-            time.sleep(15.0)
+            time.sleep(30)
             if t is not None: t.join()
 
             self.take_data()
@@ -247,7 +298,7 @@ class TestClass:
         self.muteList = []
         self.atBounds = None
 
-    def test_tune(self):
+    def prepare_train(self):
         host='192.168.2.3'
         if socket.gethostname() == 'FPGALin': host = 'localhost'
 
@@ -274,31 +325,117 @@ class TestClass:
         tr1.tx_qs = self.rx_qs
         tr1.rx_qs = self.tx_qs
         tr1.sc = sc1
+
+        return tr1
+
+    def save_config(self, cList, oName, fcName = 'Mar05Te_tt_test.root'):
+        ### base on the default configuration, overwite it with new ones
+        inputVs = [None]*self.nCh
+
+        ### get files
+        fin = TFile(fcName,'read')
+        ch = fin.Get('tree1')
+
+        ## get the parameters
+        cd = CommonData(cmd=None)
+        for ich in range(self.nCh):
+            if cList[ich] is None: continue
+
+            ievt = cList[ich]
+            n1 = ch.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+            v1 = ch.GetV1()
+            cd.set_sensor(ich,[v1[j] for j in range(n1)])
+
+        ### save
+        config = {}
+        for i in range(cd.nCh):
+            config[i] = dict(zip(cd.voltsNames, cd.sensorVcodes[i]))
+        with open(oName, 'w') as fp:
+            fp.write(json.dumps(config, sort_keys=True, indent=4))
+
+    def validate_tune(self):
+        fcName = 'Mar05Te_tt_test.root'
+        oName = 'Mar05Te_tt_valid4.root'
+        dT_wait = 50
+        N_data = 1000
+        topN = 10
+
+        cList = [None]*self.nCh
+        ### get the best config
+        fin = TFile(fcName,'read')
+        ch = fin.Get('tree1')
+
+        cut = ''
+        for ich in range(self.nCh):
+            n = ch.Draw("ret[{0:d}]:Entry$".format(ich),cut,"goff")
+            v1 = ch.GetV1()
+            v2 = ch.GetV2()
+            vx = sorted([(v1[i],int(v2[i])) for i in range(n)], key=lambda x:x[0])
+            cList[ich] = vx[:topN]
+
+        tr1 = self.prepare_train()
+        tr1.setupOutput(oName)
+        nPar = len(tr1.cd.inputVs)
+
+        ### take the default one first
+        tr1.Tag[0] = -1
+        time.sleep(dT_wait)
+        for ich in range(self.nCh):
+            for j in range(nPar):
+                tr1.par1[ich*nPar+j] = tr1.cd.tms1mmReg.dac_code2volt(tr1.cd.sensorVcodes[ich][j])
+        tr1.take_data2(N_data)
+
+        ### check those from tune
+        for topi in range(topN):
+            inputVs = [None]*self.nCh
+            ## get the parameters
+            for ich in range(self.nCh):
+                ievt = cList[ich][topi][1]
+                n1 = ch.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+                v1 = ch.GetV1()
+                inputVs[ich] = [v1[j] for j in range(n1)]
+                for j in range(nPar): tr1.par1[ich*nPar+j] = v1[j]
+                tr1.ret1[ich] = ch.GetV2()[0]
+
+            ## take data
+            tr1.test_update_sensor(inputVs)
+            tr1.Tag[0] = topi
+            time.sleep(dT_wait)
+            tr1.take_data2(N_data)
+
+        ## save the tree and close
+        tr1.tree1.Write()
+        tr1.fout1.Close()
+
+    def test_tune(self):
+        tr1 = self.prepare_train()
         tr1.on = True
+        tr1.setupOutput()
 
 #         tr1.test_update_sensor()
-#         tr1.take_data()
+        tr1.take_data()
+#         return
         ### for the chip #3? the default one in LBL
-        better_bounds = [None]*self.nCh
-        better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
-        better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
-        better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
-        better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
-        better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
-        better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
-        better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
-        better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
-        better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
-        better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
-        better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
-        better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
-        better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
-        better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
-        better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
-        better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds = [None]*self.nCh
+#         better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
+#         better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
+#         better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
+#         better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+#         better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+#         better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
+#         better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
+#         better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
+#         better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+#         better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
+#         better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
+#         better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+#         better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
+#         better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+#         better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
+#         better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
 
 
         for i in range(self.nCh):
@@ -308,8 +445,8 @@ class TestClass:
             th1 = tuner(i)
             th1.tx_qs = self.tx_qs
             th1.rx_qs = self.rx_qs            
-#             th1.atBounds = cd.atBounds
-            th1.atBounds = better_bounds[i]
+            th1.atBounds = cd.atBounds
+#             th1.atBounds = better_bounds[i]
 #             th1.atBounds = better_bounds[i] if better_bounds[i] is not None else cd.atBounds
             th1.atMaxIters = cd.atMaxIters
             th1.start()
@@ -319,7 +456,16 @@ def test1():
     tc1 = TestClass()
 #     tc1.muteList = [3,5,6,8,12,18]
     tc1.muteList = []
-    tc1.test_tune()
+#     tc1.test_tune()
+#     tc1.validate_tune()
+#     cList0 = [   8,   2,    2,    7,    3,   0,    0,    0,   2,    1,    2,    0,    1,    1,    0,   2,    4,   2,     2]
+#     cList = [2148, 650, 1288, 2294, 1580, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762, 1703, 1747, 513, 1750, 790, 2192 ]
+#     cList0 = [   8,   4,    2,    7,    5,   0,    0,    0,   2,    1,    2,    0,    1,    3,    0,   2,    4,    1,    2]
+#     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762,  901, 1747, 513, 1750, 1842, 2192 ]
+#     cList0= [   8,   4,    2,    7,    5,   0,    0,    0,   2,    3,    2,    0,    1,    3,    0,   2,    4,    x,    2]
+#     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
+    cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
+    tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
 
 if __name__ == '__main__':
     test1()
