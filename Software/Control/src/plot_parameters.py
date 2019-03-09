@@ -51,5 +51,6 @@ def checkPars(fname,ch):
 if __name__ == '__main__':
 #     showPars()
 #     checkPars('current_best_config.json',17)
-    checkPars('Mar01Td_best_config.json',17)
-    checkPars('config.json',17)
+#     checkPars('Mar01Td_best_config.json',17)
+    for i in range(19):  checkPars('config.json',i)
+#     checkPars('config.json',17)
