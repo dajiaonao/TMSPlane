@@ -344,7 +344,7 @@ if __name__ == '__main__':
 #       take_data(sTag='Mar01t1b',n=200, N=1)
 #       take_data(sTag='Mar04C1a',n=2000, N=1)
 #       take_data(sTag='Mar05T1a',n=200, N=1)
-      take_data(sTag='Mar07D1b',n=1000, N=-1)
+      take_data(sTag='Mar08D1a',n=1000, N=-1)
 #     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')

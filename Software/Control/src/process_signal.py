@@ -13,6 +13,8 @@ import os, time, re
 from scipy.signal import wiener
 import numpy as np
 import cmath
+from check_decay import FilterConfig
+from reco_config import apply_config
 
 class bkgEstimator:
     def __init__(self):
@@ -57,6 +59,7 @@ def apply_wiener_filter(data,ich,n=16384):
     for i in range(n): data[ich*n+i] = y[i]
 
 def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
+    '''Use non default time window'''
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
@@ -115,6 +118,117 @@ def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
 
     flt = [50, 100, 500, -1] # dp01a
     for x in flt: sp1.fltParam.push_back(x)
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    outRoot = os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
+
+def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on readSignal4b; for single channel. And IO is from readSignal3'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print "Starting", inRoot, oTag
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print "Failed to get the dV in file:", iRoot
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+                return
+        else:
+            if dV<0:
+                print "Run number not exatracted for file", iRoot
+                return
+
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Hydrogen')
+
+    ### IO configuration
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T:dV')
+    a = TObjString("filter:"+str(sp1.fltParam))
+    a.Write('Info')
+
+    chs = [0]
+    chx = chs[0] if (chs and len(chs)==1) else -1
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse2(data1, chx)
+        for ich in range(sp1.nAdcCh):
+            if chs and (ich not in chs): continue
+            ss = sp1.signals[ich]
+
+            itmp = sp1.nMeasParam*ich
+            iA = 0
+            for ii in ss:
+                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200,dV)
+                iA += 1
+
+    tup1.Write()
+    fout1.Close()
+
+def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
+    '''For Mar08 data processing, take the decay time from configuration file'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print "Starting", inRoot, oTag
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print "Failed to get the dV in file:", iRoot
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print "Run number not exatracted for file", iRoot
+                return
+        else:
+            if dV<0:
+                print "Run number not exatracted for file", iRoot
+                return
+
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Hydrogen')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -535,6 +649,20 @@ def process_all_match4(pattern, oTag, skipExist=True):
     p = Pool(6)
     p.map(readSignal4, [f+';'+oTag for f in files])
 
+def process_all_matchX(funX, pattern, oTag, skipExist=True):
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
+    if len(files)==0:
+        print "No files matchs.... Aborting..."
+        return
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print "dropping the latest file, which probably is still being written:", files[-1]
+        files.pop()
+
+    p = Pool(6)
+    p.map(funX, [f+';'+oTag for f in files])
+
+
+
 if __name__ == '__main__':
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
@@ -558,7 +686,9 @@ if __name__ == '__main__':
 #     process_all_match4('data/fpgaLin/Feb27a_data_*.root', 'dp02a_', False)
 #     process_all_match4('data/fpgaLin/Feb27b_data_*.root', 'dp02a_', False)
 #     process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
-    readSignal4a('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
+#     readSignal4a('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
+#     readSignal4c('data/fpgaLin/Mar08D1a_data_80.root;tpx01a_')
+    process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 

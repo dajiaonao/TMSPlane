@@ -3,7 +3,7 @@ import numpy as np
 from math import sqrt
 
 def test():
-    print "testing"
+    print("testing")
 
 class var:
     def __init__(self, N=16384):
@@ -33,3 +33,6 @@ def get_spectrum(ch1):
         for i in range(sp.size):
             fs[i].add(np.abs(sp[i]))
     return fs
+
+if __name__ == '__main__':
+    test()

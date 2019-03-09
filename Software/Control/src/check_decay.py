@@ -14,8 +14,8 @@ class FilterConfig:
         configFName = self.configFName if fName is None else fName
         with open(configFName, 'r') as fp:
             config = json.load(fp)
-        self.comment = config.comment
-        self.data = config.data
+        self.comment = config['comment']
+        self.data = config['data']
 
     def save(self,fName=None):
         configFName = self.configFName if fName is None else fName
