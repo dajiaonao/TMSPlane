@@ -184,6 +184,6 @@ if __name__ == '__main__':
 #     monitor('data/fpgaLin/Feb27b_data_*.root')
 #     monitor('data/fpgaLin/Feb28a_data_*.root')
 #     monitor('data/fpgaLin/Mar07C*.root')
-    monitor('data/fpgaLin/Mar08D*.root')
+#     monitor('data/fpgaLin/Mar08D*.root')
 #     view()
-#     main()
+    main()

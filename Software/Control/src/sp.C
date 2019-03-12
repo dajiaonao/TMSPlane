@@ -82,9 +82,10 @@ class SignalProcessor{
   size_t nSamples{16384};
   size_t nAdcCh{20};
   vector< double > fltParam{100,200,300,-1};
+  vector< double > decayC; /// decay constant of each channel
   double* measParam{nullptr};
   size_t nMeasParam{2};
-  vector< float > ch_thre{20, 0.005};
+  vector< float > ch_thre;
 //   vector< float > IO_values;
   float x_thre{0.005};
 //   void set_threshold(float x){x_thre = x;}
@@ -95,7 +96,6 @@ class SignalProcessor{
   vector< TF1* > corr_TF1;
   vector< TGraph* > corr_spine;
   vector < Event > IO_evts;
-
 
 //   SignalProcessor():scrAry(nullptr){};
   ~SignalProcessor(){
@@ -162,7 +162,7 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     /// save values
     size_t j = 1;
     for(int a=M-N; a>20; a-=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
-    for(int a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
    }
 
   return;
@@ -193,7 +193,7 @@ void SignalProcessor::measure_multiple(const AWBT *adcData, size_t N){
     size_t n = 0;
     for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1;}
 //     for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
-    for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1;}
 //     for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
 //     cout << "L sum=" << sum << " n=" << n << endl;
 

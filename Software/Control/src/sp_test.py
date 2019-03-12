@@ -1,7 +1,6 @@
 #!/usr/bin/python2
 #!/usr/bin/env python
 import sys, os
-import os
 from ctypes import *
 from sigproc import SigProc 
 from ROOT import *
@@ -143,7 +142,7 @@ def test1():
     sp1.test2()
 
 def test2a():
-    be1 = bkgEstimator()
+#     be1 = bkgEstimator()
 #     be1.show_data()
 
     s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -246,52 +245,20 @@ def test2a():
         print "Event:", ievt
         tree1.GetEntry(ievt)
 
-        va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
-#         be1.correct(data1, ich)
-#         apply_wiener_filter(data1, ich)
+        for ich in range(sp1.nAdcCh):
+            va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+            sp1.measure_pulse2(data1, ich)
 
-        sp1.measure_pulse2(data1, ich)
+            vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
+            vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
 
-        vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
-        vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+            axs[ich].clear()
+            axs[ich].plot(vo)
 
-        axs[0].plot(vo)
-#         ax1.clear()
-#         ax2.clear()
-#         ax1.plot(va, label='Raw', color='b')
-# #         ax1.plot(vo, label='Wiener', color='g')
-#         ax2.plot(vx, label='Filtered', color='r')
-# #         ax2.plot([vo[i]-va[i] for i in range(sp1.nSamples)], label='Correction', color='k')
-#         ylim1 = ax1.get_ylim()
-#         ylim2 = ax2.get_ylim()
-# 
-#         x1 = min(ylim1[0], ylim2[0]+vo[0])
-#         x2 = max(ylim1[1], ylim2[1]+vo[0])
-# #         print x1,x2
-#         ax1.set_ylim(x1,x2)
-#         ax2.set_ylim(x1-vo[0],x2-vo[0])
-# 
-# #         print sp1.signals[ich].size()
-#         x1 = []
-#         y1 = []
-#         iss = 0
-#         if len(sp1.signals[ich])>0:
-#             print "idx: iMax iMidian A w0 w1 w2"
-#             print '-'*30
-#         for s in sp1.signals[ich]:
-#             print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
-#             x1.append(s.im)
-#             y1.append(s.Q)
-#             plt.axvline(x=s.im, linestyle='--', color='black')
-#             iss += 1
-# 
-#         plt.text(0.04, 0.1, 'run {0:d} event {1:d}, ch {2:d}'.format(run, ievt, ich), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
-#         plt.xlim(auto=False)
-#         if x1: ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
-# 
-#         fig.tight_layout()
+            tx = axs[ich].twinx()
+            tx.clear()
+            tx.plot(vx,color='r')
         plt.draw()
-#         plt.legend()
         plt.grid(True)
         plt.pause(0.001)
 
@@ -334,7 +301,6 @@ def test2b():
     tagA = 'data/fpgaLin/'+pTag+'_data_'
     inRoot = 'data/fpgaLin/'+pTag+'_data_1138.root'
     if len(sys.argv)>1:
-        import os
         if os.path.exists(sys.argv[1]):
             inRoot = sys.argv[1]
         elif os.path.exists(tagA+sys.argv[1]+'.root'):
@@ -492,7 +458,6 @@ def test2():
     tagA = 'data/fpgaLin/'+pTag+'_data_'
     inRoot = 'data/fpgaLin/'+pTag+'_data_1138.root'
     if len(sys.argv)>1:
-        import os
         if os.path.exists(sys.argv[1]):
             inRoot = sys.argv[1]
         elif os.path.exists(tagA+sys.argv[1]+'.root'):
@@ -847,8 +812,8 @@ def test5():
 
 if __name__ == '__main__':
 #     test2()
-    test2b()
-#     test2a()
+#     test2b()
+    test2a()
 #     test5()
 #     test4()
 #     test3()
