@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import socket
+import socket, os
 # import argparse
 # import pprint
 from command import *
@@ -8,6 +8,8 @@ import time
 import array
 import glob
 from ROOT import *
+from subprocess import call
+from math import isnan
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -27,12 +29,15 @@ class SignalChecker:
         self.control_ip_port = "192.168.2.3:1024"
         self.cmd = Cmd()
         self.s = None
+        self.connected = False
+        self.fileSuffix = '.1'
 #         self.connect()
 
     def connect(self):
         ctrlipport = self.control_ip_port.split(':')
         self.s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.s.connect((ctrlipport[0],int(ctrlipport[1])))
+        self.connected = True
 
     def take_samples(self, n=10, name="sample_{0:d}"):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -53,12 +58,17 @@ class SignalChecker:
             s1.demux_fifodata(ret,data1,data2)
             s1.save_data([name1+'.adc', name1+'.sdm'], data1, data2)
 
-    def take_samples2(self, n=10, outRootName='test_sample.root'):
+    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0):
+        if not self.connected: self.connect()
+        nMonitor = 20
+
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
         data2 = s1.generate_sdmDataBuf()
 
         T = array.array('i',[0])
+        if self.fileSuffix:
+            while os.path.exists(outRootName): outRootName += self.fileSuffix
         fout1 = TFile(outRootName,'recreate')
         tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         tree1.Branch('T',T,'T/i')
@@ -69,16 +79,23 @@ class SignalChecker:
         nBytes = nWords * 4
         buf = bytearray(nBytes)
 
-        for i in range(n):
-            if i%100==0: print(str(i)+' samples taken.')
-            self.s.sendall(self.cmd.send_pulse(1<<2));
-            time.sleep(0.5)
+        status = 0
+        try:
+            for i in range(n):
+                if i%100==0: print(str(i)+' samples taken.')
+                self.s.sendall(self.cmd.send_pulse(1<<2));
 
-            T[0] = int(time.time())
-            ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
-            s1.demux_fifodata(ret,data1,data2)
-            tree1.Fill()
+                T[0] = int(time.time())
+                ret = self.cmd.acquire_from_datafifo(self.s, nWords, buf)
+                s1.demux_fifodata(ret,data1,data2)
+                tree1.Fill()
+
+                if i%nMonitor == 1: tree1.AutoSave("SaveSelf");
+        except KeyboardInterrupt:
+            status = 1
+
         fout1.Write()
+        return status
 
     def show_signal(self):
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
@@ -210,9 +227,9 @@ class SignalChecker:
                 if i%100==0: print(str(i)+' entries processed')
                 tree1.GetEntry(i)
                 mxx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
-#                 if i>4: break
                 for ch in range(s1.nAdcCh):
                     mx = mxx[ch]
+                    if isnan(mx[1]): print("xxxx")
                     fout.write('\n'+' '.join([str(i),str(ch), str(mx[0]), str(mx[1]), '{0:d}'.format(int(mx[2])), str(mx[3])]))
 
 def text2root(spattern, irange, outname):
@@ -228,7 +245,6 @@ def text2root(spattern, irange, outname):
         s1.read_data([spattern.format(i),'xxx'], data1, data2)
         tree1.Fill()
     fout1.Write()
-
 
 def compareWaveform(dsx):
     ### dsx = [(tag, file, chan, entry)]
@@ -261,26 +277,114 @@ def compareWaveform(dsx):
 #         g.Draw('Psame PMC')
     waitRootCmdX()
 
+def setPulse(v,f):
+    cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.3f} {1:d}'.format(v,f)
+    call(cmd, shell=True)
+
+def take_calibration_samples(sTag, vs, n=5000):
+    sc1 = SignalChecker()
+    sc1.control_ip_port = "localhost:1024"
+    dir1 = 'data/fpgaLin/'
+
+    for v in vs:
+#     for iv in range(22):
+#         v = 0.025+iv*0.025
+#         if v<0.175: continue
+#         v = 0.05+iv*0.025
+        setPulse(v,100)
+        time.sleep(20)
+        print "Taking sample with dU={0:.3f} mV".format(v*1000)
+        sc1.take_samples2(n, dir1+sTag+"_{0:d}mV_f1000.root".format(int(v*1000)))
+
+def take_data(sTag, n=5000, N=-1):
+    sc1 = SignalChecker()
+    sc1.control_ip_port = "localhost:1024"
+    dir1 = 'data/fpgaLin/'
+
+    nSample = 0
+    while nSample != N:
+        print "Start sample {0:d}".format(nSample)
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        if status: break
+        nSample += 1
 
 def test1():
     sc1 = SignalChecker()
-#     sc1.connect()
+    sc1.control_ip_port = "localhost:1024"
+#     sc1.take_samples2(100, "data/test1.root")
+#     sc1.take_samples2(5000, "data/sample1.root")
+#     sc1.take_samples2(5000, "data/Jan18a_C2_50mV.root")
+#     dir1 = 'data/fpgaLin/'
+#     tag1 = dir1+'Jan22a_C2_100mV_'
+#     for f in [100,200,500,1000]:
+#         setPulse(0.1,f)
+#         time.sleep(20)
+#         sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
+#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+    dir1 = 'data/fpgaLin/'
+#     tag1 = dir1+'Jan22b_C2_'
+#     for iv in range(16):
+#         v = 0.025+iv*0.05
+#         setPulse(v,1000)
+#         time.sleep(20)
+#         sc1.take_samples2(5000, tag1+"{0:d}mV_f1000.root".format(int(v*1000)))
+#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+
+#     tag1 = dir1+'Jan28b_C2_'
+#     for iv in range(31):
+#         v = 0.025+iv*0.025
+# 
+# #         if v<0.37: continue
+#         setPulse(v,500)
+#         time.sleep(50)
+#         sc1.take_samples2(100, tag1+"{0:d}mV_f500.root".format(int(v*1000)))
+#     sc1.take_samples2(200, dir1+"Jan31a_noise_dc.root")
+#     sc1.take_samples2(5000, dir1+"Feb01a_noise_dc.root")
+#     sc1.take_samples2(5000, dir1+"Feb05a_noise_dc_ch19.root")
+    nSample = 0
+    sTag = 'Feb25a'
+#     while True:
+#         sc1.take_samples2(1000, dir1+"Feb06c_data_{0:d}.root".format(nSample))
+#         nSample += 1
+    while True:
+#         sc1.take_samples2(2000, dir1+"Feb08t1_data_{0:d}.root".format(nSample))
+        print "Start sample {0:d}".format(nSample)
+        sc1.take_samples2(1000, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        nSample += 1
+
+#         if nSample == 1885: break
+#     sc1.take_samples2(1000, dir1+"Feb06a_noise_dc_ch19.root")
+#     sc1.take_samples2(5000, dir1+"Feb06b_noise_dc_ch19.root")
+
+#
 #     sc1.take_samples(10, name="Jan03a_{0:d}")
 #     sc1.take_samples(5000, name="data/Jan04a/Jana04a_{0:d}")
+#     sc1.take_samples2(5000, "data/Jan05a_150mV.root")
+#     sc1.take_samples2(5000, "data/Jan05a_400mV.root")
+#    sc1.take_samples2(5000, "data/Jan09a_300mV.root")
 #     sc1.take_samples2(5000, "data/Jan05a_50mV.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R19p5312us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R30p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_R40p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r50p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r30p0us.root")
+#     sc1.take_samples2(5000, "data/Jan08a_100mV_r40p0us.root")
+#     sc1.take_samples2(100, "data/test.root")
 #     sc1.show_signal()
 #     sc1.check_file('/data/Samples/TMSPlane/Dec26/sample_0.adc')
 #     sc1.check_file('/data/Samples/TMSPlane/Dec27/Dec27a_1281.adc')
 #     sc1.check_enc('/data/Samples/TMSPlane/Dec27/Dec27a_*.adc', ch=12)
-#     sc1.check_enc2('data/root_files/Jan05a_50mV.root',  'Jan05a_50mV.dat')
-#     sc1.check_enc2('data/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
-#     sc1.check_enc2('data/root_files/Jan05a_250mV.root', 'Jan05a_250mV.dat')
+#     sc1.check_enc2('data/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
 #     sc1.check_enc2('data/root_files/Jan05a_100mV.root', 'Jan05a_100mV.dat')
+#     sc1.check_enc2('data/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
 #     sc1.check_enc2('data/root_files/Jan05a_400mV.root', 'Jan05a_400mV.dat')
-    sc1.check_enc2('data/root_files/Jan08a_100mV_r30p0us.root', 'Jan08a_100mV_r30p0us.dat')
-    sc1.check_enc2('data/root_files/Jan08a_100mV_r40p0us.root', 'Jan08a_100mV_r40p0us.dat')
-    sc1.check_enc2('data/root_files/Jan08a_100mV_r50p0us.root', 'Jan08a_100mV_r50p0us.dat')
-#     sc1.check_event('/data/Samples/TMSPlane/root_files/Jan05a_400mV.root', [3,50,3000])
+#     sc1.check_enc2('data/root_files/Jan08a_100mV_r30p0us.root', 'Jan08a_100mV_r30p0us.dat')
+#     sc1.check_enc2('data/root_files/Jan08a_100mV_r40p0us.root', 'Jan08a_100mV_r40p0us.dat')
+#     sc1.check_enc2('data/root_files/Jan08a_100mV_r50p0us.root', 'Jan08a_100mV_r50p0us.dat')
+#     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_50mV.root', 'Jan05a_50mV.dat')
+#     sc1.check_enc2('/data/Samples/TMSPlane/root_files/Jan05a_150mV.root', 'Jan05a_150mV.dat')
+#     sc1.check_enc2('data/sample1.root', 'Jan17_sample1.dat')
+#     sc1.check_enc2('data/Jan18a_C2_50mV.root', 'data/Jan18a_C2_50mV.dat')
 #     sc1.take_samples()
 #     sc1.show_signal()
 #     sc1.show_sample()
@@ -288,8 +392,16 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
-    useLHCbStyle()
-    test1()
+#     useLHCbStyle()
+#     test1()
+#     take_calibration_samples(sTag='Feb26a',n=5000)
+#     take_calibration_samples(sTag='Mar07C1a',vs=[0.2+0.025*i for i in range(16)],n=3000)
+#     take_calibration_samples(sTag='Feb26a',n=3000)
+#     take_calibration_samples(sTag='Feb26b', vs=[0.025+0.05*i for i in range(10)],  n=3000)
+#       take_data(sTag='Mar01t1b',n=200, N=1)
+#       take_data(sTag='Mar04C1a',n=2000, N=1)
+#       take_data(sTag='Mar05T1a',n=200, N=1)
+      take_data(sTag='Mar08D1a',n=1000, N=-1)
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')
 #     compareWaveform([('a1','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R30p0us.root', 12, 20),('a2','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R19p5312us.root', 12, 20)])

@@ -71,7 +71,9 @@ class CommonData(object):
         # auto tune
         self.atCalled = 0
         #self.atBounds = [(1.3, 1.4), (1.5, 1.6), (1.45, 1.6), (1.1, 1.35), (1.1, 1.6), (2.4, 2.5)]
-        self.atBounds = [(0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (2.2, 2.8)]
+#         self.atBounds = [(0.8, 1.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (2.2, 2.8)]
+        self.atBounds = [(1.0, 1.7), (0.6, 1.6), (0.9, 1.7), (0.6, 1.7), (0.9, 1.7), (2.3, 2.6)]
+#         self.atBounds = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
         #self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
 #         self.atTbounds = (3000, 3500) # time of pulse bounds
         self.atTbounds = (2300, 2500) # time of pulse bounds
@@ -103,7 +105,7 @@ class DataPanelGUI(object):
 
     ##
     # @param [in] dataFigSize (w, h) in inches for the data plots figure assuming dpi=72
-    def __init__(self, master, cd, dataFigSize=(13, 12.5), visibleChannels=None):
+    def __init__(self, master, cd, dataFigSize=(13, 12.5), visibleChannels=None, guiI=True):
         self.master = master
         self.cd = cd
         self.nAdcCh = self.cd.nAdcCh
@@ -115,8 +117,8 @@ class DataPanelGUI(object):
         self.master.wm_protocol("WM_DELETE_WINDOW", self.quit)
 
         #
-        button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
-        button.pack(side=tk.BOTTOM, fill=tk.X)
+#         button = tk.Button(master=self.master, text='Re-sample', command=self.get_and_plot_data)
+#         button.pack(side=tk.BOTTOM, fill=tk.X)
 
         # frame for plotting
         self.dataPlotsFrame = tk.Frame(self.master)
@@ -144,12 +146,13 @@ class DataPanelGUI(object):
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
         #
-        self.buttonFrame = tk.Frame(self.master)
-        self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
-        self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
-        self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
+        if guiI:
+            self.buttonFrame = tk.Frame(self.master)
+            self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
+            self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
+            self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
         #
         self.plot_data()
 
@@ -345,9 +348,14 @@ class ControlPanelGUI(object):
         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
         self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.autoTuneButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
+        self.autoTuneButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
 
         # self-updating functions
         self.update_values_display()
+    def save_config(self):
+        pass
 
     def quit(self):
         with self.cd.cv:
@@ -471,7 +479,7 @@ class SensorConfig(threading.Thread):
                 self.cd.cv.wait(self.cd.tI)
                 if self.cd.vUpdated:
                     self.update_sensor(self.cd.currentSensor)
-                    self.write_config_file()
+#                     self.write_config_file()
                     self.cd.vUpdated = False
                 self.get_inputs()
 
@@ -566,17 +574,21 @@ class SensorConfig(threading.Thread):
         #
         return self.tms1mmReg.get_config_vector()
 
-    def update_sensor(self, iSensor):
+    def update_sensor(self, iSensor, quiet=2):
         colAddr = self.tms1mmX19sensorInChain[iSensor]
         sensorsInChain = self.tms1mmX19chainSensors[colAddr]
-        print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
+        if quiet>1: print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
+        updated = []
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-            print("Send  : 0x{:0x}".format(data))
             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+            if quiet>1:
+                print("Send  : 0x{:0x}".format(data))
+                print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+            if (data != ret): updated.append(i)
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
+        if quiet>0: print('updated sensers: ['+','.join([str(a) for a in updated])+']')
 
     def get_inputs(self):
         return
@@ -612,10 +624,12 @@ class SensorConfig(threading.Thread):
 
 if __name__ == "__main__":
 
+    host='192.168.2.3'
+    if socket.gethostname() == 'FPGALin': host = 'localhost'
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-a", "--aout-buf", type=int, default="1", help="AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both")
-    parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
-    parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
+    parser.add_argument("-c", "--control-ip-port", type=str, default=host+":1025", help="control system ipaddr and port")
+    parser.add_argument("-d", "--data-ip-port", type=str, default=host+":1024", help="data source ipaddr and port")
     parser.add_argument("-f", "--config-file", type=str, default="config.json", help="configuration file, will be overwritten")
     parser.add_argument("-g", "--bufferx2-gain", type=int, default="2", help="BufferX2 gain")
     parser.add_argument("-l", "--visible-channels", type=str, default="None", help="List of ADC channels to plot (made visible).  None or [] means all channels")

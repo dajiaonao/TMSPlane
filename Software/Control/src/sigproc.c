@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -109,7 +110,7 @@ int sigproc_read_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
 
     if((fpa=fopen(adcFName, "r"))!=NULL) {
        char timeStamp[100];
-       if(fgets(timeStamp, 100 , fpa)!=NULL ) printf(timeStamp);
+       if(fgets(timeStamp, 100 , fpa)!=NULL ) printf("%s",timeStamp);
 
        /// read data
        for(i=0; i<nSamples; i++) {
@@ -123,7 +124,7 @@ int sigproc_read_data(size_t nSamples, time_t timeStamp, size_t adcSdmCycRatio,
   
     if((fps=fopen(sdmFName, "r"))!=NULL) {
        char timeStamp[100];
-       if(fgets(timeStamp, 100 , fps)!=NULL ) printf(timeStamp);
+       if(fgets(timeStamp, 100 , fps)!=NULL ) printf("%s",timeStamp);
 
        /// read data
        unsigned int a;
@@ -194,9 +195,10 @@ int sigproc_measure_pulse_fast(size_t nSamples, const ANALYSIS_WAVEFORM_BASE_TYP
             bln += adcChData[i] * adcChData[i];
         }
         bl /= (double)nBl;
-        bln = sqrt((bln - (double)nBl * bl*bl)/(nBl - 1.0));
+        bln = (bln - (double)nBl * bl*bl)/(nBl - 1.0);
+//         if(bln<=0){printf("%g %g %ld\n", bln, bl, nBl);}
         measChParam[0] = bl;
-        measChParam[1] = bln;
+        measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
         /* peak location and height */
         filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
         v = -DBL_MAX; j = 0;
