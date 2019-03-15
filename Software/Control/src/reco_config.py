@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from check_decay import FilterConfig
+from math import sqrt
 
 def apply_config(sp1, config_code):
     if config_code == 'Hydrogen':
@@ -39,7 +40,7 @@ def apply_config(sp1, config_code):
         flt = [50, 100, 300, -1./fc1.data[0][2]] # dp01a
         for x in flt: sp1.fltParam.push_back(x)
 
-        for i in range(sp1.nAdcCh): sp1.CF_decayC[i] = -1./fc1.data[i][2]
+        for i in range(sp1.nAdcCh): sp1.CF_decayC[i] = -sqrt(2)/fc1.data[i][2]
         scale = 10
         sp1.CF_decayC[19] = 1./0.006/2500/1024*5000000*scale; ### 0.5 ms
 #         print(sp1.CF_decayC)
