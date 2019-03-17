@@ -1,12 +1,15 @@
 #!/usr/bin/env python36
 
-from rootUtil3 import waitRootCmdX
+from rootUtil3 import waitRootCmdX, useNxStyle
 
 import sys
 sys.path.append('/home/dzhang/work/repos/TMSPlane/Software/Control/src')
 from rootHelper import getRDF
 
-from ROOT import gROOT, gInterpreter
+from ROOT import gROOT, gInterpreter, RDF, gStyle, TLegend, gPad, TCanvas
+
+useNxStyle()
+gStyle.SetPalette(55)
 
 dir1 = '/home/dzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/'
 
@@ -62,7 +65,42 @@ d2 = d2.Filter('w2[19]<60')
 
 # d2 = d2.Define('sum2', 'getSum2b()')
 d2 = d2.Define('E', 'getSum('+','.join(['cQ{0:d}'.format(i) for i in range(nCh)])+')')
-h1 = d2.Histo1D(('h1','h1;E;N',100,0,6000),'E')
-h1.Draw()
 
+h0 = RDF.TH1DModel('h1','h1;E;N',100,-1000,6000)
+
+h1 = d2.Histo1D(h0,'E')
+h1.Draw('PLC')
+
+# h1_0 = d2.Histo1D(h0,'cQ0')
+# h1_0.Draw('same PLC')
+# 
+# h1_1 = d2.Histo1D(h0,'cQ1')
+# h1_1.Draw('same PLC')
+
+hList = []
+# lg = TLegend(0.8,0.6,0.9,0.95)
+# lg.SetFillStyle(0)
+# for ich in range(nCh):
+#     hx = d2.Histo1D(h0,f'cQ{ich}')
+#     hx.Draw('PLC same')
+#     lg.AddEntry(hx.GetValue(),f'Ch {ich}')
+#     hList.append(hx)
+#     gPad.Update()
+# 
+# lg.Draw()
+
+c = TCanvas('c1','c1',1200,800)
+c.Divide(5,4)
+c.cd(1)
+h1.Draw('PLC')
+
+for ich in range(nCh):
+    c.cd(2+ich)
+    hx = d2.Histo1D(h0,f'cQ{ich}')
+    hx.Draw()
+    hList.append(hx)
+    c.Update()
+
+c.cd(0)
+# a = input("A:")
 waitRootCmdX()
