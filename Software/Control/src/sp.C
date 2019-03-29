@@ -52,9 +52,9 @@ struct Sig{
   float Q;//!
   int im; //!
   int idx;
-  int w0;
-  int w1;
-  int w2;
+  int w0; // pass threshold
+  int w1; // pass 10%
+  int w2; // pass 90%
 //   Int_t Q;//!
 //   Int_t im; //!
 //   Int_t idx;
@@ -132,6 +132,7 @@ class SignalProcessor{
   int filter_channel(size_t iCh, const AWBT* data);
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
+//   void testReco(TTree& treeIn, size_t ievt);
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
   void measure_multiple(const AWBT *adcData, size_t N);
@@ -280,7 +281,7 @@ int SignalProcessor::filter_channels(){
 int SignalProcessor::find_sigs(int chan, int start, int end){
   if(start < 0) start = 0;
   if(end<0 || end>int(nSamples)) end = nSamples;
-  cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
+//   cout << "in find_sigs for chan " << chan << " start=" << start << " end=" << end << endl;
 
   if(signals[chan]) {
     signals[chan]->clear();
@@ -315,7 +316,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
       if(t_scrAry[i]<l_max_x*c_thre) ismaller++;
       if(ismaller>nSmaller){
         if(ilarger>nLarger && l_max_x > x_thre){
-          cout << "check signal: maxI=" << l_max_i << " ilarge=" << ilarger << " ismaller=" << ismaller << " max=" << l_max_x << endl;
+//           cout << "check signal: maxI=" << l_max_i << " ilarge=" << ilarger << " ismaller=" << ismaller << " max=" << l_max_x << endl;
           check_signal(l_max_i, sigV);
          }
 
@@ -359,6 +360,17 @@ int SignalProcessor::reco(){
 
     evt.trigID = ii;
     evt.sigs[trig_ch] = s;
+
+//     cout << "ii=" << ii << " w2=" << s.w2 << endl;
+//     if(s.w2>300) continue; /// irrelevent
+
+    if(s.w2>80){ /// pulse
+      CF_uSize = 800;
+      CF_dSize = 1200;
+    }else{ /// alpha signal
+      CF_uSize = -50;
+      CF_dSize = 200;
+    }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
       if(iCh == trig_ch) continue;
@@ -873,6 +885,20 @@ void Filter_ibl::apply(const AWBT *inWav){
   return;
 }
 
+// void SignalProcessor::testReco(TTree& treeIn, size_t ievt){
+//   //// set branch address for the input tree
+//   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
+//   UInt_t dataT;
+//   treeIn.SetBranchAddress("adc", IO_adcData);
+//   treeIn.SetBranchAddress("T",  &dataT);
+// 
+//   treeIn.GetEntry(ievt);
+//   reco();
+// 
+//   return;
+// }
+
+
 TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfilename, int run){
   //// set branch address for the input tree
   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
@@ -885,6 +911,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
   int event, tID;
   float Q[20];
   int   im[20];
+  int   w2[20];
 
   TFile* tfile(nullptr);
   if(!treeOut){
@@ -895,12 +922,14 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
     treeOut->Branch("tID", &tID, "tID/I");
     treeOut->Branch("Q", &Q, "Q[20]/F");
     treeOut->Branch("im", &im, "im[20]/I");
+    treeOut->Branch("w2", &w2, "w2[20]/I");
    }else{
     treeOut->SetBranchAddress("run", &run);
     treeOut->SetBranchAddress("evt", &event);
     treeOut->SetBranchAddress("tID", &tID);
     treeOut->SetBranchAddress("Q", &Q);
     treeOut->SetBranchAddress("im", &im);
+    treeOut->SetBranchAddress("w2", &w2);
    }
 
   //// loop over the events
@@ -914,6 +943,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
       for(size_t ii=0; ii<20; ii++){
         Q[ii] = t.sigs[ii].Q;
         im[ii] = t.sigs[ii].im;
+        w2[ii] = t.sigs[ii].w2;
        }
       treeOut->Fill();
      }

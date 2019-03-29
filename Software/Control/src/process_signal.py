@@ -688,7 +688,9 @@ if __name__ == '__main__':
 #     process_all_match4('data/fpgaLin/Feb28a_data_*.root', 'dp02a_', False)
 #     readSignal4a('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
 #     readSignal4c('data/fpgaLin/Mar08D1a_data_80.root;tpx01a_')
-    process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
+#     process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
+    process_all_matchX(readSignal4b, 'data/fpgaLin/Mar08D1a/Mar08D1a_data_*.root', 'tpx01a_', False)
+#     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
 

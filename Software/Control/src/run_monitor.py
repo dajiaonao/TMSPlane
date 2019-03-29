@@ -6,6 +6,7 @@ from TMS1mmX19Tuner import DataPanelGUI, CommonData
 from array import array
 from glob import glob
 from ROOT import TFile, TChain, gDirectory
+from datetime import datetime
 
 if sys.version_info[0] < 3:
     import Tkinter as tk
@@ -44,27 +45,47 @@ class DataViewer():
                 self.get_file(self.fName)
         elist = None
         ievt = 0
+        itree0 = -1
+        irun = -1
+
         while True:
             ievt1 = ievt
             if elist is not None:
                 ievt1 = self.tree.GetEntryNumber(ievt)
-                print 'Entry:', ievt,
+                print 'Entry:'
 
-            print 'Event:', ievt1
             if ievt1 >= 0:
-                self.tree.GetEntry(ievt1)
+                ret = self.tree.GetEntry(ievt1)
+                if ret == 0:
+                    print "Invalid event number:", ievt1, '. Not read from file!!!!!'
+
+                itree = self.tree.GetTreeNumber()
+                if itree != itree0:
+                    itree0 = itree
+                    fname = self.tree.GetListOfFiles()[itree0].GetTitle()
+                    irun = int(fname.rstrip('.root').split('_')[-1])
+                    print fname, irun
+
+                self.dataPanel.dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(self.dataT[0]))])
                 self.dataPanel.plot_data()
             else:
-                print "Invalid event number!!!!"
+                print "Invalid event number:", ievt1, '!!!!!'
+
+            print 'Event:', ievt1, itree, irun
 
             x = raw_input("Next:")
 #             if x=='q': sys.exit()
             if x=='q': return
             elif len(x)>0 and x[0] == 's':
-                for name in x.split()[1:]:
+                names = x.split()[1:]
+                print '+',names,'+',len(names)
+                if len(names)==0: names = ['run{0:d}_event{1:d}'.format(irun, ievt1)]
+                print names
+                for name in names:
                     dirx = os.path.dirname(name)
-                    if not os.path.exists(dirx): os.makedirs(dirx)
-                    plt.savefig(name)
+                    print dirx, 'ppp'
+                    if dirx and (not os.path.exists(dirx)): os.makedirs(dirx)
+                    self.dataPanel.dataPlotsFigure.savefig(name)
                     print "saved figure to", name
             elif len(x)>2 and x[:2] == 'f ':
                 try:

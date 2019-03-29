@@ -121,6 +121,8 @@ class DataPanelGUI(object):
 #         button.pack(side=tk.BOTTOM, fill=tk.X)
 
         # frame for plotting
+        self.dataInfo = None
+        self.dataInfoText = None
         self.dataPlotsFrame = tk.Frame(self.master)
         self.dataPlotsFrame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsFrame.bind("<Configure>", self.on_resize)
@@ -202,6 +204,12 @@ class DataPanelGUI(object):
             a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
             a.set_xlim([0.0, self.cd.adcDt * nSamples])
             a.step(x, array.array('f', self.cd.adcData[i]), where='post')
+
+        if self.dataInfoText:
+            if self.dataInfo is None:
+                self.dataInfo = self.dataPlotsFigure.text(0.02, 0.01, self.dataInfoText, ha='left', va='bottom', color='m', transform=self.dataPlotsFigure.transFigure)
+            else: self.dataInfo.set_text(self.dataInfoText)
+
         self.dataPlotsCanvas.show()
         self.dataPlotsToolbar.update()
         return

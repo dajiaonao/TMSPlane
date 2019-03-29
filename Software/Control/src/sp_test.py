@@ -369,8 +369,8 @@ def test2c():
         if ievt != prev_ievt:
             print "Event:", ievt
             tree1.GetEntry(ievt)
-            va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
             prev_ievt = ievt
+        va = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
 
           ### FIXME: be careful, data1 might not be updated yet
 #         be1.correct(data1, ich)
@@ -796,23 +796,25 @@ def test3():
 
     '''To test the event reconstruction'''
     data1 = array('f',[0]*(16384*20))
-    inRoot = 'data/fpgaLin/Feb27a_data_40.root'
+#     inRoot = 'data/fpgaLin/Feb27a_data_40.root'
+    inRoot = 'data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root'
     fout1 = TFile(inRoot,'read')
     tree1 = fout1.Get('tree1')
     tree1.SetBranchAddress('adc',data1)
 
     ### here comes the constructor
     sp1 = SignalProcessor()
-    sp1.nAdcCh=20
+#     sp1.nAdcCh=20
     sp1.IO_adcData = data1
+    apply_config(sp1, 'Hydrogen')
 
-    sp1.fltParam.clear()
-    for x in [30, 100, 300, -1]: sp1.fltParam.push_back(x)
-    thre = [0.001]*sp1.nAdcCh
-    thre[19] = 0.02
-
-    sp1.ch_thre.clear()
-    for x in thre: sp1.ch_thre.push_back(x)
+#     sp1.fltParam.clear()
+#     for x in [30, 100, 300, -1]: sp1.fltParam.push_back(x)
+#     thre = [0.001]*sp1.nAdcCh
+#     thre[19] = 0.02
+# 
+#     sp1.ch_thre.clear()
+#     for x in thre: sp1.ch_thre.push_back(x)
 
     Unit = 0.2
     h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize)
@@ -823,6 +825,10 @@ def test3():
     for i in range(tree1.GetEntries()):
         tree1.GetEntry(i)
         sp1.reco()
+
+        for ich in range(sp1.nAdcCh):
+            for s in sp1.signals[ich]:
+                print ich,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
 
         for e in sp1.IO_evts:
             print e.trigID, len(e.sigs)
@@ -979,8 +985,8 @@ def test5():
 if __name__ == '__main__':
 #     test2()
 #     test2b()
-    test2c()
+#     test2c()
 #     test2a()
 #     test5()
 #     test4()
-#     test3()
+    test3()

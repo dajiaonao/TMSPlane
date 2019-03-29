@@ -33,7 +33,7 @@ def apply_config(sp1, config_code):
         ### filter configuration
         fc1 = FilterConfig('filter_config.json')
         fc1.load()
-        print(fc1.data[0])
+#         print(fc1.data[0])
 
         sp1.fltParam.clear()
 #         flt = [50, 100, 500, -1./fc1.data[0][2]] # dp01a
