@@ -61,51 +61,36 @@ excludeCh = [2,8]
 d2 = d2.Define('sum2', 'getSum2(cQ0,cQ1)')
 
 d2 = d2.Filter('&&'.join(['cQ{0:d}<10000'.format(i) for i in range(nCh)]))
-d2 = d2.Filter('w2[19]<60')
+d2 = d2.Filter('w2[19]<60&&run>40')
 
 # d2 = d2.Define('sum2', 'getSum2b()')
 d2 = d2.Define('E', 'getSum('+','.join(['cQ{0:d}'.format(i) for i in range(nCh)])+')')
 
 h0 = RDF.TH1DModel('h1','h1;E;N',100,-1000,6000)
 
-h1 = d2.Histo1D(h0,'E')
-h1.Draw('PLC')
+gStyle.SetFuncColor(2)
 
-# h1_0 = d2.Histo1D(h0,'cQ0')
-# h1_0.Draw('same PLC')
-# 
-# h1_1 = d2.Histo1D(h0,'cQ1')
-# h1_1.Draw('same PLC')
+d_sel6 = d2.Filter('cQ6>300&&cQ9<100').Define('Ex','E-cQ9')
 
-hList = []
-gPad.SetLogy()
-lg = TLegend(0.8,0.6,0.9,0.95)
+#Further remove chip 17, now only chip 0, 1, 6 and 18
+ht1 = d2.Histo1D(('h1','h1;N[e^{-}];Events',100,1000,4000),'E')
+ht2 = d_sel6.Filter('run>40&&cQ5<100&&cQ16<100&&cQ17<100&&cQ18<100').Define('Qv2z1','cQ0+cQ6+cQ1').Histo1D(('h2','h2;N[e^{-}];Events',100,1000,4000),'Qv2z1')
+ht2.SetLineColor(4)
+ht2.GetValue().Fit('gaus',"","",2100,2700)
+fun1 = ht2.GetValue().GetFunction('gaus')
+fun1.SetLineColor(2)
+
+
+ht1.Draw()
+ht2.Draw('same')
+
+lg = TLegend(0.2,0.75,0.55,0.9)
 lg.SetFillStyle(0)
-for ich in range(nCh):
-    if ich in excludeCh: continue
-    hx = d2.Histo1D(h0,f'cQ{ich}')
-    hx.Draw('PLC same')
-    hx.GetValue().SetName(f'hx_{ich}')
-    lg.AddEntry(hx.GetValue(),f'Ch {ich}')
-    hList.append(hx)
-    gPad.Update()
-
+lg.AddEntry(ht1.GetValue(), 'All events, all channels', 'l')
+lg.AddEntry(ht2.GetValue(), 'Channel 0, 1, 6', 'l')
 lg.Draw()
 
-# c = TCanvas('c1','c1',1200,800)
-# c.Divide(5,4)
-# c.cd(1)
-# h1.Draw('PLC')
-# 
-# for ich in range(nCh):
-#     c.cd(2+ich)
-#     hx = d2.Histo1D(h0,f'cQ{ich}')
-#     hx.Draw()
-#     hList.append(hx)
-#     c.Update()
-# 
-# c.cd(0)
+print(fun1.GetParameter(2)/fun1.GetParameter(1))
+gPad.Draw()
 
-
-# a = input("A:")
 waitRootCmdX()
