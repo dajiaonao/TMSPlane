@@ -52,9 +52,9 @@ struct Sig{
   float Q;//!
   int im; //!
   int idx;
-  int w0;
-  int w1;
-  int w2;
+  int w0; // pass threshold
+  int w1; // pass 10%
+  int w2; // pass 90%
 //   Int_t Q;//!
 //   Int_t im; //!
 //   Int_t idx;
@@ -79,12 +79,13 @@ struct Event{
 
 class SignalProcessor{
  public:
-  size_t nSamples{16384};
-  size_t nAdcCh{20};
+  size_t nSamples;
+  size_t nAdcCh;
   vector< double > fltParam{100,200,300,-1};
+  vector< double > CF_decayC; /// decay constant of each channel
   double* measParam{nullptr};
   size_t nMeasParam{2};
-  vector< float > ch_thre{20, 0.005};
+  vector< float > ch_thre;
 //   vector< float > IO_values;
   float x_thre{0.005};
 //   void set_threshold(float x){x_thre = x;}
@@ -96,10 +97,14 @@ class SignalProcessor{
   vector< TGraph* > corr_spine;
   vector < Event > IO_evts;
 
-
-//   SignalProcessor():scrAry(nullptr){};
+  SignalProcessor(size_t _nSamples=16384, size_t _nAdcCh=20):nSamples(_nSamples),nAdcCh(_nAdcCh),
+                                                             scrAry(nullptr),CF_decayC(_nAdcCh, -1),
+                                                             CF_chan_en(_nAdcCh, 1),IO_mAvg(_nAdcCh, 0){};
   ~SignalProcessor(){
-    if(scrAry) free(scrAry); 
+    /// FIXME: are these "free"s really needed?
+    if(IO_adcData) free(IO_adcData);
+//     if(scrAry) free(scrAry); 
+    for(auto p:scrArys){if(p) free(p);}
    }
 
 //  private:
@@ -124,8 +129,10 @@ class SignalProcessor{
   float correction(size_t ich, float raw, int opt=0);
   int build_events();
   int filter_channels();
+  int filter_channel(size_t iCh, const AWBT* data);
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
+//   void testReco(TTree& treeIn, size_t ievt);
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
   void measure_multiple(const AWBT *adcData, size_t N);
@@ -134,8 +141,8 @@ class SignalProcessor{
   /// to be removed
   int build_events(const AWBT *adcData);
   AWBT *IO_adcData{nullptr};
-  vector < int > CF_chan_en{20,1};
-  vector < float > IO_mAvg{20,0};
+  vector < int > CF_chan_en;
+  vector < float > IO_mAvg;
 
   void allocAdcData(){if(!IO_adcData) IO_adcData = (AWBT*)calloc(nSamples, sizeof(AWBT));}
  private:
@@ -152,7 +159,7 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
 
     /// - filter
-    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+   filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
 
     int L = 8;
     /// - find largest
@@ -162,7 +169,7 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     /// save values
     size_t j = 1;
     for(int a=M-N; a>20; a-=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
-    for(int a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
    }
 
   return;
@@ -193,7 +200,7 @@ void SignalProcessor::measure_multiple(const AWBT *adcData, size_t N){
     size_t n = 0;
     for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1;}
 //     for(int a=M-N; a>20; a-=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
-    for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1;}
 //     for(int a=M+N; a<nSamples; a+=N) {sum += scrAry[a]; n+=1; cout << a << " -> " << scrAry[a] << endl;}
 //     cout << "L sum=" << sum << " n=" << n << endl;
 
@@ -246,6 +253,17 @@ int SignalProcessor::build_events(const AWBT *adcData){
   return 0;
 }
 
+int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
+  const AWBT* adcChData = data + nSamples * iCh;
+  if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
+  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+  if(!scrAry) scrAry=scrArys[iCh];
+
+  return 0;
+}
+
+
+
 int SignalProcessor::filter_channels(){
 //   cout << "in filter_channels" << endl;
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
@@ -253,7 +271,7 @@ int SignalProcessor::filter_channels(){
 
     const AWBT* adcChData = IO_adcData + nSamples * iCh;
     if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
    }
 //   cout << "Done in filter_channels" << endl;
 
@@ -298,6 +316,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
       if(t_scrAry[i]<l_max_x*c_thre) ismaller++;
       if(ismaller>nSmaller){
         if(ilarger>nLarger && l_max_x > x_thre){
+//           cout << "check signal: maxI=" << l_max_i << " ilarge=" << ilarger << " ismaller=" << ismaller << " max=" << l_max_x << endl;
           check_signal(l_max_i, sigV);
          }
 
@@ -341,6 +360,17 @@ int SignalProcessor::reco(){
 
     evt.trigID = ii;
     evt.sigs[trig_ch] = s;
+
+//     cout << "ii=" << ii << " w2=" << s.w2 << endl;
+//     if(s.w2>300) continue; /// irrelevent
+
+    if(s.w2>80){ /// pulse
+      CF_uSize = 800;
+      CF_dSize = 1200;
+    }else{ /// alpha signal
+      CF_uSize = -50;
+      CF_dSize = 200;
+    }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
       if(iCh == trig_ch) continue;
@@ -496,7 +526,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
     //// apply the filter
 //     std::cout << "apply the filter" << std::endl;
-    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
 //     std::cout << "apply the filter done" << std::endl;
 
     //// Start working on the filtered sample
@@ -855,6 +885,20 @@ void Filter_ibl::apply(const AWBT *inWav){
   return;
 }
 
+// void SignalProcessor::testReco(TTree& treeIn, size_t ievt){
+//   //// set branch address for the input tree
+//   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
+//   UInt_t dataT;
+//   treeIn.SetBranchAddress("adc", IO_adcData);
+//   treeIn.SetBranchAddress("T",  &dataT);
+// 
+//   treeIn.GetEntry(ievt);
+//   reco();
+// 
+//   return;
+// }
+
+
 TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfilename, int run){
   //// set branch address for the input tree
   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
@@ -867,6 +911,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
   int event, tID;
   float Q[20];
   int   im[20];
+  int   w2[20];
 
   TFile* tfile(nullptr);
   if(!treeOut){
@@ -877,12 +922,14 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
     treeOut->Branch("tID", &tID, "tID/I");
     treeOut->Branch("Q", &Q, "Q[20]/F");
     treeOut->Branch("im", &im, "im[20]/I");
+    treeOut->Branch("w2", &w2, "w2[20]/I");
    }else{
     treeOut->SetBranchAddress("run", &run);
     treeOut->SetBranchAddress("evt", &event);
     treeOut->SetBranchAddress("tID", &tID);
     treeOut->SetBranchAddress("Q", &Q);
     treeOut->SetBranchAddress("im", &im);
+    treeOut->SetBranchAddress("w2", &w2);
    }
 
   //// loop over the events
@@ -896,6 +943,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
       for(size_t ii=0; ii<20; ii++){
         Q[ii] = t.sigs[ii].Q;
         im[ii] = t.sigs[ii].im;
+        w2[ii] = t.sigs[ii].w2;
        }
       treeOut->Fill();
      }

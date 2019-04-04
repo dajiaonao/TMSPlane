@@ -14,10 +14,14 @@ from math import isnan
 def waitRootCmdY():
     a = raw_input("waiting...")
 
+def useLHCbStyle0():
+    pass
+
 try:
-    from rootUtil import waitRootCmdX
+    from rootUtil import waitRootCmdX, useLHCbStyle
 except ImportError:
     waitRooCmdX = waitRootCmdY
+    useLHCbStyle = useLHCbStyle0 
 
 
 class SignalChecker:
@@ -124,6 +128,8 @@ class SignalChecker:
         from ROOT import TH2Poly, gStyle
         gStyle.SetOptStat(0)
 
+        cv1 = TCanvas('cv1','cv1',600,500)
+        cv1.SetRightMargin(0.2)
         hc = TH2Poly();
         hc.SetTitle("TMS19Plane");
         hc.Honeycomb(-4.3,-4,1,5,5);
@@ -145,6 +151,24 @@ class SignalChecker:
         mx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
         d = [x[2] for x in mx]
         self.plot_data(d)
+
+
+    def check_event(self, rootfile, idxs):
+        s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
+        data1 = s1.generate_adcDataBuf()
+
+        fout1 = TFile(rootfile,'read')
+        tree1 = fout1.Get('tree1')
+        tree1.SetBranchAddress('adc',data1)
+        for i in idxs:
+            tree1.GetEntry(i)
+            mx = s1.measure_pulse(data1, fltParam=[500, 150, 200, -1.])
+            d = [x[3] for x in mx]
+            self.plot_data(d)
+
+            waitRootCmdX()
+
+
 
     def show_sample(self, fnameP='/data/Samples/TMSPlane/Dec26/sample_{0:d}.adc', Ns=10, ich=8):
         from ROOT import TGraph, gPad, TLatex
@@ -221,6 +245,37 @@ def text2root(spattern, irange, outname):
         s1.read_data([spattern.format(i),'xxx'], data1, data2)
         tree1.Fill()
     fout1.Write()
+
+def compareWaveform(dsx):
+    ### dsx = [(tag, file, chan, entry)]
+    for a in dsx: print(a[1])
+    fls = [TFile(a[1],'read') for a in dsx]
+    trs = [f.Get('tree1') for f in fls]
+
+    grs = [None]*len(dsx)
+    opt = ''
+    for i in range(len(dsx)):
+#         print('adc[{0:d}]:Iteration$'.format(dsx[i][2]), "Entry$=={0:d}".format(dsx[i][3]), '')
+#         print(trs[i].GetEntries())
+#         print('adc[{0:d}]:Iteration$'.format(dsx[i][2]), "Entry$=={0:d}".format(dsx[i][3]), 'goff')
+# #         trs[i].Draw('adc[{0:d}]:Iteration$'.format(dsx[i][2]), "Entry$=={0:d}".format(dsx[i][3]), 'goff')
+# #         trs[i].Draw('adc[{0:d}]:Iteration$'.format(dsx[i][2]),"Entry$=={0:d}".format(dsx[i][3]), 'goff')
+#         trs[i].Draw('adc[{0:d}]:Iteration$'.format(dsx[i][2]),"Entry$=={0:d}".format(dsx[i][3]), 'goff')
+        print(i)
+        trs[i].Draw('adc[{0:d}]:Iteration$'.format(dsx[i][2]),"Entry$=={0:d}".format(dsx[i][3]), opt)
+        opt = 'same'
+        print(i)
+# #         grs[i] = gPad.GetPrimitive('Graph')
+#         grs[i] = gDirectory.Get('Graph')
+#         print(grs[i].GetN())
+#         waitRootCmdX()
+#         grs[i] = gDirectory.Get('htemp')
+#         grs[i].SetName('gr'+str(i))
+    
+#     grs[0].Draw('AP')
+#     for g in grs[1:]:
+#         g.Draw('Psame PMC')
+    waitRootCmdX()
 
 def setPulse(v,f):
     cmd = 'ssh maydaq.dhcp.lbl.gov ./fungen_ctrl.py {0:.3f} {1:d}'.format(v,f)
@@ -337,6 +392,8 @@ def test1():
 #     sc1.show_sample('/data/Samples/TMSPlane/Dec27/Dec27a_1000.adc',Ns=1,ich=12)
 
 if __name__ == '__main__':
+#     useLHCbStyle()
+#     test1()
 #     take_calibration_samples(sTag='Feb26a',n=5000)
 #     take_calibration_samples(sTag='Mar07C1a',vs=[0.2+0.025*i for i in range(16)],n=3000)
 #     take_calibration_samples(sTag='Feb26a',n=3000)
@@ -346,6 +403,6 @@ if __name__ == '__main__':
 #       take_data(sTag='Mar05T1a',n=200, N=1)
 #       take_data(sTag='Mar08D1a',n=1000, N=-1)
       take_data(sTag='Apr04R1a',n=1000, N=-1)
-#     test1()
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')
+#     compareWaveform([('a1','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R30p0us.root', 12, 20),('a2','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R19p5312us.root', 12, 20)])

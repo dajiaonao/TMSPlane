@@ -87,7 +87,7 @@ inline void hex_l2qr(int l, int *q, int *r)
 }
 
 inline void hex_l2xy(double p, int l, double*x, double *y){
-  int q, r;
+  int q(0), r(0);
   hex_l2qr(l, &q, &r);
   hex_qr2xy(p, q, r, x, y);
 
