@@ -7,9 +7,14 @@ sys.path.append('/home/dzhang/work/repos/TMSPlane/Software/Control/src')
 from rootHelper import getRDF
 
 from ROOT import gROOT, gInterpreter, RDF, gStyle, TLegend, gPad, TCanvas, kGray
+from ROOT import gROOT, gStyle, TFile, TChain, Double, TH3F, TH2F, TCanvas, kGray, TH2Poly
+gROOT.LoadMacro('HoneycombS.C+')
+from ROOT import hex_l2XY, HoneycombS
 
 useNxStyle()
-gStyle.SetPalette(55)
+gStyle.SetPalette(70)
+gStyle.SetPaintTextFormat('.0f')
+gStyle.SetPadRightMargin(0.15)
 
 dir1 = '/home/dzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/'
 
@@ -70,41 +75,37 @@ h0 = RDF.TH1DModel('h1','h1;E;N',100,-1000,6000)
 
 gStyle.SetFuncColor(2)
 
-d_sel6 = d2.Filter('cQ6>300&&cQ9<100').Define('Ex','E-cQ9')
+nCh = 19
+ch_excluded = [2,8]
 
-h0 = RDF.TH1DModel('h1','h1;N [e];Events',100,-100,3900)
+tQ = [None]*nCh
+for i in range(19):
+    tQ[i] = None if i in ch_excluded else d2.Sum('cQ'+str(i))
 
-#Further remove chip 17, now only chip 0, 1, 6 and 18
-ht1 = d2.Histo1D(h0,'E')
-ht1a = d2.Histo1D(h0,'cQ0')
-ht1b = d2.Histo1D(h0,'cQ1')
-ht1c = d2.Histo1D(h0,'cQ6')
-ht2 = d_sel6.Filter('run>40&&cQ5<100&&cQ16<100&&cQ17<100&&cQ18<100').Define('Qv2z1','cQ0+cQ6+cQ1').Histo1D(h0,'Qv2z1')
-ht2.SetLineColor(4)
-ht2.GetValue().Fit('gaus',"","",2100,2700)
-fun1 = ht2.GetValue().GetFunction('gaus')
-fun1.SetLineColor(2)
+hc = TH2Poly()
+hc.SetTitle('TMS19Plane')
+hc.GetXaxis().SetTitle('x [cm]')
+hc.GetYaxis().SetTitle('y [cm]')
+hc.GetZaxis().SetTitle('N_{e}')
+HoneycombS(hc,0.8,19)
+hc2 = hc.Clone('hc2')
 
-ht1a.SetLineColor(3)
-ht1b.SetLineColor(6)
-ht1c.SetLineColor(kGray)
+gROOT.ProcessLine('.x Pal3.C')
 
-ht1c.Draw()
-ht1a.Draw('same')
-ht1b.Draw('same')
-ht1.Draw('same')
-ht2.Draw('same')
+vQ = [-1]*nCh
+X,Y = Double(0),Double(0)
+for i in range(19):
+    if tQ[i]: vQ[i] = tQ[i].GetValue()
 
-lg = TLegend(0.2,0.75,0.55,0.9)
-lg.SetFillStyle(0)
-lg.AddEntry(ht1.GetValue(), 'All events, all channels', 'l')
-lg.AddEntry(ht1a.GetValue(), 'Channel 0', 'l')
-lg.AddEntry(ht1b.GetValue(), 'Channel 1', 'l')
-lg.AddEntry(ht1c.GetValue(), 'Channel 6', 'l')
-lg.AddEntry(ht2.GetValue(), 'Channel 0, 1, 6', 'l')
-lg.Draw()
+    hex_l2XY(0.8,i, X,Y)
+    hc.Fill(X,Y,vQ[i])
+    hc2.Fill(X,Y,i+0.01)
 
-print(fun1.GetParameter(2)/fun1.GetParameter(1))
-gPad.Draw()
+print(vQ)
+
+# c = TCanvas('c','c',700,600)
+c = TCanvas('c','c',2122,183,723,663)
+hc.Draw('colz')
+hc2.Draw('text same')
 
 waitRootCmdX()
