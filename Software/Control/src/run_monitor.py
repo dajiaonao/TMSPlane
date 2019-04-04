@@ -123,6 +123,7 @@ class DataUpdater(threading.Thread):
         self.currentFile = None
         self.dataT = array('i',[0])
         self.tFile = None
+        self.irun = -1
 
     def get_file(self):
         files = sorted(glob(self.fPattern), key=lambda f:os.path.getmtime(f))
@@ -139,6 +140,10 @@ class DataUpdater(threading.Thread):
         self.tFile = tFile
         self.tree = tree
         print "Using file", self.currentFile
+        try:
+            self.irun = int(self.currentFile.rstrip('.root').split('_')[-1])
+        except TypeError:
+            self.irun = -1
         self.tree.SetBranchAddress('adc',self.cd.adcData)
         self.tree.SetBranchAddress('T',self.dataT)
 
@@ -156,6 +161,7 @@ class DataUpdater(threading.Thread):
                 print 'Event', n-1
 
                 if n != n_old:
+                    self.dataPanel.dataInfoText = ', '.join(['Run '+str(self.irun), 'Event '+str(n-1), str(datetime.fromtimestamp(self.dataT[0]))])
                     self.dataPanel.plot_data()
 
                 ### to get notified from the data pannel
