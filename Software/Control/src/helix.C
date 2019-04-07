@@ -1,3 +1,6 @@
+#ifndef helix_C
+#define helix_C
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -210,3 +213,4 @@ int main(int argc, char **argv)
     return EXIT_SUCCESS;
 }
 #endif
+#endif //helix_C
