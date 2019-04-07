@@ -319,7 +319,7 @@ class TestClass:
 #         cd.atTbounds = (2650,2750)
         cd.atTbounds = (4050,4150)
 
-        sc1 = SensorConfig(cd, configFName='config.json')
+        sc1 = SensorConfig(cd, configFName='current_best_config.json')
 
         tr1 = Train(cd)
         tr1.tx_qs = self.rx_qs
@@ -407,10 +407,10 @@ class TestClass:
         tr1.tree1.Write()
         tr1.fout1.Close()
 
-    def test_tune(self):
+    def test_tune(self, oName='tt_out1.root'):
         tr1 = self.prepare_train()
         tr1.on = True
-        tr1.setupOutput()
+        tr1.setupOutput(oName)
 
 #         tr1.test_update_sensor()
         tr1.take_data()
@@ -437,6 +437,27 @@ class TestClass:
 #         better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
 #         better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
 
+        ### for the chip #3? the default one in LBL
+        better_bounds = [None]*self.nCh
+        better_bounds[0] = [(0.9, 1.5), (0.5, 1.2), (1.1, 1.8), (0.5, 1.4), (1.4, 1.8), (2.5, 2.8)]
+        better_bounds[1] = [(0.8, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.6), (1.4, 2.0), (2.5, 2.8)]
+        better_bounds[2] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.5), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
+        better_bounds[3] = [(0.8, 1.5), (0.5, 1.3), (1.0, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+        better_bounds[4] = [(0.9, 1.2), (0.5, 1.3), (0.5, 1.8), (0.5, 1.4), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[5] = [(0.8, 1.5), (0.5, 1.5), (0.9, 1.8), (0.5, 2.0), (0.8, 2.0), (1.8, 2.8)]
+        better_bounds[6] = [(0.8, 1.2), (0.5, 1.5), (1.0, 1.5), (0.5, 2.0), (0.8, 1.8), (1.8, 2.8)]
+        better_bounds[7] = [(0.5, 1.5), (0.5, 1.1), (1.4, 1.8), (0.5, 1.6), (0.8, 1.5), (2.5, 2.8)]
+        better_bounds[8] = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 1.6), (2.4, 2.8)]
+        better_bounds[9] = [(0.7, 1.5), (0.5, 1.4), (1.0, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+        better_bounds[10] = [(0.8, 1.3), (0.5, 1.4), (0.9, 1.6), (0.5, 2.0), (0.8, 2.0), (1.9, 2.8)]
+        better_bounds[11] = [(0.5, 1.5), (0.5, 1.0), (1.3, 1.8), (0.5, 1.4), (0.8, 1.2), (2.5, 2.8)]
+        better_bounds[12] = [(0.7, 1.3), (0.5, 1.3), (1.1, 1.8), (0.5, 1.8), (0.8, 2.0), (2.5, 2.8)]
+        better_bounds[13] = [(0.8, 1.3), (0.5, 1.4), (1.1, 1.8), (0.5, 1.7), (0.8, 2.2), (2.4, 2.8)]
+        better_bounds[14] = [(0.7, 1.5), (0.5, 1.2), (1.3, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[15] = [(0.9, 1.3), (0.5, 1.2), (1.1, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[16] = [(0.9, 1.5), (0.5, 1.2), (1.2, 1.8), (0.5, 1.5), (0.8, 1.8), (2.5, 2.8)]
+        better_bounds[17] = [(0.5, 1.5), (0.5, 1.0), (1.0, 1.5), (0.5, 1.1), (0.8, 1.2), (2.5, 2.8)]
+        better_bounds[18] = [(0.9, 1.4), (0.5, 1.3), (1.0, 1.8), (0.5, 1.6), (0.8, 1.8), (2.5, 2.8)]
 
         for i in range(self.nCh):
             if i in self.muteList: continue
@@ -445,10 +466,10 @@ class TestClass:
             th1 = tuner(i)
             th1.tx_qs = self.tx_qs
             th1.rx_qs = self.rx_qs            
-            th1.atBounds = cd.atBounds
-#             th1.atBounds = better_bounds[i]
+#             th1.atBounds = tr1.cd.atBounds
+            th1.atBounds = better_bounds[i]
 #             th1.atBounds = better_bounds[i] if better_bounds[i] is not None else cd.atBounds
-            th1.atMaxIters = cd.atMaxIters
+            th1.atMaxIters = tr1.cd.atMaxIters
             th1.start()
         tr1.start()
 
@@ -456,7 +477,7 @@ def test1():
     tc1 = TestClass()
 #     tc1.muteList = [3,5,6,8,12,18]
     tc1.muteList = []
-#     tc1.test_tune()
+    tc1.test_tune('C3_tt3.root')
 #     tc1.validate_tune()
 #     cList0 = [   8,   2,    2,    7,    3,   0,    0,    0,   2,    1,    2,    0,    1,    1,    0,   2,    4,   2,     2]
 #     cList = [2148, 650, 1288, 2294, 1580, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762, 1703, 1747, 513, 1750, 790, 2192 ]
@@ -464,8 +485,8 @@ def test1():
 #     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762,  901, 1747, 513, 1750, 1842, 2192 ]
 #     cList0= [   8,   4,    2,    7,    5,   0,    0,    0,   2,    3,    2,    0,    1,    3,    0,   2,    4,    x,    2]
 #     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
-    cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
-    tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
+#     cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
+#     tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
 
 if __name__ == '__main__':
     test1()
