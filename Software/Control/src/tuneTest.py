@@ -354,9 +354,36 @@ class TestClass:
         with open(oName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 
-    def validate_tune(self):
-        fcName = 'Mar05Te_tt_test.root'
-        oName = 'Mar05Te_tt_valid4.root'
+    def save_config1(self, cList0, oName, fcName = 'Mar05Te_tt_test.root'):
+        ### base on the default configuration, overwite it with new ones
+        inputVs = [None]*self.nCh
+
+        ### get files
+        fin = TFile(fcName,'read')
+        ch = fin.Get('tree1')
+
+        cut = ''
+        ### get the entry numbers
+        cList = [None]*self.nCh
+        for ich in range(self.nCh):
+            if cList0[ich] is None: continue
+
+            n = ch.Draw("ret[{0:d}]:Entry$".format(ich),cut,"goff")
+            v1 = ch.GetV1()
+            v2 = ch.GetV2()
+            vx = sorted([(v1[i],int(v2[i])) for i in range(n)], key=lambda x:x[0])
+            cList[ich] = vx[cList0[ich]][1]
+
+        print(cList)
+        self.save_config(cList, oName, fcName)
+
+
+    def validate_tune(self, fcName='C3_tt3.root', oName='C3_tt3_valid0.root'):
+        '''Here will will use low frequency pulse'''
+#         fcName = 'Mar05Te_tt_test.root'
+#         oName = 'Mar05Te_tt_valid4.root'
+#         fcName = 'C3_tt3.root'
+#         oName = 'C3_tt3_valid0.root'
         dT_wait = 50
         N_data = 1000
         topN = 10
@@ -478,9 +505,9 @@ class TestClass:
 def test1():
     tc1 = TestClass()
 #     tc1.muteList = [3,5,6,8,12,18]
-    tc1.muteList = []
-    tc1.test_tune('C3_tt3.root')
-#     tc1.validate_tune()
+#     tc1.muteList = []
+    tc1.test_tune('C3_tt5.root')
+#     tc1.validate_tune(fcName='C3_tt3.root', oName='C3_tt3_valid1.root')
 #     cList0 = [   8,   2,    2,    7,    3,   0,    0,    0,   2,    1,    2,    0,    1,    1,    0,   2,    4,   2,     2]
 #     cList = [2148, 650, 1288, 2294, 1580, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762, 1703, 1747, 513, 1750, 790, 2192 ]
 #     cList0 = [   8,   4,    2,    7,    5,   0,    0,    0,   2,    1,    2,    0,    1,    3,    0,   2,    4,    1,    2]
@@ -489,6 +516,7 @@ def test1():
 #     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
 #     cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
 #     tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
+#     tc1.save_config1([0]*tc1.nCh,'new_C3_config.json',fcName='C3_tt3.root')
 
 if __name__ == '__main__':
     test1()
