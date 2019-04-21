@@ -3,10 +3,13 @@ from check_decay import FilterConfig
 from math import sqrt
 
 def apply_config(sp1, config_code):
-    if config_code == 'Hydrogen':
-        sp1.nSamples = 16384 
-        sp1.nAdcCh = 20
 
+    ## Put the common ones here
+    sp1.nSamples = 16384 
+    sp1.nAdcCh = 20
+
+    ## now the variations
+    if config_code == 'Hydrogen':
         ### search window
         sp1.CF_uSize = 600
         sp1.CF_dSize = 1100
@@ -48,6 +51,34 @@ def apply_config(sp1, config_code):
         return "H1/a" ### anything after slash is a development tag, frozen configurations does not have a slash
 
     elif config_code == 'Helium':
-        pass
+        ### search window
+        sp1.CF_uSize = 600
+        sp1.CF_dSize = 1100
+
+        ## threshold
+        thre = [0.005]*sp1.nAdcCh
+        thre[19] = 0.02
+
+        sp1.ch_thre.clear()
+        for x in thre: sp1.ch_thre.push_back(x)
+
+
+        ### filter configuration
+        sp1.fltParam.clear()
+
+        scale = 1
+        P = 1./0.006/2500/1024*5000000*scale;
+        for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
+
+        ## channelwise configuration
+        sp1.CF_chan_en.clear()
+        sp1.IO_mAvg.clear()
+        for i in range(sp1.nAdcCh):
+            sp1.CF_chan_en.push_back(1)
+            sp1.IO_mAvg.push_back(0.)
+            sp1.CF_decayC[i] = P
+
+        ### we are done
+        return "He4/a" ### anything after slash is a development tag, frozen configurations does not have a slash
 
     return 0

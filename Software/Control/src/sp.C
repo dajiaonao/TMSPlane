@@ -159,19 +159,20 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     if(!scrAry) scrAry = (AWBT*)calloc(nSamples, sizeof(AWBT));
 
     /// - filter
-   filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+    size_t R(fltParam[2]);
+    filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], R, (double)fltParam[3]);
 
     int L = 8;
     /// - find largest
     size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
-    values[iCh*L] = scrAry[M]; 
+    values[iCh*L] = (scrAry[M] - scrAry[M>R?M-R:0]); 
 
+//     cout << "M=" << M << " x=" << scrAry[M] << " b=" << M-R << endl;
     /// save values
     size_t j = 1;
-    for(int a=M-N; a>20; a-=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
-    for(size_t a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=scrAry[a]; j+=1;}
-   }
-
+    for(int a=M-N; a>int(R); a-=N) {if(j==8) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
+  }
   return;
 }
 

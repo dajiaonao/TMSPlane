@@ -291,7 +291,8 @@ def test2a():
 #         fig.legend()
 #
 
-def test2c():
+def normal_reco():
+    '''Should have the same configuration as the normal reconstruction. Check if it's so before using it.'''
     be1 = bkgEstimator()
 #     be1.show_data()
 
@@ -451,6 +452,7 @@ def test2c():
                 break
 
 def test2b():
+    '''What?'''
     be1 = bkgEstimator()
 #     be1.show_data()
 
@@ -607,7 +609,8 @@ def test2b():
 #         plt.show()
 
 
-def test2():
+def tune_check():
+    '''The same configuration as the tune'''
     be1 = bkgEstimator()
 #     be1.show_data()
 
@@ -663,32 +666,13 @@ def test2():
     i = 56
     ich = 1
     sp1 = SignalProcessor()
-    sp1.fltParam.clear()
-
-#     P is the constant using 0.2 ps as unit wit
-#     0.006 is the constant using 1/2500/1024 as unit 1/0.006 T = 1/0.006 * 1/2500/1024 s = 1/0.006 *1/2500/1024* 5000000 pts
-#     for x in [500, 500, 700, 2500]: sp1.fltParam.push_back(x)
-#     for x in [500, 5, 15, 2500]: sp1.fltParam.push_back(x)
-#     for x in [500, 50, 150, 2500]: sp1.fltParam.push_back(x)
-#     for x in [30, 15, 50, 2500]: sp1.fltParam.push_back(x)
-#     for x in [30, 50, 250, 2500]: sp1.fltParam.push_back(x)
-    P = 1./0.006/2500/1024*5000000;
-#     for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
-    for x in [30, 100, 200, P]: sp1.fltParam.push_back(x)
-#     for x in [50, 100, 500, -1]: sp1.fltParam.push_back(x)
-#     for x in [30, 5, 100, 2500]: sp1.fltParam.push_back(x)
-#     for x in [30, 250, 350, 2500]: sp1.fltParam.push_back(x)
-#     sp1.x_thre = 0.002
-#     for i in range(20): sp1.ch_thre[i] = 0.002
-#     sp1.ch_thre[19] = 0.05
-    thre = [0.002]*sp1.nAdcCh
-    thre[19] = 0.05
-    sp1.ch_thre.clear()
-    for x in thre: sp1.ch_thre.push_back(x)
+    print "using configuration:", apply_config(sp1, 'Helium')
+    for i in range(sp1.nAdcCh): sp1.CF_chan_en[i] = 1 if i==ich else 0
 
     plt.ion()
     plt.show()
-    fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
+#     fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
+    fig, ax1 = plt.subplots(1, 1, figsize=(14, 5))
 #     fig.set_size_inches(11,8)
     ax1.set_xlabel('time index')
     ax1.set_ylabel('U [V]', color='b')
@@ -702,6 +686,9 @@ def test2():
 
     NMax = tree1.GetEntries()
     ievt = 0
+
+    NVAL = 8
+    t_values = array('f',[0]*(sp1.nAdcCh*NVAL))
     while ievt< NMax:
 
         print "Event:", ievt
@@ -711,7 +698,8 @@ def test2():
 #         be1.correct(data1, ich)
 #         apply_wiener_filter(data1, ich)
 
-        sp1.measure_pulse2(data1, ich)
+#         sp1.measure_pulse2(data1, ich)
+        sp1.measure_multipleX(data1,2000,t_values)
 
         vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
         vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
@@ -735,15 +723,17 @@ def test2():
         x1 = []
         y1 = []
         iss = 0
-        if len(sp1.signals[ich])>0:
-            print "idx: iMax iMidian A w0 w1 w2"
-            print '-'*30
-        for s in sp1.signals[ich]:
-            print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
-            x1.append(s.im)
-            y1.append(s.Q)
-            plt.axvline(x=s.im, linestyle='--', color='black')
-            iss += 1
+        for x in t_values[ich*NVAL:(ich+1)*NVAL]:
+            print x
+#         if len(sp1.signals[ich])>0:
+#             print "idx: iMax iMidian A w0 w1 w2"
+#             print '-'*30
+#         for s in sp1.signals[ich]:
+#             print iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2
+#             x1.append(s.im)
+#             y1.append(s.Q)
+#             plt.axvline(x=s.im, linestyle='--', color='black')
+#             iss += 1
 
         plt.text(0.04, 0.1, 'run {0:d} event {1:d}, ch {2:d}'.format(run, ievt, ich), horizontalalignment='center', verticalalignment='center', transform=ax2.transAxes)
         plt.xlim(auto=False)
@@ -767,6 +757,7 @@ def test2():
             elif len(x)>2 and x[:2] == 'ch':
                 try:
                     ich = int(x[2:])
+                    for i in range(sp1.nAdcCh): sp1.CF_chan_en[i] = 1 if i==ich else 0
                     print "Switching to channel:", ich
                     break
                 except ValueError:
@@ -786,6 +777,7 @@ def test2():
 #         plt.show()
 
 def test3():
+    '''To test the event reconstruction'''
     gStyle.SetOptStat(0)
     gROOT.ProcessLine('.L Pal.C')
     gStyle.SetPalette(55)
@@ -794,7 +786,6 @@ def test3():
 #     from ROOT import Pal2
 #     Pal2()
 
-    '''To test the event reconstruction'''
     data1 = array('f',[0]*(16384*20))
 #     inRoot = 'data/fpgaLin/Feb27a_data_40.root'
     inRoot = 'data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root'
@@ -983,10 +974,11 @@ def test5():
 
 
 if __name__ == '__main__':
+    tune_check()
 #     test2()
 #     test2b()
 #     test2c()
 #     test2a()
 #     test5()
 #     test4()
-    test3()
+#     test3()

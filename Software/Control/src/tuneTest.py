@@ -15,6 +15,7 @@ import json
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
+from reco_config import apply_config
 
 class tuner(threading.Thread):
     def __init__(self, idx):
@@ -63,7 +64,7 @@ class Train(threading.Thread):
         ### this copy of sensorVcodes is used to save the best value find so far
         self.sensorVcodes = [[v for v in cd.sensorVcodes[i]] for i in range(cd.nCh)]
 #         self.bestConfigFile = 'current_best_config.json'
-        self.bestConfigFile = 'C3_tt2_best_config.json'
+        self.bestConfigFile = 'C3_tt6_config.json'
         self.retBest = [0.]*cd.nAdcCh
 
         ### for data taking
@@ -76,17 +77,7 @@ class Train(threading.Thread):
         self.pltN = 20
 
         self.sp = SignalProcessor()
-        self.sp.fltParam.clear()
-#         for x in [30, 50, 200, -1]: self.sp.fltParam.push_back(x)
-        P = 1./0.006/2500/1024*5000000;
-        for x in [30, 50, 200, P]: self.sp.fltParam.push_back(x)
-
-#         self.sp.IO_adcData = self.cd.adcData
-        self.sp.CF_chan_en.clear()
-        self.sp.IO_mAvg.clear()
-        for i in range(20):
-            self.sp.CF_chan_en.push_back(1)
-            self.sp.IO_mAvg.push_back(0.)
+        apply_config(self.sp, 'Helium')
 
         self.NVAL = 8
         s1 = self.cd.sigproc
@@ -320,7 +311,7 @@ class TestClass:
 #         cd.atTbounds = (2650,2750)
         cd.atTbounds = (4050,4150)
 
-        sc1 = SensorConfig(cd, configFName='current_best_config.json')
+        sc1 = SensorConfig(cd, configFName='C3_config.json')
 
         tr1 = Train(cd)
         tr1.tx_qs = self.rx_qs
@@ -506,8 +497,8 @@ def test1():
     tc1 = TestClass()
 #     tc1.muteList = [3,5,6,8,12,18]
 #     tc1.muteList = []
-    tc1.test_tune('C3_tt5.root')
-#     tc1.validate_tune(fcName='C3_tt3.root', oName='C3_tt3_valid1.root')
+#     tc1.test_tune('C3_tt7.root')
+#     tc1.validate_tune(fcName='C3_tt6.root', oName='C3_tt6_valid1.root')
 #     cList0 = [   8,   2,    2,    7,    3,   0,    0,    0,   2,    1,    2,    0,    1,    1,    0,   2,    4,   2,     2]
 #     cList = [2148, 650, 1288, 2294, 1580, 420, 1521, 1297, 509, 1100, 1258, 1186, 1762, 1703, 1747, 513, 1750, 790, 2192 ]
 #     cList0 = [   8,   4,    2,    7,    5,   0,    0,    0,   2,    1,    2,    0,    1,    3,    0,   2,    4,    1,    2]
@@ -517,6 +508,19 @@ def test1():
 #     cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
 #     tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
 #     tc1.save_config1([0]*tc1.nCh,'new_C3_config.json',fcName='C3_tt3.root')
+    elist = [0]*tc1.nCh
+#     elist[4] = 
+    elist[6] = 6
+
+#     elist[7] = 
+#     elist[10] = 
+    elist[11] = 2
+
+#     elist[13] = 
+#     elist[14] = 
+    elist[15] = 2
+#     elist[16] = 
+    tc1.save_config1(elist,'new_C3_config6.json',fcName='C3_tt6.root')
 
 if __name__ == '__main__':
     test1()
