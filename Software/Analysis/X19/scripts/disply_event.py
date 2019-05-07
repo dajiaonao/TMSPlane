@@ -1,8 +1,8 @@
 #!/usr/bin/env python36
 import sys
 from array import array
-from rootUtil3 import waitRootCmdX
-from ROOT import gROOT, gStyle, TFile, TChain, Double, TH3F, TH2F, TCanvas, kGray, TH2Poly
+from rootUtil3 import waitRootCmdX, useNxStyle
+from ROOT import gROOT, gStyle, TFile, TChain, Double, TH3F, TH2F, TCanvas, kGray, TH2Poly, TLatex
 gROOT.LoadMacro("sp.C+")
 # gROOT.LoadMacro("helix.C+")
 gROOT.LoadMacro('HoneycombS.C+')
@@ -41,7 +41,7 @@ def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root', ievt=0):
 
     Unit = 0.2
     h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize)
-    h2 = TH2F('h2','h2;t [ps];Channel;Q',(sp1.CF_uSize+sp1.CF_dSize),-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize,20,0,20)
+    h2 = TH2F('h2','h2;t [ps];Channel;N [e]',(sp1.CF_uSize+sp1.CF_dSize),-1.*Unit*sp1.CF_uSize,Unit*sp1.CF_dSize,20,0,20)
 
     cx = TCanvas('cx','cx', 1500,700)
     cx.Divide(2,1)
@@ -77,9 +77,19 @@ def display_test(inRoot = 'data/fpgaLin/Feb27a_data_40.root', ievt=0):
 
 def display_test2():
     '''Read from processed data'''
+    useNxStyle()
     gStyle.SetOptStat(0)
     gStyle.SetPadRightMargin(0.15)
     gStyle.SetOptTitle(0)
+    gStyle.SetPadTickX(1)
+    gStyle.SetPadTickY(1)
+    gStyle.SetLineWidth(1)
+
+    gROOT.ProcessLine('.x Pal3.C')
+    lt = TLatex()
+    lt.SetTextFont(52);
+    lt.SetTextSize(0.03);
+    lt.SetLineWidth(2);
 
     run = 83
     evt = 297
@@ -107,6 +117,8 @@ def display_test2():
     ch = TChain('reco')
     ch.Add('/data/Samples/TMSPlane/fpgaLin/Mar08D1a/tpx01a_Mar08D1a_data_*.root')
 
+    eInfo = f"Run {run}, event {evt}, TID {tID}"
+
     cut = f"run=={run}&&evt=={evt}&&tID=={tID}"
     print(cut)
     n1 = ch.Draw("Q:im-im[19]",cut,"goff")
@@ -123,8 +135,9 @@ def display_test2():
     CF_uSize = -50
     CF_dSize = 200
     h3 = TH3F('h3','h3;x [cm];y [cm];t [ps]',9,-1.8,1.8,9,-1.8,1.8,100,Unit*CF_uSize,Unit*CF_dSize)
+    h3.SetLineWidth(1)
     h3b = h3.Clone('h3b') 
-    h2 = TH2F('h2','h2;t [ps];Channel;Q',(CF_uSize+CF_dSize),Unit*CF_uSize,Unit*CF_dSize,20,0,20)
+    h2 = TH2F('h2','h2;t [ps];Channel;N [e]',(CF_uSize+CF_dSize),Unit*CF_uSize,Unit*CF_dSize,20,0,20)
 
     hc = TH2Poly()
     hc.SetTitle('TMS19Plane')
@@ -149,6 +162,7 @@ def display_test2():
         if i in excludedList:
             Qi = -999
             imi = 999
+            hc.Fill(X,Y,-1)
         else:
             hc.Fill(X,Y,Qi)
 
@@ -156,25 +170,30 @@ def display_test2():
         h3.Fill(X,Y,imi, Qi)
         h3b.Fill(X,Y,Unit*CF_uSize,Qi)
         h2.Fill(imi,i, Qi)
-        hc2.Fill(X,Y,i)
+        hc2.Fill(X,Y,i+0.1)
 
     cx.cd(1)
     h3b.SetFillColor(17);
     h3b.SetLineColor(kGray);
     h3b.Draw('box1')
     h3.Draw('box2 same')
+    lt.DrawLatexNDC(0.02,0.02,eInfo)
     cx.cd(2)
     h2.Draw('colz')
     cx.cd()
 
     waitRootCmdX()
 
-    cy = TCanvas()
-    cy.SetLeftMargin(0.13)
+    gStyle.SetPaintTextFormat('.0f')
+#     cy = TCanvas()
+    cy = TCanvas('cy','cy',2122,183,723,663)
+#     cy.SetLeftMargin(0.13)
     cy.cd()
 #     hc.GetZaxis().SetRangeUser(-1,1200)
     hc.Draw('colz')
     hc2.Draw('text same')
+    lt.DrawLatexNDC(0.02,0.02,eInfo)
+
     waitRootCmdX()
 
     return
