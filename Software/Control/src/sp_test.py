@@ -348,7 +348,8 @@ def normal_reco():
 #     i = 56
     ich = 19
     sp1 = SignalProcessor()
-    apply_config(sp1, 'Hydrogen')
+#     apply_config(sp1, 'Hydrogen')
+    apply_config(sp1, 'Hydrogen/c3')
 
     plt.ion()
     plt.show()
@@ -974,7 +975,8 @@ def test5():
 
 
 if __name__ == '__main__':
-    tune_check()
+#     tune_check()
+    normal_reco()
 #     test2()
 #     test2b()
 #     test2c()

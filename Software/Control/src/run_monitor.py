@@ -13,6 +13,20 @@ if sys.version_info[0] < 3:
 else:
     import tkinter as tk
 
+def savehistory(dir1=os.environ["HOME"]):
+    import rlcompleter, readline
+    readline.parse_and_bind('tab: complete')
+    readline.parse_and_bind('set show-all-if-ambiguous On')
+
+    import atexit
+    f = os.path.join(dir1, ".python_history")
+    try:
+        readline.read_history_file(f)
+    except IOError:
+        pass
+    atexit.register(readline.write_history_file, f)
+
+
 class DataViewer():
     def __init__(self,cd,dp):
         self.cd = cd
@@ -78,12 +92,12 @@ class DataViewer():
             if x=='q': return
             elif len(x)>0 and x[0] == 's':
                 names = x.split()[1:]
-                print '+',names,'+',len(names)
+#                 print '+',names,'+',len(names)
                 if len(names)==0: names = ['run{0:d}_event{1:d}'.format(irun, ievt1)]
-                print names
+#                 print 'will save as'names
                 for name in names:
                     dirx = os.path.dirname(name)
-                    print dirx, 'ppp'
+#                     print dirx, 'ppp'
                     if dirx and (not os.path.exists(dirx)): os.makedirs(dirx)
                     self.dataPanel.dataPlotsFigure.savefig(name)
                     print "saved figure to", name
@@ -208,6 +222,7 @@ def main():
         print("Unknown pattern")
 
 if __name__ == '__main__':
+    savehistory()
 #     monitor('data/fpgaLin/Feb27b_data_*.root')
 #     monitor('data/fpgaLin/Feb28a_data_*.root')
 #     monitor('data/fpgaLin/Mar07C*.root')

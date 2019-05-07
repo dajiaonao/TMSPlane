@@ -228,7 +228,8 @@ def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
                 return
 
     sp1 = SignalProcessor()
-    apply_config(sp1, 'Hydrogen')
+#     apply_config(sp1, 'Hydrogen')
+    apply_config(sp1, 'Hydrogen/c3')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -650,7 +651,8 @@ def process_all_match4(pattern, oTag, skipExist=True):
     p.map(readSignal4, [f+';'+oTag for f in files])
 
 def process_all_matchX(funX, pattern, oTag, skipExist=True):
-    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
+#     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Apr','/'+oTag+'Apr'))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
         print "No files matchs.... Aborting..."
         return
@@ -689,7 +691,9 @@ if __name__ == '__main__':
 #     readSignal4a('data/fpgaLin/Mar04C1a_data_0.root;dp02a_')
 #     readSignal4c('data/fpgaLin/Mar08D1a_data_80.root;tpx01a_')
 #     process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
-    process_all_matchX(readSignal4b, 'data/fpgaLin/Mar08D1a/Mar08D1a_data_*.root', 'tpx01a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Mar08D1a/Mar08D1a_data_*.root', 'tpx01a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_5*.root', 'tpx01a_', True)
+    process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_*.root', 'tpx01a_', True)
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')

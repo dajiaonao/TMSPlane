@@ -59,6 +59,37 @@ def test():
 #         waitRootCmdX()
     fc1.save()
 
+def process_C3():
+    gStyle.SetOptFit(1011)
+    ch1 = TChain('tree1')
+    ch1.Add('data/fpgaLin/Apr22T1a_data_362.root')
+
+    print ch1.GetEntries()
+
+    nAdcCh = 20
+    fc1 = FilterConfig()
+    fc1.comment = 'from Apr22T1a_data_363.root. Content: (p0,p1,p2,prob,rangeL,rangeH)'
+    fc1.data = [None]*nAdcCh
+
+    rL = 2500
+    rH = 2800
+    for ich in range(nAdcCh):
+        ch1.Draw('adc[{0:d}]:Iteration$>>p1(500,2350,2850)'.format(ich),'','prof')
+        p1 = gPad.GetPrimitive('p1')
+        fun1 = TF1('fun1','pol0+expo(1)',rL,rH)
+        fun1.SetParameter(0, p1.GetBinContent(1))
+        fun1.SetParameter(1, 10)
+        fun1.SetParameter(2, 0)
+        print p1.GetBinContent(1)
+        p1.Fit(fun1,"","",rL,rH)
+        r = p1.Fit(fun1,"S","",rL,rH)
+        print ich, r.Prob()
+
+        fc1.data[ich] = (fun1.GetParameter(0), fun1.GetParameter(1), fun1.GetParameter(2), r.Prob(), rL,rH)
+#         p1.Fit('pol0+expo(1)',"","",2500,2800)
+#         waitRootCmdX()
+    fc1.save()
+
 
 
 def test_json(mode=3):
@@ -77,5 +108,6 @@ def test_json(mode=3):
         print config
 
 if __name__ == '__main__':
-    test()
+#     test()
+    process_C3()
 #     test_json()
