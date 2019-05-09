@@ -37,7 +37,9 @@ nCh = 19
 nAdcCh = 20
 
 # d1,ch1 = getRDF(dir1+'Apr22T1a/tpx01a_Apr22T1a_data_*.root', treename='reco')
-d1,ch1 = getRDF(dir1+'Apr22T1a/tpx01a_Apr22T1a_data_*.root', treename='reco')
+# d1,ch1 = getRDF(dir1+'Apr22T1a/tpx01a_Apr22T1a_data_*.root', treename='reco')
+d1,ch1 = getRDF(dir1+'Apr22T1a_tpx02a/tpx02a_Apr22T1a_data_*.root', treename='reco')
+# d1,ch1 = getRDF(dir1+'Apr22T1a/tpx01b_Apr22T1a_data_*.root', treename='reco')
 ch1.SetMarkerColor(2)
 
 
@@ -54,7 +56,8 @@ for i in range(19):
 #     ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=400&&Q[{0:d}]<0.5&&(w2[19]>200&&(im[{0:d}]-im[19])>900&&(im[{0:d}]-im[19])<950)==0".format(i))
 #     ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=500&&Q[{0:d}]<0.5&&w2[19]>200&&(im[{0:d}]-im[19])>900&&(im[{0:d}]-im[19])<950".format(i))
 #     ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=400&&Q[{0:d}]<0.5".format(i))
-    ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=400&&Q[{0:d}]<400".format(i))
+#     ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=400&&Q[{0:d}]<400".format(i))
+    ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=400&&im[19]<15500".format(i))
 #     ch1.Draw("Q[{0:d}]:run*1000+evt".format(i),"run>=500&&run<510&&Q[{0:d}]<0.5".format(i))
     for r in mark_runs: line.DrawLine(r*1000, -1, r*1000, 1)
 #     gPad.Draw()
