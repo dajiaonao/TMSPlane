@@ -30,7 +30,7 @@ class pulse_configuror:
 
 def test():
     pc1 = pulse_configuror()
-    pc1.rotating([0.02,0.04,0.08,0.12,0.20,0.32,0.40,0.50], 80)
+    pc1.rotating([0.8,0.02,0.04,0.08,0.12,0.20,0.32,0.40,0.50], 20*60)
 
 if __name__ == '__main__':
     test()
