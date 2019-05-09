@@ -15,6 +15,8 @@ useNxStyle()
 gStyle.SetPalette(70)
 gStyle.SetPaintTextFormat('.0f')
 gStyle.SetPadRightMargin(0.15)
+gStyle.SetPadTickX()
+gStyle.SetPadTickY()
 
 dir1 = '/home/dzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/'
 
