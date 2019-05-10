@@ -308,6 +308,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
 
   int ismaller(0), ilarger(0);
   for(int i=start; i<end; ++i){
+//     if(t_scrAry[i]<-999.) cout << i << " " << t_scrAry[i] << endl;
     if(t_scrAry[i]>l_max_x){
       ilarger++;
       l_max_i = i;
@@ -339,8 +340,12 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
      }
 
    }
-  if(sigV->size()==0) check_signal(g_max_i, sigV);
-
+  if(sigV->size()==0){
+//     if(g_max_i<0) g_max_i = l_max_i;
+//     cout << "g_max_i=" << g_max_i << " mx=" << g_max_x << endl;
+//     cout << "l_max_i=" << l_max_i << " mx=" << l_max_x << endl;
+    check_signal(g_max_i, sigV);
+   }
 //   cout << "Done in find_sigs for chan " << chan << endl;
   return 0;
 }
@@ -371,6 +376,12 @@ int SignalProcessor::reco(){
     }else{ /// alpha signal
       CF_uSize = -50;
       CF_dSize = 200;
+    }
+
+    /// keep the search window inside the sample
+    if((s.im+CF_uSize)>=int(nSamples)){
+//       cout << s.im << " " << s.im+CF_uSize << " " << int(nSamples) << " " << evt.trigID << endl;
+      continue;
     }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
@@ -443,6 +454,7 @@ void SignalProcessor::check_signal(size_t idx, vector< Sig >* v){
 
   /// find the middle point
   size_t im = (size_t) (0.5*(il+ih));
+  if(int(im)<0) cout << "il=" << il << " ih=" << ih << " idx="<< idx << " im=" << im << " int(im)=" << int(im) << endl;
   float newQ = scrAry[im];
 //   float newQ = 0.;
 //   const int N = 10;
@@ -558,6 +570,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 //             cout << "l_max_x " << l_max_x << endl;
 //             cout << "ilarger " << ilarger << endl;
 //             cout << "ismaller " << ismaller << endl;
+            cout << "l_max_i=" << l_max_i << endl;
             check_signal(l_max_i, sigV);
            }
 
@@ -572,14 +585,17 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
           l_max_i = -1;
           l_max_x = -999.;
        } }
+
       /// update the global maximum
       if(g_max_x<l_max_x){
         g_max_i = l_max_i;
         g_max_x = l_max_x;
        }
-
      }
-    if(sigV->size()==0) check_signal(g_max_i, sigV);
+    if(sigV->size()==0){
+      cout << "g_max_i=" << g_max_i << endl;
+      check_signal(g_max_i, sigV);
+    }
    }
 
 

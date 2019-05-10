@@ -67,11 +67,13 @@ class SignalChecker:
         data2 = s1.generate_sdmDataBuf()
 
         T = array.array('i',[0])
+        V = array.array('i',[0])
         if self.fileSuffix:
             while os.path.exists(outRootName): outRootName += self.fileSuffix
         fout1 = TFile(outRootName,'recreate')
         tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         tree1.Branch('T',T,'T/i')
+        tree1.Branch('V',V,'V/I')
         tree1.Branch('adc',data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
 
         # FPGA internal fifo : 512 bit width x 16384 depth
@@ -82,7 +84,13 @@ class SignalChecker:
         status = 0
         try:
             for i in range(n):
-                if i%100==0: print(str(i)+' samples taken.')
+                if i%100==0:
+                    print(str(i)+' samples taken.')
+                    try:
+                        with open('/home/dlzhang/work/repos/TMSPlane2/Software/Control/src/.pulse_status') as f1:
+                            V[0] = int(f1.readline().rstrip())
+                    except:
+                        V[0] = -999
                 self.s.sendall(self.cmd.send_pulse(1<<2));
 
                 T[0] = int(time.time())
@@ -296,11 +304,20 @@ def take_calibration_samples(sTag, vs, n=5000):
         print "Taking sample with dU={0:.3f} mV".format(v*1000)
         sc1.take_samples2(n, dir1+sTag+"_{0:d}mV_f1000.root".format(int(v*1000)))
 
-def take_data(sTag, n=5000, N=-1):
+def take_data(sTag, n=5000, N=-1, dirx=None):
     sc1 = SignalChecker()
     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
+    ### put in a dedicated direcotry
+    if dirx is not None:
+        dir1 += dirx
+        if not os.path.exists(dir1):
+            os.makedirs(dir1)
+    dir1 = dir1.rstrip()
+    if dir1[-1] != '/': dir1 += '/'
+
+    ### really start taking samples
     nSample = 0
     while nSample != N:
         print "Start sample {0:d}".format(nSample)
@@ -404,7 +421,8 @@ if __name__ == '__main__':
 #       take_data(sTag='Mar08D1a',n=1000, N=-1)
 #       take_data(sTag='Apr04R1a',n=1000, N=-1)
 #       take_data(sTag='Apr14T1a',n=1000, N=-1)
-      take_data(sTag='Apr22T1a',n=1000, N=-1)
+#       take_data(sTag='Apr22T1a',n=1000, N=-1)
+      take_data(sTag='May10T1a',n=1000, N=-1, dirx='raw/May10T1a')
 #     text2root(spattern='/data/Samples/TMSPlane/Dec27/Dec27a_{0:d}.adc',irange=range(10,20),outname='testxy.root')
 #     text2root(spattern='data/Jan04a/Jana04a_{0:d}.adc',irange=range(5000),outname='ADC_Jan04a.root')
 #     compareWaveform([('a1','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R30p0us.root', 12, 20),('a2','/data/Samples/TMSPlane/root_files/Jan08a_100mV_R19p5312us.root', 12, 20)])
