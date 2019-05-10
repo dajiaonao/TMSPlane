@@ -65,15 +65,44 @@ class Calibrator:
         s = fun1.GetParameter(2)
 
         ich = 9
-        d2 = d2.Filter('im_{0:d}d>{1:.1f}&&im_{0:d}d<{2:.1f}'.format(ich, m-2*s, m+2*s))
-        h2 = d2.Histo2D( RDF.TH2DModel('h2','h2',100,0,0.02,100,-200,1400), f'Q_{ich}',f'im_{ich}d')
+        d2a = d2.Filter('im_{0:d}d>{1:.1f}&&im_{0:d}d<{2:.1f}'.format(ich, m-2*s, m+2*s))
+        h2 = d2a.Histo2D( RDF.TH2DModel('h2','h2',100,0,0.02,100,-200,1400), f'Q_{ich}',f'im_{ich}d')
 
-        h1 = d2.Histo1D(RDF.TH1DModel('h1','h1',100,0,0.05),f'Q_{ich}')
+        h1 = d2a.Histo1D(RDF.TH1DModel('h1','h1',100,0,0.05),f'Q_{ich}')
         h1.Draw()
         waitRootCmdX()
 
         h2.Draw('colz')
         waitRootCmdX()
+
+        ### -----------------------------------------------------------
+        ## get one done: channle 9, 800 mV
+        print('||'.join(["(run>{0:d}&&run<{1:d})".format(t[0],t[1]) for t in runnList[-1][1]]))
+        ds_800 = d2.Filter('||'.join(["(run>{0:d}&&run<{1:d})".format(t[0],t[1]) for t in runnList[-1][1]]))
+
+        ich = 9
+        ### create check the cuts
+        h1 = ds_800.Histo1D(RDF.TH1DModel('h1','h1',100,800,1100),f'im_{ich}d')
+
+        h1.Draw()
+#         fun1 = TF1("PrevFitTMP","gaus(0)+pol1(3)",800,1100);
+        fun1.SetParameter(0, 1000)
+        fun1.SetParameter(1,h1.GetMean())
+        fun1.SetParameter(2,h1.GetStdDev())
+        h1.GetValue().Fit(fun1)
+        waitRootCmdX()
+
+        m = fun1.GetParameter(1)
+        s = fun1.GetParameter(2)
+
+        h1 = d2.Filter('im_{0:d}d>{1:.1f}&&im_{0:d}d<{2:.1f}'.format(ich, m-2*s, m+2*s)).Histo1D(f'Q_{ich}')
+        h1.Draw()
+        h1.Fit('gaus')
+        waitRootCmdX()
+
+
+        ### get enc
+
 
 
 def test1():
