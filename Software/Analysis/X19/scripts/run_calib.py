@@ -1,16 +1,26 @@
 #!/usr/bin/env python36
 '''The script is used to calculate the calibration parameters'''
 
-from ROOT import TChain, gDirectory, TFile, TNtuple, TGraphErrors
+from ROOT import TChain, gDirectory, TFile, TNtuple, TGraphErrors, gStyle, gPad, gROOT, TLatex
 from array import array
 import heapq
-from rootUtil3 import waitRootCmdX
+from rootUtil3 import waitRootCmdX, useNxStyle, get_default_fig_dir
+
+sDir = get_default_fig_dir()
+sTag = 'test_'
+sDirectly = False
+if gROOT.IsBatch(): sDirectly = True
 
 def make_calibration_file_C3():
-    dir1 = '/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/'
+#     dir1 = '/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/'
+    dir1 = '/home/dzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/Apr22T1a_tpx02a/'
 
     ch1 = TChain('reco')
-    ch1.Add(dir1+'tpx01a_Apr22T1a_data_*.root')
+#     ch1.Add(dir1+'tpx01a_Apr22T1a_data_*.root')
+    ch1.Add(dir1+'tpx02a_Apr22T1a_data_5*.root')
+    ch1.Add(dir1+'tpx02a_Apr22T1a_data_60*.root')
+    ch1.Add(dir1+'tpx02a_Apr22T1a_data_61*.root')
+    ch1.Add(dir1+'tpx02a_Apr22T1a_data_62*.root')
     nCh = 19
 
 
@@ -29,7 +39,8 @@ def make_calibration_file_C3():
     vlist = []
 
     for t in runnList:
-        vlist.append(('v{0:d}mV'.format(int(t[0]*1000)), t[0], 'w2[19]>200&&(im[{0:d}]-im[19])>900&&(im[{0:d}]-im[19])<950&&('+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in t[1]])+')'))
+#         vlist.append(('v{0:d}mV'.format(int(t[0]*1000)), t[0], 'im[19]<15500&&w2[19]>200&&(im[{0:d}]-im[19])>900&&(im[{0:d}]-im[19])<950&&('+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in t[1]])+')'))
+        vlist.append(('v{0:d}mV'.format(int(t[0]*1000)), t[0], 'im[19]<15500&&w2[19]>200&&(im[{0:d}]-im[19])>910&&(im[{0:d}]-im[19])<980&&('+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in t[1]])+')'))
 
 #     est = [(0.01306547417143738, 0.003698981238129058), (1.6481950554410698, 0.027287810269756456), (0.17888571187127186, 0.0056988026185020154), (0.013718239445064838, 0.0021795764198094163), (6.0042468076098476e-05, 3.0483422075668022e-05), (0.07421304753733172, 0.003478449583955647), (6.212332006845403e-05, 6.779904949559736e-05), (8.169197199926832e-05, 2.6734329252008895e-05), (0.03676218754716031, 0.0045116035321878575), (-0.15777441519155896, 0.05152861618856887), (0.004927751437446848, 0.00011716873695953227), (0.13513578525452913, 0.021298551091621157), (0.04025721256634158, 0.009371108180017544), (-0.00026704016289889605, 0.00019503258946046624), (0.005499667070990824, 6.366489832001911e-05), (0.09173951624455232, 0.0006343706962709002), (-3.287987417283733e-05, 0.00012376020484164573), (0.017738572346043275, 0.002019979302557003), (0.00010283736764666133, 3.557897609309108e-05)]
 #     est = [(0.021749978934179244, 0.00013591348075592935), (0.08800730871757548, 0.0003513179239750194), (0.1790431751894682, 0.005800068229996891), (0.022607062552135883, 0.00013883708533182448), 0, (0.08213227936435925, 0.00024852014715069323), 0, 0, (0.036709284224434556, 0.0045644795914606745), (0.21108763154872096, 0.2735983294228037), (0.022113121635298348, 0.00029626276052992104), (0.019690773205300823, 7.876236398075285e-05), (0.07760912270008022, 0.0003471481401644965), 0, (0.021365979183177168, 0.00011259826167497963), (0.09173812517505246, 0.0005582059864488797), 0, (0.020984970138757515, 0.001021894805432149), (0.01617748014919807, 0.0005626556946697888)]
@@ -44,8 +55,22 @@ def make_calibration_file_C3():
     isTest = True
     ## let's do the test here
     if isTest:
-        v = vlist[-1]
-        ich = 18
+        ki = 3
+        ich = 15
+        v = vlist[ki]
+
+#         ch1.Draw('Q[{0:d}]'.format(ich),"im[19]<15500&&((run>567&&run<573)||(run>618&&run<624))")
+#         ch1.Draw('Q[9]'.format(ich),"im[19]<15500&&((run>567&&run<573)||(run>618&&run<624))&&im[19]>200")
+#         ch1.Draw('im[{0:d}]-im[19]'.format(ich),"im[19]<15500&&((run>567&&run<573)||(run>618&&run<624))&&im[19]>200&&Q[9]>0.2")
+        ch1.SetMarkerColor(2)
+        ch1.Draw('(im-im[19]):Iteration$>>(20,0,20,200,700,1300)'.format(ich),"im[19]<15500&&im[19]>200","colz")
+#         ch1.Draw('(im-im[19]):Iteration$>>(20,0,20,100,800,1100)'.format(ich),"im[19]<15500&&((run>567&&run<573)||(run>618&&run<624))&&im[19]>200&&Q[9]>0.2")
+#         ch1.Draw('(im-im[19]):Iteration$>>(20,0,20,100,800,1100)'.format(ich),"im[19]<15500&&((run>567&&run<573)||(run>618&&run<624))&&im[19]>200")
+#         ch1.Draw('Q[{0:d}]'.format(ich),"im[19]<15500&&im[19]>200&&("+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in runnList[ki][1]])+')')
+#         ch1.Draw('Q[{0:d}]'.format(ich),"Q[15]>0.01&&im[19]<15500&&im[19]>200&&("+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in runnList[ki][1]])+')')
+#         ch1.Draw('(im[{0:d}]-im[19])>>(100,880,940)'.format(ich),"Q[15]>0.01&&im[19]<15500&&im[19]>200&&("+'||'.join(["(run>{0:d}&&run<{1:d})".format(k[0],k[1]) for k in runnList[ki][1]])+')')
+        waitRootCmdX()
+
         n = ch1.Draw('Q[{0:d}]'.format(ich),v[2].format(ich),'goff')
         v1 = ch1.GetV1()
         topN = heapq.nlargest(int(n*0.8), [v1[i] for i in range(n)])
@@ -54,7 +79,7 @@ def make_calibration_file_C3():
         print("&&Q[{0:d}]>{1:.3g}&&Q[{0:d}]<{2:.3g}".format(ich, topN[-1],topN[0]))
         ch1.Draw('Q[{0:d}]>>h1'.format(ich),v[2].format(ich)+"&&Q[{0:d}]>{1:.3g}&&Q[{0:d}]<{2:.3g}".format(ich, topN[-1],topN[0]),'goff')
         h1 = gDirectory.Get("h1")
-        h1.Fit('gaus')
+        h1.Fit('gaus','','',topN[-1],topN[0])
         h1.Draw()
 
         waitRootCmdX()
@@ -102,11 +127,12 @@ def make_calibration_file_C3():
 
             n1 = ch1.Draw('Q[{0:d}]>>{1}t'.format(ich, hName),v[2].format(ich)+"&&Q[{0:d}]>{1:.3g}&&Q[{0:d}]<{2:.3g}".format(ich, topN[-1],topN[0]),'goff')
             h1 = gDirectory.Get(hName+'t')
-            h1.Fit('gaus')
+#             h1.Fit('gaus')
+            h1.Fit('gaus','','',topN[-1],topN[0])
             fun1 = h1.GetFunction('gaus')
             m = fun1.GetParameter(1)
             s = fun1.GetParameter(2)
-            n = ch1.Draw('Q[{0:d}]>>{1}'.format(ich,hName),v[2].format(ich)+"&&Q[{0:d}]>{1:.3g}&&Q[{0:d}]<{2:.3g}".format(ich, m-5*s,m+5*s),'goff')
+            n = ch1.Draw('Q[{0:d}]>>{1}'.format(ich,hName),v[2].format(ich)+"&&Q[{0:d}]>{1:.3g}&&Q[{0:d}]<{2:.3g}".format(ich, m-3*s,m+3*s),'goff')
 
             if n<1: 
                 tup1.Fill(ich,v[1],n,-1, -1, -1, -1, -1,-1)
@@ -228,10 +254,77 @@ def get_gr(ch,chan):
 
     return gr0
 
+class calibTester:
+    def __init__(self,fname=None):
+        self.calibFile = TFile(fname,'read') if fname else None
+        self.sDir = sDir
+        self.sTag = sTag
+        self.autoSave = sDirectly
+        self.lt = TLatex()
+        self.nCh = 19
+
+    def setTitles(self,h,ztitle=None):
+        h.GetXaxis().SetTitle('Pulse [V]')
+        h.GetYaxis().SetTitle('Channel')
+        if ztitle is not None: h.GetZaxis().SetTitle(ztitle)
+
+    def showBasics(self):
+        tree1 = self.calibFile.Get('calib')
+        tree1.Show(0)
+        gStyle.SetPadGridY(True)
+        gStyle.SetPadRightMargin(0.15)
+
+        ### fit status
+        tree1.Draw('fStatus:chan:V>>hStatus(82,0,0.82,19,0,19)',"","prof colz")
+        hStatus = gPad.GetPrimitive('hStatus')
+        self.setTitles(hStatus, "Fit status")
+        waitRootCmdX(self.sDir+self.sTag+"fStatus",self.autoSave)
+
+        tree1.Draw('-log10(fProb):chan:V>>hProb(82,0,0.82,19,0,19)',"fStatus==0","prof colz")
+        hProb = gPad.GetPrimitive('hProb')
+        self.setTitles(hProb, "-log_{10}(P_{Fit})")
+        hProb.GetZaxis().SetRangeUser(0,7)
+        waitRootCmdX(self.sDir+self.sTag+"fProb",self.autoSave)
+
+        #### ENC
+        tree1.SetAlias('enc','sigma/mean*V*7410')
+        tree1.Draw('enc:chan:V>>hENC(82,0,0.82,19,0,19)',"fStatus==0&&fProb>0.005","prof colz")
+        hENC = gPad.GetPrimitive('hENC')
+        self.setTitles(hENC, "ENC [e]")
+        hENC.GetZaxis().SetRangeUser(0,200)
+        waitRootCmdX(self.sDir+self.sTag+"fENC",self.autoSave)
+
+    def showCalib(self):
+        gStyle.SetPadRightMargin(0.05)
+
+        for i in range(self.nCh):
+            if gPad: gPad.Clear()
+            gr = self.calibFile.Get('calib_gr_'+str(i))
+            gr.SetLineColor(2)
+            gr.SetMarkerColor(2)
+            gr.Draw()
+            h1 = gr.GetHistogram()
+            h1.GetXaxis().SetTitle("Raw output [V]")
+            h1.GetYaxis().SetTitle("N [e]")
+            self.lt.DrawLatexNDC(0.2,0.8,"Chan "+str(i))
+            
+            waitRootCmdX(self.sDir+self.sTag+"calib_chan"+str(i),self.autoSave)
+
+def check_calibration(fname):
+    useNxStyle()
+    gStyle.SetPalette(55)
+    gStyle.SetNdivisions(510,'xyz')
+
+    ct1 = calibTester(fname)
+    ct1.showBasics()
+    ct1.showCalib()
+
 def test():
 #     make_calibration_file()
     make_calibration_file_C3()
 
+#     check_calibration('C3_calib_out0_save.root')
+#     check_calibration('C3_calib_out0_v2.root')
+
 if __name__ == '__main__':
     test()
-
