@@ -20,13 +20,19 @@ class pulse_configuror:
         nV = len(vList)
         while True:
             try:
+                self.save_status(-1)
                 self.setupPulse(vList[iv])
+                self.save_status(int(vList[iv]*1000))
+
                 iv += 1
                 if iv == nV: iv = 0
 
                 time.sleep(dT)
             except KeyboardInterrupt:
                 break
+    def save_status(self,code):
+        with open('.pulse_status','w') as f1:
+            f1.write(str(code))
 
 def test():
     pc1 = pulse_configuror()
