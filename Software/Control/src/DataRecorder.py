@@ -141,4 +141,4 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
 if __name__ == '__main__':
 #     useLHCbStyle()
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
-      take_dataT(sTag='May14T1a',n=1000, Tmin = 13, dirx='raw/May14T1a')
+      take_dataT(sTag='May14T1b',n=1000, Tmin = 13, dirx='raw/May14T1b')
