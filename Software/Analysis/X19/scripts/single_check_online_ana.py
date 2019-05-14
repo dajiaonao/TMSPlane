@@ -43,6 +43,7 @@ class SingleChannelAnalysiser:
         self.sp1 = SignalProcessor()
         apply_config(self.sp1, 'Hydrogen/c3')
         self.ich = 19
+        self.totalQ = 0
 
     def process(self, pattern, mode):
         processed_files = []
@@ -60,17 +61,18 @@ class SingleChannelAnalysiser:
             except KeyboardInterrupt:
                 break
 
-    def process3(self, pattern):
+    def process3(self, pattern, foutName='test.dat'):
         processed_files = []
-        to_process = glob.glob(pattern)
+        to_process = sorted([f for f in glob.glob(pattern)], key=lambda f:os.path.getmtime(f))
 
-        while to_process:
-            for f in to_process:
-                print("Processing",f)
-                if 0 == self.process_file(f): processed_files.append(f)
+        with open(foutName,'w') as fout:
+            while to_process:
+                for f in to_process:
+                    print("Processing",f)
+                    if 0 == self.process_file(f, fout): processed_files.append(f)
 
-            ### check and sort the remaining ones, so that the processed are excluded and old ones are processed first
-            to_process = sorted([f for f in glob.glob(pattern) if f not in processed_files], key=lambda f:os.path.getmtime(f))
+                ### check and sort the remaining ones, so that the processed are excluded and old ones are processed first
+                to_process = sorted([f for f in glob.glob(pattern) if f not in processed_files], key=lambda f:os.path.getmtime(f))
 
     def process2(self, pattern, excludeTmin=10):
         processed_files = []
@@ -97,7 +99,7 @@ class SingleChannelAnalysiser:
     def process_files(self,flist):
         for f in flist: self.process_file(f)
 
-    def process_file(self,inRoot):
+    def process_file(self,inRoot, fout=None):
         sp1 = self.sp1
         ich = self.ich
         run = -1
@@ -130,11 +132,14 @@ class SingleChannelAnalysiser:
             ievt += 1
 
             iss = 0
-            if len(sp1.signals[ich])>0:
-                print("idx: iMax iMidian A w0 w1 w2 T")
-                print('-'*30)
+#             if len(sp1.signals[ich])>0:
+#                 print("idx: iMax iMidian A w0 w1 w2 T")
+#                 print('-'*30)
             for s in sp1.signals[ich]:
-                print (iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2, self.T1[0])
+#                 print (iss,':', s.idx, s.im, s.Q, s.w0, s.w1, s.w2, self.T1[0])
+                self.totalQ += s.Q
+                fout.write('\n'+' '.join([str(self.T1[0]), str(s.Q), str(self.totalQ)]))
+                if ievt%20 ==0: fout.flush()
                 iss += 1
 
             ### show
@@ -204,7 +209,7 @@ def test():
 #     sca1.process('/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/raw/May13T1c/May13T1c_data_*.root', mode=0)
 #     sca1.process2('/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/raw/May14T1a/May14T1a_data_*.root', 10)
     sca1.dTx = 5
-    sca1.process3('/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/raw/May14T1b/May14T1b_data_*.root')
+    sca1.process3('/home/dlzhang/work/repos/TMSPlane/Software/Control/src/data/fpgaLin/raw/May14T1c/May14T1c_data_*.root')
 
 if __name__ == '__main__':
     test()
