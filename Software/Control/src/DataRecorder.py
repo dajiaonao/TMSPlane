@@ -10,6 +10,7 @@ import glob
 from ROOT import *
 from subprocess import call
 from math import isnan
+from datetime import datetime, timedelta
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -23,13 +24,14 @@ except ImportError:
     waitRooCmdX = waitRootCmdY
     useLHCbStyle = useLHCbStyle0 
 
-class SignalChecker:
+class DataRecorder:
     def __init__(self):
         self.control_ip_port = "192.168.2.3:1024"
         self.cmd = Cmd()
         self.s = None
         self.connected = False
         self.fileSuffix = '.1'
+        self.tStop = None
 
     def connect(self):
         ctrlipport = self.control_ip_port.split(':')
@@ -63,6 +65,11 @@ class SignalChecker:
         status = 0
         try:
             for i in range(n):
+                ### time consitraint
+                if self.tStop is not None and datetime.now()>self.tStop:
+                    status = 2
+                    break
+
                 if i%100==0:
                     print(str(i)+' samples taken.')
                     try:
@@ -85,7 +92,7 @@ class SignalChecker:
         return status
 
 def take_data(sTag, n=5000, N=-1, dirx=None):
-    sc1 = SignalChecker()
+    sc1 = DataRecorder()
     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
@@ -105,6 +112,33 @@ def take_data(sTag, n=5000, N=-1, dirx=None):
         if status: break
         nSample += 1
 
+def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
+    ''' Take data for Tmin minutes'''
+
+    sc1 = DataRecorder()
+    sc1.control_ip_port = "localhost:1024"
+    dir1 = 'data/fpgaLin/'
+
+    sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
+    print sc1.tStop, datetime.now()
+
+    ### put in a dedicated direcotry
+    if dirx is not None:
+        dir1 += dirx
+        if not os.path.exists(dir1):
+            os.makedirs(dir1)
+    dir1 = dir1.rstrip()
+    if dir1[-1] != '/': dir1 += '/'
+
+    ### really start taking samples
+    nSample = 0
+    while True:
+        print "Start sample {0:d}".format(nSample)
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        if status: break
+        nSample += 1
+
 if __name__ == '__main__':
 #     useLHCbStyle()
-      take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
+#       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
+      take_dataT(sTag='May13T1b',n=2000, Tmin = 3, dirx='raw/May13T1b')
