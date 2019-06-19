@@ -6,7 +6,7 @@ import time
 import socket
 import subprocess
 import numpy as np
-hostname = "192.168.2.100"                #wire network hostname
+hostname = "192.168.2.5"                #wire network hostname
 #hostname = "10.146.73.180"              #wireless network hostname
 port = 5025                             #host tcp port
 #note that: every command should be termianated with a semicolon
@@ -32,6 +32,105 @@ def plot(x_range,y_range,ch1_offset,timebase_position,x_unit):
 #========================================================#
 ## main function: sent oscilloscope commands and fetch data
 #
+
+
+class Oscilloscope:
+    def __init__(self):
+        self.addr = '192.168.2.5:5025'
+        self.ss = None
+    def connect(self):
+        t = self.addr.split(':')
+        hostname = t[0]
+        port = int(t[1]) if len(t)>1 else 5025
+
+        self.ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
+        self.ss.connect((hostname,port))                                 #connect to the server
+
+    def test(self):
+        self.connect()
+
+        ss = self.ss
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+#         ss.send("*IDN?;")                           #read back device ID
+#         print "Instrument ID: %s"%ss.recv(128)   
+#         ss.send(":RUN;")
+
+
+
+    
+#         return
+
+
+#         ss.send(":STOP;")
+#         return
+
+#         ss.send(":SYSTem:HEADer OFF;")              #Query analog store depth
+        ss.send(":WAVeform:SOURce CHANnel1;")       #Waveform source 
+        ss.send(":WAVeform:BYTeorder LSBFirst;")    #Waveform data byte order
+        ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
+#         ss.send(":WAVeform:STReaming 1;")           #Waveform streaming on
+
+
+        ss.send(":WAVeform:PREamble?;")
+        a = ss.recv(128)
+        print "PREample: %s"%a
+        pre = a.split(';')[1].split(',')
+        print pre
+
+        np = int(pre[2])
+        xInc = float(pre[4])
+        xOrig = float(pre[5])
+        xRef = float(pre[6])
+        yInc = float(pre[7])
+        yOrig = float(pre[8])
+        yRef = int(pre[9])
+
+        print xOrig, yOrig
+
+        ### setup trigger
+        ss.send(":TRIGger:SWEep NORMal;")
+        ss.send(":TRIGger:MODE EDGE;")
+        ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+ 
+        ss.send(":SINGle;")
+        ss.send(":WAVeform:DATA?;")
+
+        total_point = np
+        data = []
+        data_i = [0]*total_point
+        data_ix = [0]*total_point
+        n = total_point * 2 + 3
+        print "n = %d"%n                            #calculate fetching data byte number
+        totalContent = ""
+        totalRecved = 0
+        while totalRecved < n:                      #fetch data
+            onceContent = ss.recv(int(n - totalRecved))
+            totalContent += onceContent
+            totalRecved = len(totalContent)
+        length = len(totalContent[3:])/2              #print length
+        if length != total_point:
+            print iChan, 'data length:', length, 'NOT as expected', total_point
+        print totalContent[2]
+#         toalContent = totalContent[int(totalContent[2])+4]
+        totalContent = totalContent[int(totalContent[2])+3:]
+        print len(totalContent)
+#         print totalContent[:10]
+
+        length = len(totalContent)/2              #print length
+        for i in range(length):              #store data into file
+            ### combine two words to form the number
+#             data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
+            data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
+            data_ix[i] = (i - xRef)*xInc+xOrig
+
+        print data_i[:30]
+        with open('tt1.dat','w') as f1:
+            for di in range(len(data_i)):
+                f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
+
+        ss.close()
 
 def captureScreen(filename='testing.png'):
     '''Capture screen from remote PC
@@ -65,7 +164,8 @@ def takeData(channels=[1],filename='temp1.dat'):
     print "Timebase_Position:%.6f"%Timebase_Poistion
 
     ss.send(":WAVeform:XRANge?;")               #Query X-axis range 
-    X_Range = float(ss.recv(128)[1:])
+    X_Range = 0.3
+#     X_Range = float(ss.recv(128)[1:])
     print "XRange:%g"%X_Range
 
     ss.send(":ACQuire:POINts:ANALog?;")         #Query analog store depth
@@ -290,12 +390,19 @@ def takeDataCmd():
 #========================================================#
 ## if statement
 #
+
+def test1():
+    o1 = Oscilloscope()
+    o1.test()
+
+
 if __name__ == '__main__':
-    ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
-    ss.connect((hostname,port))                                 #connect to the server
-#     saveWaveform()
-#     saveWaveform()
-#     captureScreen()
-#     takeData([1,2])
-    takeDataCmd()
-    ss.close()
+    test1()
+#     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
+#     ss.connect((hostname,port))                                 #connect to the server
+# #     saveWaveform()
+# #     saveWaveform()
+# #     captureScreen()
+# #     takeData([1,2])
+#     takeDataCmd()
+#     ss.close()
