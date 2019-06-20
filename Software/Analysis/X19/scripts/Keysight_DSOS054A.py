@@ -33,11 +33,66 @@ def plot(x_range,y_range,ch1_offset,timebase_position,x_unit):
 ## main function: sent oscilloscope commands and fetch data
 #
 
+class pulseGenerator:
+    def __init__(self, name='Rigol DG4162'):
+        self.add = '192.168.2.6:5025'
+        self.ss = None
+        self.name = name
+
+    def connect(self):
+        t = self.addr.split(':')
+        hostname = t[0]
+        port = int(t[1]) if len(t)>1 else 5025
+
+        self.ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
+        self.ss.connect((hostname,port))                                 #connect to the server
+
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+    def start_pulse(self, dV=0.05, Vl=0.2, fQ=10):
+        if dV > 1:
+            print('The demanded dV is too high: {0:.3f}. Abort...'.format(dV))
+            sys.exit(1)
+        print("Setting low V: {0:.3f}, high V: {1:.3f}".format(Vl, Vl+dV))
+
+        fQ1 = fQ
+
+        self.connect()
+        ## CH1 --> guard ring
+        self.ss.send("APPLy:SQUare {0:d},{1:.3f},{2:.3f}".format(fQ1, dV, Vl+0.5*dV))
+        time.sleep(1)
+
+        ## CH2 --> Test pulse for trigger
+        self.ss.send("APPLy:SQUare:CH2 {0:d},0.01,0.005".format(fQ))
+        time.sleep(1)
+
+        n = 2750.
+        print(math.modf(n/(5000000./fQ)), )
+        a = math.modf(n*fQ/5000000.)
+        phase = a[0]*360
+        if phase>180: phase = phase - 360
+        print(phase)
+        self.ss.send("PHASe:CH2 {0:d}".format(int(phase)))
+        time.sleep(1)
+
+        self.ss.send("OUTP ON")
+        time.sleep(1)
+        self.ss.send("OUTP:CH2 ON")
+        time.sleep(1)
+
+        self.ss.send("PHASe:ALIGN")
+        time.sleep(1)
+
+        self.ss.close()
+        self.ss = None
 
 class Oscilloscope:
-    def __init__(self):
+    def __init__(self, name='Keysight MSO-x 4054'):
         self.addr = '192.168.2.5:5025'
         self.ss = None
+        self.name = name
+
     def connect(self):
         t = self.addr.split(':')
         hostname = t[0]
