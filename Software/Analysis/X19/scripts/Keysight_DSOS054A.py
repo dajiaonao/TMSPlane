@@ -59,9 +59,9 @@ class Oscilloscope:
         ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
 
         ### setup trigger
-        ss.send(":TRIGger:SWEep NORMal;")
-        ss.send(":TRIGger:MODE EDGE;")
-        ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+#         ss.send(":TRIGger:SWEep NORMal;")
+#         ss.send(":TRIGger:MODE EDGE;")
+#         ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
 
         ### meta data
         ss.send(":WAVeform:PREamble?;")
@@ -82,38 +82,59 @@ class Oscilloscope:
         ## take_data
         iChan = 1
         ievt = 0
+        NINTERVEL = 100
         while ievt != N:
             try:
                 ### status
                 if ievt % NINTERVEL == 0:
-                    print "%d events taken".format(ievt)
+                    print "{0:d} events taken".format(ievt)
 
                 ### DAQ
                 ss.send(":SINGle;")
                 ss.send(":WAVeform:DATA?;")
 
                 ### data parsing
-                data_i = [0]*total_point
-                data_ix = [0]*total_point
-                n = total_point * 2 + 11 ### 11 for header
+#                 n = total_point*2 + 11 ### 11 for header
+                n = 30
                 totalContent = ""
                 totalRecved = 0
                 while totalRecved < n:                      #fetch data
                     onceContent = ss.recv(int(n - totalRecved))
+                    if totalContent == '':
+                        ### update the data size based on the header of data
+                        nheader = int(onceContent[2])
+                        total_point = int(onceContent[3:3+nheader])/2
+                        n = int(onceContent[3:3+nheader]) + 11
+
                     totalContent += onceContent
                     totalRecved = len(totalContent)
-#                 print totalContent[:30], totalContent[2]
 
+#                 data_i = [0]*total_point
+#                 data_ix = [0]*total_point
+#                 n = total_point * 2 + 11 ### 11 for header
+#                 totalContent = ""
+#                 totalRecved = 0
+#                 while totalRecved < n:                      #fetch data
+#                     onceContent = ss.recv(int(n - totalRecved))
+#                     totalContent += onceContent
+#                     totalRecved = len(totalContent)
+# 
+#                 print totalContent[:30], totalContent[2], int(totalContent[2])
+# 
                 totalContent = totalContent[int(totalContent[2])+3:]
                 length = len(totalContent)/2              #print length
                 if length != total_point:
                     print iChan, 'data length:', length, 'NOT as expected', total_point
 
+                ### parse data
+                data_i = [0]*total_point
+                data_ix = [0]*total_point
                 for i in range(length):              #store data into file
                     ### combine two words to form the number
                     data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
                     data_ix[i] = (i - xRef)*xInc+xOrig
 
+                ### write out data
                 with open(pref+str(ievt)+'.dat','w') as f1:
                     for di in range(len(data_i)):
                         f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
@@ -122,6 +143,7 @@ class Oscilloscope:
             except KeyboardInterrupt:
                 break
 
+        ss.send(":RUN;")
         ss.close()
 
     def test(self):
@@ -472,7 +494,9 @@ def takeDataCmd():
 def test1():
     o1 = Oscilloscope()
 #     o1.test()
-    o1.take_data(N=5)
+    o1.take_data(N=10, pref='evt_test_')
+#     o1.take_data(N=10, pref='evt_Jun20a_')
+#     o1.take_data(N=50, pref='evt_Jun25a_')
 
 
 if __name__ == '__main__':
