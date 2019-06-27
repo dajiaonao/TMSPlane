@@ -35,7 +35,7 @@ def plot(x_range,y_range,ch1_offset,timebase_position,x_unit):
 
 class pulseGenerator:
     def __init__(self, name='Rigol DG4162'):
-        self.add = '192.168.2.6:5025'
+        self.addr = '192.168.2.6:5025'
         self.ss = None
         self.name = name
 
@@ -549,13 +549,19 @@ def takeDataCmd():
 def test1():
     o1 = Oscilloscope()
 #     o1.test()
-    o1.take_data(N=10, pref='evt_test_')
+#     o1.take_data(N=10, pref='evt_test_')
 #     o1.take_data(N=10, pref='evt_Jun20a_')
+#     o1.take_data(N=10, pref='evt_Jun26a_')
 #     o1.take_data(N=50, pref='evt_Jun25a_')
+    o1.take_data(N=10000, pref='evt_Jun26b_')
 
+def test2():
+    pg1 = pulseGenerator()
+    pg1.connect()
 
 if __name__ == '__main__':
     test1()
+#     test2()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
 #     ss.connect((hostname,port))                                 #connect to the server
 # #     saveWaveform()
