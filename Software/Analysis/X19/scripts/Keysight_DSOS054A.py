@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from datetime import datetime
 import socket
 import subprocess
 import numpy as np
@@ -191,8 +192,16 @@ class Oscilloscope:
 
                 ### write out data
                 with open(pref+str(ievt)+'.dat','w') as f1:
+                    f1.write('# time '+ str(datetime.now()))
+                    f1.write('\n# total_point '+str(total_point))
+                    f1.write('\n# xInc '+str(xInc))
+                    f1.write('\n# xOrig '+str(xOrig))
+                    f1.write('\n# xRef '+str(xRef))
+                    f1.write('\n# yInc '+str(yInc))
+                    f1.write('\n# yOrig '+str(yOrig))
+                    f1.write('\n# yRef '+str(yRef))
                     for di in range(len(data_i)):
-                        f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
+                        f1.write('\n'+str(data_ix[di])+' ' + str(data_i[di]))
 
                 ievt += 1
             except KeyboardInterrupt:
@@ -553,7 +562,8 @@ def test1():
 #     o1.take_data(N=10, pref='evt_Jun20a_')
 #     o1.take_data(N=10, pref='evt_Jun26a_')
 #     o1.take_data(N=50, pref='evt_Jun25a_')
-    o1.take_data(N=10000, pref='evt_Jun26b_')
+#     o1.take_data(N=10000, pref='evt_Jun26b_')
+    o1.take_data(N=10000, pref='evt_Jun27a_')
 
 def test2():
     pg1 = pulseGenerator()
