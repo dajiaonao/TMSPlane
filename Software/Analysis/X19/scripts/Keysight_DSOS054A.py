@@ -93,14 +93,51 @@ class Oscilloscope:
         self.addr = '192.168.2.5:5025'
         self.ss = None
         self.name = name
+        self.connected = False
 
     def connect(self):
+        if self.connected: return
+
         t = self.addr.split(':')
         hostname = t[0]
         port = int(t[1]) if len(t)>1 else 5025
 
         self.ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
         self.ss.connect((hostname,port))                                 #connect to the server
+        self.connected = True
+
+    def save_screen(self,name='test_fig.png'):
+        self.connect() 
+
+        ss = self.ss
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+        ### waveform
+#         ss.send(":SAVE:IMAGe:FORMat PNG;")       #Waveform source 
+#         ss.send(":SAVE:IMAGe {0:s};".format(name))           #Waveform data format
+        ss.send(":HARDcopy:INKSaver 0;") # <value> ::= {{OFF | 0} | {ON | 1}}
+        ss.send(":DISPlay:DATA? PNG,COLor;")           #Waveform data format
+#         ss.send(":DISPlay:DATA? PNG,GRAYscale;")           #Waveform data format
+#         ss.send(":DISPlay:DATA? PNG;")           #Waveform data format
+        ss.settimeout(3)
+
+        d1 = ''
+        while True:
+            try:
+                a = ss.recv(1024*4)
+                d1 += a
+            except socket.timeout:
+                d1 += a
+                break
+        with open(name,'w') as fout1:
+            fout1.write(d1[11:])
+
+#         print d1[:11]
+#         print len(d1[11:])
+#         print [ord(x) for x in d1[11:30]]
+        ss.close()
+
 
     def take_data(self,pref='evt_',N=-1):
         self.connect()
@@ -563,15 +600,28 @@ def test1():
 #     o1.take_data(N=10, pref='evt_Jun26a_')
 #     o1.take_data(N=50, pref='evt_Jun25a_')
 #     o1.take_data(N=10000, pref='evt_Jun26b_')
-    o1.take_data(N=10000, pref='evt_Jun27a_')
+#     o1.take_data(N=5000, pref='evt_Jun27b_') 3kV
+#     o1.take_data(N=6000, pref='evt_Jun27c_') 1.5 kV
+#     o1.take_data(N=5000, pref='evt_Jun27d_') 1kev
+#     o1.take_data(N=5000, pref='evt_Jun27e_') #0.2 kV
+#     o1.take_data(N=5000, pref='Jun27f/evt_Jun27f_') #0.02 kV
+#     o1.take_data(N=5000, pref='Jun27g/evt_Jun27g_') #0.8 kV
+#     o1.take_data(N=5000, pref='Jun27h/evt_Jun27h_') #0.03 kV
+    o1.take_data(N=10000, pref='Jun27i/evt_Jun27i_') #0.03 kV, gas off
 
 def test2():
     pg1 = pulseGenerator()
     pg1.connect()
 
+def test3():
+    o1 = Oscilloscope()
+    o1.save_screen('test1.png')
+
+
 if __name__ == '__main__':
-    test1()
+#     test1()
 #     test2()
+    test3()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
 #     ss.connect((hostname,port))                                 #connect to the server
 # #     saveWaveform()
