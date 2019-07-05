@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+from datetime import datetime
 import socket
 import subprocess
 import numpy as np
@@ -37,7 +38,7 @@ def plot(x_range,y_range,ch1_offset,timebase_position,x_unit):
 
 class pulseGenerator:
     def __init__(self, name='Rigol DG4162'):
-        self.add = '192.168.2.6:5025'
+        self.addr = '192.168.2.6:5025'
         self.ss = None
         self.name = name
 
@@ -95,14 +96,51 @@ class Oscilloscope:
         self.ss = None
         self.name = name
         self.fileSuffix = '.1'
+        self.connected = False
 
     def connect(self):
+        if self.connected: return
+
         t = self.addr.split(':')
         hostname = t[0]
         port = int(t[1]) if len(t)>1 else 5025
 
         self.ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
         self.ss.connect((hostname,port))                                 #connect to the server
+        self.connected = True
+
+    def save_screen(self,name='test_fig.png'):
+        self.connect() 
+
+        ss = self.ss
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+        ### waveform
+#         ss.send(":SAVE:IMAGe:FORMat PNG;")       #Waveform source 
+#         ss.send(":SAVE:IMAGe {0:s};".format(name))           #Waveform data format
+        ss.send(":HARDcopy:INKSaver 0;") # <value> ::= {{OFF | 0} | {ON | 1}}
+        ss.send(":DISPlay:DATA? PNG,COLor;")           #Waveform data format
+#         ss.send(":DISPlay:DATA? PNG,GRAYscale;")           #Waveform data format
+#         ss.send(":DISPlay:DATA? PNG;")           #Waveform data format
+        ss.settimeout(3)
+
+        d1 = ''
+        while True:
+            try:
+                a = ss.recv(1024*4)
+                d1 += a
+            except socket.timeout:
+                d1 += a
+                break
+        with open(name,'w') as fout1:
+            fout1.write(d1[11:])
+
+#         print d1[:11]
+#         print len(d1[11:])
+#         print [ord(x) for x in d1[11:30]]
+        ss.close()
+
 
     def take_data(self,pref='evt_',N=-1):
         self.connect()
@@ -117,9 +155,9 @@ class Oscilloscope:
         ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
 
         ### setup trigger
-        ss.send(":TRIGger:SWEep NORMal;")
-        ss.send(":TRIGger:MODE EDGE;")
-        ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+#         ss.send(":TRIGger:SWEep NORMal;")
+#         ss.send(":TRIGger:MODE EDGE;")
+#         ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
 
         ### meta data
         ss.send(":WAVeform:PREamble?;")
@@ -140,49 +178,80 @@ class Oscilloscope:
         ## take_data
         iChan = 1
         ievt = 0
+        NINTERVEL = 100
         while ievt != N:
             try:
                 ### status
                 if ievt % NINTERVEL == 0:
-                    print "%d events taken".format(ievt)
+                    print "{0:d} events taken".format(ievt)
 
                 ### DAQ
                 ss.send(":SINGle;")
                 ss.send(":WAVeform:DATA?;")
 
                 ### data parsing
-                data_i = [0]*total_point
-                data_ix = [0]*total_point
-                n = total_point * 2 + 11 ### 11 for header
+#                 n = total_point*2 + 11 ### 11 for header
+                n = 30
                 totalContent = ""
                 totalRecved = 0
                 while totalRecved < n:                      #fetch data
                     onceContent = ss.recv(int(n - totalRecved))
+                    if totalContent == '':
+                        ### update the data size based on the header of data
+                        nheader = int(onceContent[2])
+                        total_point = int(onceContent[3:3+nheader])/2
+                        n = int(onceContent[3:3+nheader]) + 11
+
                     totalContent += onceContent
                     totalRecved = len(totalContent)
-#                 print totalContent[:30], totalContent[2]
 
+#                 data_i = [0]*total_point
+#                 data_ix = [0]*total_point
+#                 n = total_point * 2 + 11 ### 11 for header
+#                 totalContent = ""
+#                 totalRecved = 0
+#                 while totalRecved < n:                      #fetch data
+#                     onceContent = ss.recv(int(n - totalRecved))
+#                     totalContent += onceContent
+#                     totalRecved = len(totalContent)
+# 
+#                 print totalContent[:30], totalContent[2], int(totalContent[2])
+# 
                 totalContent = totalContent[int(totalContent[2])+3:]
                 length = len(totalContent)/2              #print length
                 if length != total_point:
                     print iChan, 'data length:', length, 'NOT as expected', total_point
 
+                ### parse data
+                data_i = [0]*total_point
+                data_ix = [0]*total_point
                 for i in range(length):              #store data into file
                     ### combine two words to form the number
                     data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
                     data_ix[i] = (i - xRef)*xInc+xOrig
 
+                ### write out data
                 with open(pref+str(ievt)+'.dat','w') as f1:
+                    f1.write('# time '+ str(datetime.now()))
+                    f1.write('\n# total_point '+str(total_point))
+                    f1.write('\n# xInc '+str(xInc))
+                    f1.write('\n# xOrig '+str(xOrig))
+                    f1.write('\n# xRef '+str(xRef))
+                    f1.write('\n# yInc '+str(yInc))
+                    f1.write('\n# yOrig '+str(yOrig))
+                    f1.write('\n# yRef '+str(yRef))
                     for di in range(len(data_i)):
-                        f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
+                        f1.write('\n'+str(data_ix[di])+' ' + str(data_i[di]))
 
                 ievt += 1
             except KeyboardInterrupt:
                 break
 
+        ss.send(":RUN;")
         ss.close()
 
     def take_data2(self,outRootName,N=-1):
+        '''same as take data, but save root file'''
         self.connect()
 
         ss = self.ss
@@ -217,6 +286,7 @@ class Oscilloscope:
 
         T = array.array('i',[0])
         V = array.array('i',[0])
+        data0 = array.array('f',[0]*total_point)
         data1 = array.array('f',[0]*total_point)
 
         if self.fileSuffix:
@@ -225,10 +295,10 @@ class Oscilloscope:
         tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         tree1.Branch('T',T,'T/i')
         tree1.Branch('V',V,'V/I')
+        tree1.Branch('dT',data0, "dT[{0:d}]/F".format(total_point))
         tree1.Branch('val',data1, "val[{0:d}]/F".format(total_point))
 
         ## take_data
-        iChan = 1
         ievt = 0
         while ievt != N:
             try:
@@ -241,40 +311,45 @@ class Oscilloscope:
                 ss.send(":WAVeform:DATA?;")
 
                 ### data parsing
-                data_i = [0]*total_point
-                data_ix = [0]*total_point
                 n = total_point * 2 + 11 ### 11 for header
+
                 totalContent = ""
                 totalRecved = 0
                 while totalRecved < n:                      #fetch data
                     onceContent = ss.recv(int(n - totalRecved))
                     totalContent += onceContent
                     totalRecved = len(totalContent)
-#                 print totalContent[:30], totalContent[2]
 
+                ### remove the header
                 totalContent = totalContent[int(totalContent[2])+3:]
                 length = len(totalContent)/2              #print length
                 if length != total_point:
-                    print iChan, 'data length:', length, 'NOT as expected', total_point
+                    print ievt, 'data length:', length, 'NOT as expected', total_point
 
-                for i in range(length):              #store data into file
-                    ### combine two words to form the number
-                    data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
-                    data_ix[i] = (i - xRef)*xInc+xOrig
+                ### put them into a tree
+                ix = 0
+                while ix<length:
+                    data0[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
+                    data1[i] = (i - xRef)*xInc+xOrig
+                    ix += 1
 
-                with open(pref+str(ievt)+'.dat','w') as f1:
-                    for di in range(len(data_i)):
-                        f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
+                    if ix == total_point: break
+
+                while ix < total_point:
+                    data0[i] = -1
+                    data1[i] = -1
+                    ix += 1
+
+                tree1.Fill()
 
                 ievt += 1
             except KeyboardInterrupt:
                 break
 
+        tree1.Write()
+        fout1.Close()
+
         ss.close()
-
-
-
-
 
     def test(self):
         self.connect()
@@ -624,11 +699,33 @@ def takeDataCmd():
 def test1():
     o1 = Oscilloscope()
 #     o1.test()
-    o1.take_data(N=5)
+#     o1.take_data(N=10, pref='evt_test_')
+#     o1.take_data(N=10, pref='evt_Jun20a_')
+#     o1.take_data(N=10, pref='evt_Jun26a_')
+#     o1.take_data(N=50, pref='evt_Jun25a_')
+#     o1.take_data(N=10000, pref='evt_Jun26b_')
+#     o1.take_data(N=5000, pref='evt_Jun27b_') 3kV
+#     o1.take_data(N=6000, pref='evt_Jun27c_') 1.5 kV
+#     o1.take_data(N=5000, pref='evt_Jun27d_') 1kev
+#     o1.take_data(N=5000, pref='evt_Jun27e_') #0.2 kV
+#     o1.take_data(N=5000, pref='Jun27f/evt_Jun27f_') #0.02 kV
+#     o1.take_data(N=5000, pref='Jun27g/evt_Jun27g_') #0.8 kV
+#     o1.take_data(N=5000, pref='Jun27h/evt_Jun27h_') #0.03 kV
+    o1.take_data(N=10000, pref='Jun27i/evt_Jun27i_') #0.03 kV, gas off
+
+def test2():
+    pg1 = pulseGenerator()
+    pg1.connect()
+
+def test3():
+    o1 = Oscilloscope()
+    o1.save_screen('test1.png')
 
 
 if __name__ == '__main__':
-    test1()
+#     test1()
+#     test2()
+    test3()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
 #     ss.connect((hostname,port))                                 #connect to the server
 # #     saveWaveform()
