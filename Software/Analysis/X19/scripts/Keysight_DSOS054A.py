@@ -6,6 +6,8 @@ import time
 import socket
 import subprocess
 import numpy as np
+import array
+from ROOT import *
 hostname = "192.168.2.5"                #wire network hostname
 #hostname = "10.146.73.180"              #wireless network hostname
 port = 5025                             #host tcp port
@@ -92,6 +94,7 @@ class Oscilloscope:
         self.addr = '192.168.2.5:5025'
         self.ss = None
         self.name = name
+        self.fileSuffix = '.1'
 
     def connect(self):
         t = self.addr.split(':')
@@ -178,6 +181,100 @@ class Oscilloscope:
                 break
 
         ss.close()
+
+    def take_data2(self,outRootName,N=-1):
+        self.connect()
+
+        ss = self.ss
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+        ### waveform
+        ss.send(":WAVeform:SOURce CHANnel1;")       #Waveform source 
+        ss.send(":WAVeform:BYTeorder LSBFirst;")    #Waveform data byte order
+        ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
+
+        ### setup trigger
+        ss.send(":TRIGger:SWEep NORMal;")
+        ss.send(":TRIGger:MODE EDGE;")
+        ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+
+        ### meta data
+        ss.send(":WAVeform:PREamble?;")
+        a = ss.recv(128)
+#         print "PREample: %s"%a
+        pre = a.split(';')[1].split(',')
+#         print pre
+
+        total_point = int(pre[2])
+        xInc = float(pre[4])
+        xOrig = float(pre[5])
+        xRef = float(pre[6])
+        yInc = float(pre[7])
+        yOrig = float(pre[8])
+        yRef = int(pre[9])
+
+
+        T = array.array('i',[0])
+        V = array.array('i',[0])
+        data1 = array.array('f',[0]*total_point)
+
+        if self.fileSuffix:
+            while os.path.exists(outRootName): outRootName += self.fileSuffix
+        fout1 = TFile(outRootName,'recreate')
+        tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+        tree1.Branch('T',T,'T/i')
+        tree1.Branch('V',V,'V/I')
+        tree1.Branch('val',data1, "val[{0:d}]/F".format(total_point))
+
+        ## take_data
+        iChan = 1
+        ievt = 0
+        while ievt != N:
+            try:
+                ### status
+                if ievt % NINTERVEL == 0:
+                    print "%d events taken".format(ievt)
+
+                ### DAQ
+                ss.send(":SINGle;")
+                ss.send(":WAVeform:DATA?;")
+
+                ### data parsing
+                data_i = [0]*total_point
+                data_ix = [0]*total_point
+                n = total_point * 2 + 11 ### 11 for header
+                totalContent = ""
+                totalRecved = 0
+                while totalRecved < n:                      #fetch data
+                    onceContent = ss.recv(int(n - totalRecved))
+                    totalContent += onceContent
+                    totalRecved = len(totalContent)
+#                 print totalContent[:30], totalContent[2]
+
+                totalContent = totalContent[int(totalContent[2])+3:]
+                length = len(totalContent)/2              #print length
+                if length != total_point:
+                    print iChan, 'data length:', length, 'NOT as expected', total_point
+
+                for i in range(length):              #store data into file
+                    ### combine two words to form the number
+                    data_i[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
+                    data_ix[i] = (i - xRef)*xInc+xOrig
+
+                with open(pref+str(ievt)+'.dat','w') as f1:
+                    for di in range(len(data_i)):
+                        f1.write(str(data_ix[di])+' ' + str(data_i[di])+'\n')
+
+                ievt += 1
+            except KeyboardInterrupt:
+                break
+
+        ss.close()
+
+
+
+
 
     def test(self):
         self.connect()
