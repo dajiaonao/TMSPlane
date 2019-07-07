@@ -1,7 +1,7 @@
 #!/usr/bin/env python36
 import matplotlib.pyplot as plt
 from array import array
-from ROOT import gROOT
+from ROOT import gROOT, TChain
 gROOT.LoadMacro("sp.C+")
 from ROOT import filters_trapezoidal
 # from ROOT import SignalProcessor, Event, Sig, showEvents, showEvent
@@ -279,6 +279,49 @@ def run2(files=None, ofname=None, INTVAL = 200):
     except KeyboardInterrupt:
         pass
 
+def run3(infiles, ofname=None, INTVAL = 200):
+    '''Same as run1, but use file list instead of file id'''
+
+    ### configuration
+    if ofname is None: ofname = 'check2bx.dat'
+
+    tree1 = TChain('tree1')
+    for infile in infiles: tree1.Add(infile)
+
+    NP = 62500
+    ### IO configuration
+    data1 = array('f',[0]*(NP))
+    dataT = array('i',[0])
+
+    tree1.SetBranchAddress('data1',data1)
+
+    outWav = array('f',[0.]*NP)
+
+    try:
+        with open(ofname,'w') as fout1:
+            fout1.write('evt/I:inst/I:A/F:W/I')
+            ifile = 0
+
+            for ievt in range(tree1.GetEntries()):
+                if ievt % INTVAL == 0: print(f'{ievt} events processed')
+
+                tree1.GetEntry(ievt)
+#                 print(data1[:10])
+                if data1[-1] <= -1: print("bad data")
+
+                vv = np.std(data1[:2000])
+                if vv>0.0035: continue
+
+                filters_trapezoidal(NP,data1,outWav,500,2000,3125)
+                ret = find_H(outWav,0.005, 0.9)
+
+                if ret:
+                    for i in range(len(ret)):
+                        fout1.write('\n'+str(ievt)+' '+str(i)+' '+str(ret[i][0])+' '+str(ret[i][1]))
+
+    except KeyboardInterrupt:
+        pass
+
 
 def run1():
     dir1 = '/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun26a/'
@@ -331,7 +374,9 @@ if __name__ == '__main__':
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27e/*.dat'],ofname='check1c_Jun27e.dat')
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27g/*.dat'],ofname='check1c_Jun27g.dat')
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27f/*.dat'],ofname='check1c_Jun27f.dat')
-    check1()
+#     check1()
 
     ### debug
 #     run2(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27g/*_0.dat'],ofname='temp1.dat')
+#     run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul05a.root'],ofname='Jul05a_out.dat')
+    run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul05b.root'],ofname='Jul05b_out.dat')

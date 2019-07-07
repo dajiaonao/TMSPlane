@@ -292,7 +292,7 @@ class Oscilloscope:
         if self.fileSuffix:
             while os.path.exists(outRootName): outRootName += self.fileSuffix
         fout1 = TFile(outRootName,'recreate')
-        tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
+        tree1 = TTree('tree1',"data: {0:d} points".format(total_point))
         tree1.Branch('T',T,'T/i')
         tree1.Branch('V',V,'V/I')
         tree1.Branch('dT',data0, "dT[{0:d}]/F".format(total_point))
