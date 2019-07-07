@@ -607,21 +607,23 @@ def test1():
 #     o1.take_data(N=5000, pref='Jun27f/evt_Jun27f_') #0.02 kV
 #     o1.take_data(N=5000, pref='Jun27g/evt_Jun27g_') #0.8 kV
 #     o1.take_data(N=5000, pref='Jun27h/evt_Jun27h_') #0.03 kV
-    o1.take_data(N=10000, pref='Jun27i/evt_Jun27i_') #0.03 kV, gas off
+#     o1.take_data(N=10000, pref='Jun27i/evt_Jun27i_') #0.03 kV, gas off
+    o1.take_data(N=20000, pref='Jul05c/evt_Jul05c_') #0.03 kV, gas off
 
 def test2():
     pg1 = pulseGenerator()
     pg1.connect()
 
 def test3():
+    figname = sys.argv[1] if len(sys.argv)>1 else "test.png"
     o1 = Oscilloscope()
-    o1.save_screen('test1.png')
+    o1.save_screen(figname)
 
 
 if __name__ == '__main__':
-#     test1()
+    test1()
 #     test2()
-    test3()
+#     test3()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
 #     ss.connect((hostname,port))                                 #connect to the server
 # #     saveWaveform()
