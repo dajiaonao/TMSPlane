@@ -250,8 +250,8 @@ class Oscilloscope:
         ss.send(":RUN;")
         ss.close()
 
-    def take_data2(self,outRootName,N=-1):
-        '''same as take data, but save root file'''
+    def take_data2(self,outRootName,N=-1,NINTERVEL=200, vPulse=40):
+        '''same as take data, but save root file. vPulse in mV'''
         self.connect()
 
         ss = self.ss
@@ -264,9 +264,9 @@ class Oscilloscope:
         ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
 
         ### setup trigger
-        ss.send(":TRIGger:SWEep NORMal;")
-        ss.send(":TRIGger:MODE EDGE;")
-        ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+#         ss.send(":TRIGger:SWEep NORMal;")
+#         ss.send(":TRIGger:MODE EDGE;")
+#         ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
 
         ### meta data
         ss.send(":WAVeform:PREamble?;")
@@ -285,7 +285,7 @@ class Oscilloscope:
 
 
         T = array.array('i',[0])
-        V = array.array('i',[0])
+        V = array.array('i',[vPulse])
         data0 = array.array('f',[0]*total_point)
         data1 = array.array('f',[0]*total_point)
 
@@ -295,17 +295,20 @@ class Oscilloscope:
         tree1 = TTree('tree1',"data: {0:d} points".format(total_point))
         tree1.Branch('T',T,'T/i')
         tree1.Branch('V',V,'V/I')
-        tree1.Branch('dT',data0, "dT[{0:d}]/F".format(total_point))
-        tree1.Branch('val',data1, "val[{0:d}]/F".format(total_point))
+        tree1.Branch('t',data0, "t[{0:d}]/F".format(total_point))
+        tree1.Branch('val1',data1, "val1[{0:d}]/F".format(total_point))
 
+
+        t1 = TDatime()
         ## take_data
         ievt = 0
         while ievt != N:
             try:
                 ### status
                 if ievt % NINTERVEL == 0:
-                    print "%d events taken".format(ievt)
+                    print "{0:d} events taken".format(ievt)
 
+                t1.Set()
                 ### DAQ
                 ss.send(":SINGle;")
                 ss.send(":WAVeform:DATA?;")
@@ -329,18 +332,22 @@ class Oscilloscope:
                 ### put them into a tree
                 ix = 0
                 while ix<length:
-                    data0[i] = ((ord(totalContent[i*2+1])<<8)+ord(totalContent[i*2]) - yRef)*yInc+yOrig
-                    data1[i] = (i - xRef)*xInc+xOrig
+                    data0[ix] = (ix - xRef)*xInc+xOrig
+                    data1[ix] = ((ord(totalContent[ix*2+1])<<8)+ord(totalContent[ix*2]) - yRef)*yInc+yOrig
                     ix += 1
 
                     if ix == total_point: break
 
                 while ix < total_point:
-                    data0[i] = -1
-                    data1[i] = -1
+                    data0[ix] = -1
+                    data1[ix] = -1
                     ix += 1
 
+                T[0] = t1.Get()
+
+                fout1.cd()
                 tree1.Fill()
+                fout1 = tree1.GetCurrentFile()
 
                 ievt += 1
             except KeyboardInterrupt:
@@ -350,6 +357,181 @@ class Oscilloscope:
         fout1.Close()
 
         ss.close()
+        self.connected = False
+
+    def take_data3(self,outRootName,N=-1,NINTERVEL=200, vPulse=40):
+        '''same as take data, but save root file. vPulse in mV'''
+        ret = True
+        self.connect()
+
+        ss = self.ss
+        ss.send("*IDN?;")                           #read back device ID
+        print "Instrument ID: %s"%ss.recv(128)   
+
+        ### waveform
+        ss.send(":WAVeform:SOURce CHANnel1;")       #Waveform source 
+        ss.send(":WAVeform:BYTeorder LSBFirst;")    #Waveform data byte order
+        ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
+
+        ### setup trigger
+#         ss.send(":TRIGger:SWEep NORMal;")
+#         ss.send(":TRIGger:MODE EDGE;")
+#         ss.send(":TRIGger:EDGE:LEVel 1.0,CHANnel1;")
+
+        ### meta data
+        ss.send(":WAVeform:PREamble?;")
+        a = ss.recv(128)
+#         print "PREample: %s"%a
+        pre = a.split(';')[1].split(',')
+#         print pre
+
+        total_point = int(pre[2])
+        xInc = float(pre[4])
+        xOrig = float(pre[5])
+        xRef = float(pre[6])
+        yInc = float(pre[7])
+        yOrig = float(pre[8])
+        yRef = int(pre[9])
+
+        ### waveform
+        ss.send(":WAVeform:SOURce CHANnel3;")       #Waveform source 
+        ss.send(":WAVeform:BYTeorder LSBFirst;")    #Waveform data byte order
+        ss.send(":WAVeform:FORMat WORD;")           #Waveform data format
+
+        ### meta data
+        ss.send(":WAVeform:PREamble?;")
+        a = ss.recv(128)
+        pre = a.split(';')[1].split(',')
+
+        total_point3 = int(pre[2])
+        xInc3 = float(pre[4])
+        xOrig3 = float(pre[5])
+        xRef3 = float(pre[6])
+        yInc3 = float(pre[7])
+        yOrig3 = float(pre[8])
+        yRef3 = int(pre[9])
+
+        if total_point3 != total_point: print "inconsistent total_point:", total_point3, total_point
+        if xInc3 != xInc: print "inconsistent xInc:", xInc3, xInc
+        if xOrig3 != xOrig: print "inconsistent xOrig:", xOrig3, xOrig
+        if xRef3 != xRef: print "inconsistent xRef:", xRef3, xRef
+
+        T = array.array('i',[0])
+        V = array.array('i',[vPulse])
+        data0 = array.array('f',[0]*total_point)
+        data1 = array.array('f',[0]*total_point)
+        data3 = array.array('f',[0]*total_point3)
+
+        if self.fileSuffix:
+            while os.path.exists(outRootName): outRootName += self.fileSuffix
+        fout1 = TFile(outRootName,'recreate')
+        tree1 = TTree('tree1',"data: {0:d} points".format(total_point))
+        tree1.Branch('T',T,'T/i')
+        tree1.Branch('V',V,'V/I')
+        tree1.Branch('t',data0, "t[{0:d}]/F".format(total_point))
+        tree1.Branch('val1',data1, "val1[{0:d}]/F".format(total_point))
+        tree1.Branch('val3',data3, "val3[{0:d}]/F".format(total_point3))
+
+
+        t1 = TDatime()
+        ## take_data
+        ievt = 0
+        while ievt != N:
+            try:
+                ### status
+                if ievt % NINTERVEL == 0:
+                    print "{0:d} events taken".format(ievt)
+
+                t1.Set()
+                ### DAQ
+                ss.send(":SINGle;")
+                ss.send(":WAVeform:SOURce CHANnel1;")       #Waveform source 
+                ss.send(":WAVeform:DATA?;")
+
+                ### data parsing
+                n = total_point * 2 + 11 ### 11 for header
+
+                totalContent = ""
+                totalRecved = 0
+                while totalRecved < n:                      #fetch data
+                    onceContent = ss.recv(int(n - totalRecved))
+                    totalContent += onceContent
+                    totalRecved = len(totalContent)
+
+                ### remove the header
+                totalContent = totalContent[int(totalContent[2])+3:]
+                length = len(totalContent)/2              #print length
+                if length != total_point:
+                    print ievt, 'data length:', length, 'NOT as expected', total_point
+
+                ### put them into a tree
+                ix = 0
+                while ix<length:
+                    data0[ix] = (ix - xRef)*xInc+xOrig
+                    data1[ix] = ((ord(totalContent[ix*2+1])<<8)+ord(totalContent[ix*2]) - yRef)*yInc+yOrig
+                    ix += 1
+
+                    if ix == total_point: break
+
+                while ix < total_point:
+                    data0[ix] = -1
+                    data1[ix] = -1
+                    ix += 1
+
+                ss.send(":WAVeform:SOURce CHANnel3;")       #Waveform source 
+                ss.send(":WAVeform:DATA?;")
+
+                ### data parsing
+                n = total_point3 * 2 + 11 ### 11 for header
+
+                totalContent = ""
+                totalRecved = 0
+                while totalRecved < n:                      #fetch data
+                    onceContent = ss.recv(int(n - totalRecved))
+                    totalContent += onceContent
+                    totalRecved = len(totalContent)
+
+                ### remove the header
+                totalContent = totalContent[int(totalContent[2])+3:]
+                length = len(totalContent)/2              #print length
+                if length != total_point3:
+                    print ievt, 'data length:', length, 'NOT as expected 3:', total_point3
+
+                ### put them into a tree
+                ix = 0
+                while ix<length:
+                    data3[ix] = ((ord(totalContent[ix*2+1])<<8)+ord(totalContent[ix*2]) - yRef)*yInc+yOrig
+                    ix += 1
+
+                    if ix == total_point3: break
+
+                while ix < total_point3:
+                    data0[ix] = -1
+                    data1[ix] = -1
+                    ix += 1
+
+                ## save time
+                T[0] = t1.Get()
+
+                fout1.cd()
+                tree1.Fill()
+                fout1 = tree1.GetCurrentFile()
+
+                ievt += 1
+            except KeyboardInterrupt:
+                ret = False
+                break
+
+        tree1.Write()
+        fout1.Close()
+
+        ss.close()
+        self.connected = False
+
+        return ret
+
+
+
 
     def test(self):
         self.connect()
@@ -696,7 +878,18 @@ def takeDataCmd():
 ## if statement
 #
 
-def test1():
+def test1(nRun = -1,tag='test'):
+
+    tag = tag.rstrip(' /.')
+    ### create the tag directory
+    idup = 1
+    dirx = tag
+    while os.path.exists(dirx):
+        dirx = tag+"_"+str(idup)
+        idup += 1
+    os.makedirs(dirx)
+    dirx+='/'
+
     o1 = Oscilloscope()
 #     o1.test()
 #     o1.take_data(N=10, pref='evt_test_')
@@ -712,7 +905,18 @@ def test1():
 #     o1.take_data(N=5000, pref='Jun27g/evt_Jun27g_') #0.8 kV
 #     o1.take_data(N=5000, pref='Jun27h/evt_Jun27h_') #0.03 kV
 #     o1.take_data(N=10000, pref='Jun27i/evt_Jun27i_') #0.03 kV, gas off
-    o1.take_data(N=20000, pref='Jul05c/evt_Jul05c_') #0.03 kV, gas off
+#     o1.take_data(N=20000, pref='Jul05c/evt_Jul05c_') #0.03 kV, gas off
+#     o1.take_data2("test1.root", N=10) #0.03 kV, gas off
+#     o1.take_data2("Jul06c_alpha.root", N=-1) #0.03 kV, gas off
+#     o1.take_data2("Jul06c_alpha.root", N=-1) #0.03 kV, gas off
+    irun = 0
+    while irun != nRun:
+#         ret = o1.take_data3("Jul09a_pulse_{0:d}.root".format(irun), N=2000) #0.03 kV, gas off
+#         ret = o1.take_data3("Jul12a_pulse_{0:d}.root".format(irun), N=2000) #2.0 kV, gas on
+#         ret = o1.take_data3("Jul12b_pulse_{0:d}.root".format(irun), N=2000) #3.2 kV, gas on
+        ret = o1.take_data3(dirx+tag+"_{0:d}.root".format(irun), N=2000) #2 kV, gas on
+        irun += 1
+        if not ret: break
 
 def test2():
     pg1 = pulseGenerator()
@@ -725,7 +929,7 @@ def test3():
 
 
 if __name__ == '__main__':
-    test1()
+    test1(-1)
 #     test2()
 #     test3()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
