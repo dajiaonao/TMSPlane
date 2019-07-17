@@ -500,7 +500,7 @@ class Oscilloscope:
                 ### put them into a tree
                 ix = 0
                 while ix<length:
-                    data3[ix] = ((ord(totalContent[ix*2+1])<<8)+ord(totalContent[ix*2]) - yRef)*yInc+yOrig
+                    data3[ix] = ((ord(totalContent[ix*2+1])<<8)+ord(totalContent[ix*2]) - yRef3)*yInc3+yOrig3
                     ix += 1
 
                     if ix == total_point3: break
@@ -929,7 +929,7 @@ def test3():
 
 
 if __name__ == '__main__':
-    test1(-1)
+    test1(-1, tag='Jul16a_pulse')
 #     test2()
 #     test3()
 #     ss = socket.socket(socket.AF_INET,socket.SOCK_STREAM)       #init local socket handle
