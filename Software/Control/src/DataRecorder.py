@@ -93,7 +93,7 @@ class DataRecorder:
 
 def take_data(sTag, n=5000, N=-1, dirx=None):
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     ### put in a dedicated direcotry
@@ -116,7 +116,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     ''' Take data for Tmin minutes'''
 
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
@@ -140,6 +140,6 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
 
 if __name__ == '__main__':
 #     useLHCbStyle()
-      take_data(sTag='Sep05a',n=1000, N=-1, dirx='raw/Sep05a')
+      take_data(sTag='Sep05b',n=1000, N=-1, dirx='raw/Sep05a')
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
