@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from SignalChecker import SignalChecker
 
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
@@ -229,7 +228,8 @@ def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
 
     sp1 = SignalProcessor()
 #     apply_config(sp1, 'Hydrogen')
-    apply_config(sp1, 'Hydrogen/c3')
+#     apply_config(sp1, 'Hydrogen/c3')
+    apply_config(sp1, 'Helium')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -573,6 +573,7 @@ def check_Jan22bx(fname):
     readSignal(fname, out, 1000)
 
 def testJ():
+    from SignalChecker import SignalChecker
     sc1 = SignalChecker()
     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
@@ -697,7 +698,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx02a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_64??.root', 'tpx01b_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
-    process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
+    process_all_matchX(readSignal4b, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01a_', False)
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
