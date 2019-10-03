@@ -354,7 +354,8 @@ def normal_reco():
 
     plt.ion()
     plt.show()
-    fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
+#     fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
+    fig, ax1 = plt.subplots(1, 1, figsize=(10, 5))
 #     fig.set_size_inches(11,8)
     ax1.set_xlabel('time index')
     ax1.set_ylabel('U [V]', color='b')

@@ -159,7 +159,8 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
                 return
 
     sp1 = SignalProcessor()
-    apply_config(sp1, 'Hydrogen')
+#     apply_config(sp1, 'Hydrogen')
+    apply_config(sp1, 'Helium')
 
     ### IO configuration
     data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
@@ -175,7 +176,8 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
     a = TObjString("filter:"+str(sp1.fltParam))
     a.Write('Info')
 
-    chs = [0]
+#     chs = [0]
+    chs = [i for i in range(19)]
     chx = chs[0] if (chs and len(chs)==1) else -1
     for ievt in range(tree1.GetEntries()):
         tree1.GetEntry(ievt)
@@ -651,7 +653,7 @@ def process_all_match4(pattern, oTag, skipExist=True):
     p = Pool(6)
     p.map(readSignal4, [f+';'+oTag for f in files])
 
-def process_all_matchX(funX, pattern, oTag, skipExist=True):
+def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
 #     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Apr','/'+oTag+'Apr'))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
@@ -661,7 +663,7 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True):
         print("dropping the latest file, which probably is still being written:", files[-1])
         files.pop()
 
-    p = Pool(6)
+    p = Pool(nThread)
     p.map(funX, [f+';'+oTag for f in files])
 
 
@@ -699,7 +701,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_64??.root', 'tpx01b_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
-    process_all_matchX(readSignal4b, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01a_', False)
+#     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01c_', False, 3)
+    process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19b/Sep19b_data_*.root', 'atpx01c_', False, 3)
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
