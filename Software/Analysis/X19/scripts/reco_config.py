@@ -92,13 +92,24 @@ def apply_config(sp1, config_code):
         sp1.ch_thre.clear()
         for x in thre: sp1.ch_thre.push_back(x)
 
+#         ### filter configuration
+#         sp1.fltParam.clear()
+#         flt = [50, 100, 300, 1] # dp01a
+#         for x in flt: sp1.fltParam.push_back(x)
 
-        ### filter configuration
+        fc1 = FilterConfig('C1_filter_config.json')
+        fc1.load()
+
         sp1.fltParam.clear()
+        flt = [50, 100, 300, -1./fc1.data[0][2]] # dp01a
+        for x in flt: sp1.fltParam.push_back(x)
 
         scale = 1
         P = 1./0.006/2500/1024*5000000*scale;
         for x in [30, 50, 200, P]: sp1.fltParam.push_back(x)
+        for i in range(sp1.nAdcCh):
+            print -sqrt(2)/fc1.data[i][2]
+            sp1.CF_decayC[i] = -sqrt(2)/fc1.data[i][2]
 
         ## channelwise configuration
         sp1.CF_chan_en.clear()
@@ -106,7 +117,7 @@ def apply_config(sp1, config_code):
         for i in range(sp1.nAdcCh):
             sp1.CF_chan_en.push_back(1)
             sp1.IO_mAvg.push_back(0.)
-            sp1.CF_decayC[i] = P
+#             sp1.CF_decayC[i] = P
 
         ### we are done
         return "He4/a" ### anything after slash is a development tag, frozen configurations does not have a slash
