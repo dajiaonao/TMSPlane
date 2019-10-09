@@ -39,9 +39,8 @@ class DataRecorder:
         self.s.connect((ctrlipport[0],int(ctrlipport[1])))
         self.connected = True
 
-    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0):
+    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0, nMonitor = 20):
         if not self.connected: self.connect()
-        nMonitor = 20
 
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
@@ -91,9 +90,9 @@ class DataRecorder:
         fout1.Write()
         return status
 
-def take_data(sTag, n=5000, N=-1, dirx=None):
+def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000):
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     ### put in a dedicated direcotry
@@ -108,7 +107,7 @@ def take_data(sTag, n=5000, N=-1, dirx=None):
     nSample = 0
     while nSample != N:
         print "Start sample {0:d}".format(nSample)
-        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
 
@@ -116,7 +115,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     ''' Take data for Tmin minutes'''
 
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
@@ -140,5 +139,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
 
 if __name__ == '__main__':
 #     useLHCbStyle()
+#       take_data(sTag='Sep12b1',n=1000, N=-1, dirx='raw/Sep12b')
+      take_data(sTag='Sep19a',n=20000, N=-1, dirx='raw/Sep19a',nm=5000)
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
-      take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
+#       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
