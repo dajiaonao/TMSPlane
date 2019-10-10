@@ -702,7 +702,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01c_', False, 3)
-    process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19b/Sep19b_data_3.root', 'atpx01c_', False, 3)
+#     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19b/Sep19b_data_3.root', 'atpx01c_', False, 3)
+    process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/fpgaLin/raw/Oct10a/Oct10a_data_*.root*', 'atpx01c_', False, 3)
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
