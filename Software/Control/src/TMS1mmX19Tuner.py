@@ -42,7 +42,7 @@ class CommonData(object):
         self.cmd = cmd
         self.dataSocket = dataSocket
         self.ctrlSocket = ctrlSocket
-        self.dataFName = ["adc.dat", "sdm.dat"]
+        self.dataFName = ["temp_dat/adc.dat", "temp_dat/sdm.dat"]
         # number of chips
         self.nCh = 19
         self.nAdcCh = 20
@@ -137,12 +137,12 @@ class DataPanelGUI(object):
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
         #
-        self.buttonFrame = tk.Frame(self.master)
-        self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-        self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
-        self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
-        self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
+#         self.buttonFrame = tk.Frame(self.master)
+#         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+#         self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
+#         self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+#         self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
+#         self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
         #
         self.plot_data()
 
@@ -249,13 +249,14 @@ class DataPanelGUI(object):
 
 class ControlPanelGUI(object):
 
-    def __init__(self, master, cd):
+    def __init__(self, master, cd, data_panel=None):
         self.master = master
         self.cd = cd
         self.nVolts = self.cd.nVolts
         self.nCh = self.cd.nCh
 
         self.sensor_config = None
+        self.data_panel = data_panel
 
         # appropriate quitting
         master.wm_protocol("WM_DELETE_WINDOW", self.quit)
@@ -342,7 +343,10 @@ class ControlPanelGUI(object):
         self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
         self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.autoSaveButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
-        self.autoSaveButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+        self.autoSaveButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.autoSampleButton = tk.Button(master=self.buttonFrame, text='Sample', command=self.data_panel.get_and_plot_data)
+        self.autoSampleButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
 
         # self-updating functions
         self.update_values_display()
@@ -637,12 +641,16 @@ if __name__ == "__main__":
     #
     root = tk.Tk()
     root.wm_title("Topmetal-S 1mm version x19 array Tuner")
-    controlPanel = ControlPanelGUI(root, cd)
-    controlPanel.sensor_config = sensorConfig
 
-    #
+    # data
     dataPanelMaster = tk.Toplevel(root)
     dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=eval(args.visible_channels))
+
+    ## control
+    controlPanel = ControlPanelGUI(root, cd, data_panel = dataPanel)
+    controlPanel.sensor_config = sensorConfig
+#     controlPanel.data_panel = dataPanel
+
     root.mainloop()
     # If you put root.destroy() here, it will cause an error if
     # the window is closed with the window manager.
