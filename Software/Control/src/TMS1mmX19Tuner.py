@@ -255,6 +255,8 @@ class ControlPanelGUI(object):
         self.nVolts = self.cd.nVolts
         self.nCh = self.cd.nCh
 
+        self.sensor_config = None
+
         # appropriate quitting
         master.wm_protocol("WM_DELETE_WINDOW", self.quit)
 
@@ -339,6 +341,8 @@ class ControlPanelGUI(object):
         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
         self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.autoSaveButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
+        self.autoSaveButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
         # self-updating functions
         self.update_values_display()
@@ -387,6 +391,10 @@ class ControlPanelGUI(object):
             self.cd.vUpdated = True
             print(self.cd.inputVcodes)
         return True
+
+    def save_config(self):
+        if self.sensor_config is not None:
+            self.sensor_config.write_config_file()
 
     def auto_tune(self, *args):
         startTime = datetime.now()
@@ -462,7 +470,7 @@ class SensorConfig(threading.Thread):
                 self.cd.cv.wait(self.cd.tI)
                 if self.cd.vUpdated:
                     self.update_sensor(self.cd.currentSensor)
-                    self.write_config_file()
+#                     self.write_config_file()
                     self.cd.vUpdated = False
                 self.get_inputs()
 
@@ -630,6 +638,8 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.wm_title("Topmetal-S 1mm version x19 array Tuner")
     controlPanel = ControlPanelGUI(root, cd)
+    controlPanel.sensor_config = sensorConfig
+
     #
     dataPanelMaster = tk.Toplevel(root)
     dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=eval(args.visible_channels))
