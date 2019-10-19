@@ -18,6 +18,7 @@ from command import *
 from sigproc import *
 import TMS1mmX19Config
 from PyDE import *
+import logging
 
 if sys.version_info[0] < 3:
     import Tkinter as tk
@@ -147,6 +148,7 @@ class DataPanelGUI(object):
 
     def on_key_event(self, event):
         print('You pressed {:s}'.format(event.key))
+        print (event.key, event.key=='r')
         key_press_handler(event, self.dataPlotsCanvas, self.dataPlotsToolbar)
 
     def on_resize(self, event):
@@ -451,9 +453,7 @@ class SensorConfig(threading.Thread):
                                       2 : [7, 1, 0, 4, 13],
                                       3 : [18, 6, 5, 14],
                                       4 : [17, 16, 15]}
-        self.configFName = configFName
-        self.read_config_file()
-        #
+        self.read_config_file(configFName)
         self.set_global_defaults()
 
     def run(self):
@@ -575,14 +575,16 @@ class SensorConfig(threading.Thread):
     def read_config_file(self, fName=None):
         if fName:
             self.configFName = fName
-        if os.path.isfile(self.configFName):
-            with open(self.configFName, 'r') as fp:
-                config = json.load(fp)
-                for i in range(len(config)):
-                    for j in range(len(self.cd.voltsNames)):
-                        self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
-        else:
-            return self.cd.sensorVcodes
+            if os.path.isfile(self.configFName):
+                with open(self.configFName, 'r') as fp:
+                    config = json.load(fp)
+                    for i in range(len(config)):
+                        for j in range(len(self.cd.voltsNames)):
+                            self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
+            else:
+                logging.warning("config file {0:s} does not exist".format(self.configFName))
+            
+        return self.cd.sensorVcodes
 
     def write_config_file(self, fName=None):
         if fName:
@@ -599,7 +601,7 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--aout-buf", type=int, default="1", help="AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both")
     parser.add_argument("-c", "--control-ip-port", type=str, default="192.168.2.3:1025", help="control system ipaddr and port")
     parser.add_argument("-d", "--data-ip-port", type=str, default="192.168.2.3:1024", help="data source ipaddr and port")
-    parser.add_argument("-f", "--config-file", type=str, default="config.json", help="configuration file, will be overwritten")
+    parser.add_argument("-f", "--config-file", type=str, default="config/default.json", help="configuration file, will be overwritten")
     parser.add_argument("-g", "--bufferx2-gain", type=int, default="2", help="BufferX2 gain")
     parser.add_argument("-l", "--visible-channels", type=str, default="None", help="List of ADC channels to plot (made visible).  None or [] means all channels")
     parser.add_argument("-s", "--sdm-mode", type=int, default="0", help="SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection")
