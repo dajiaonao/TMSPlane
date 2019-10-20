@@ -96,6 +96,9 @@ class CommonData(object):
         ########################################> cv protected >
         self.tms1mmReg = tms1mmReg
 
+    def set_sensor(self, i, l):
+        self.sensorVcodes[i] = [self.tms1mmReg.dac_volt2code(v) for v in l]
+
 class DataPanelGUI(object):
 
     ##
@@ -569,17 +572,21 @@ class SensorConfig(threading.Thread):
         #
         return self.tms1mmReg.get_config_vector()
 
-    def update_sensor(self, iSensor):
+    def update_sensor(self, iSensor, quiet=2):
         colAddr = self.tms1mmX19sensorInChain[iSensor]
         sensorsInChain = self.tms1mmX19chainSensors[colAddr]
-        print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
+        if quiet>1: print("Updating chain {:d} with sensors {:}".format(colAddr, sensorsInChain))
+        updated = []
         for i in sensorsInChain:
             data = self.get_config_vector_for_sensor(i)
-            print("Send  : 0x{:0x}".format(data))
             ret = TMS1mmX19Config.tms_sio_rw(self.s, self.cd.cmd, colAddr, data)
-            print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+            if quiet>1:
+                print("Send  : 0x{:0x}".format(data))
+                print("Return: 0x{:0x}".format(ret) + " equal = {:}".format(data == ret))
+            if (data != ret): updated.append(i)
         # tms reset and load register
         self.s.sendall(self.cd.cmd.send_pulse(1<<0))
+        if quiet>0: print('updated sensers: ['+','.join([str(a) for a in updated])+']')
 
     def get_inputs(self):
         return
@@ -605,6 +612,13 @@ class SensorConfig(threading.Thread):
         for i in range(self.cd.nCh):
             config[i] = dict(zip(self.cd.voltsNames, self.cd.sensorVcodes[i]))
         with open(self.configFName, 'w') as fp:
+            fp.write(json.dumps(config, sort_keys=True, indent=4))
+
+    def write_config_fileX(self, fName, sensorVcodes):
+        config = {}
+        for i in range(self.cd.nCh):
+            config[i] = dict(zip(self.cd.voltsNames, sensorVcodes[i]))
+        with open(fName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 
 if __name__ == "__main__":
