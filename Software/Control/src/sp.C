@@ -19,6 +19,7 @@ using namespace std;
 typedef ANALYSIS_WAVEFORM_BASE_TYPE AWBT;
 
 /// trapezoidal filter
+/// @param M: the signal decay to e^{-i/M} at the ith point, and at the point M, it decays to e^{-1}
 int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
                         size_t k, size_t l, double M)
 {
@@ -104,7 +105,7 @@ class SignalProcessor{
     /// FIXME: are these "free"s really needed?
     if(IO_adcData) free(IO_adcData);
 //     if(scrAry) free(scrAry); 
-    for(auto p:scrArys){if(p) free(p);}
+    for(auto p:scrArys){if(p) free(p); p=nullptr;}
    }
 
 //  private:
@@ -162,22 +163,23 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     size_t R(fltParam[2]);
     filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], R, (double)fltParam[3]);
 
-    int L = 8;
+    size_t L = 4;
     /// - find largest
     size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
-//     cout << "ch=" << iCh << " inital M=" << M << endl;
-//     float fM = scrAry[M];
+
+    float fM = scrAry[M];
+    cout << "ch=" << iCh << " inital M=" << M << " and fM=" << fM << endl;
 
     /// shift M to the middle
     while(M<5000) M+=N;
     while(M>10000) M-=N;
-//     cout << "ch=" << iCh << " shifted M=" << M << endl;
+    cout << "ch=" << iCh << " shifted M=" << M << " and fM=" << scrAry[M] << endl;
 
     /// shift M by half of the window to reduce the bias
-    int m1 = M - int(R/2);
-    int m2 = M + int(R/2);
+    int m1 = M - int(R/3);
+    int m2 = M + int(R/3);
     M = scrAry[m1]>scrAry[m2]?m1:m2;
-//     cout << "ch=" << iCh << " final M=" << M << " /" << scrAry[M] << " m1->" << scrAry[m1] << " m2->" << scrAry[m2] << " fM=" << fM << endl;
+    cout << "ch=" << iCh << " final M=" << M << " /" << scrAry[M] << " m1->" << scrAry[m1] << " m2->" << scrAry[m2] << " fM=" << fM << endl;
 
     /// taking the first value
     values[iCh*L] = (scrAry[M] - scrAry[M>R?M-R:0]); 
@@ -185,8 +187,8 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
 //     cout << "M=" << M << " x=" << scrAry[M] << " b=" << M-R << endl;
     /// save values
     size_t j = 1;
-    for(int a=M-N; a>int(R); a-=N) {if(j==8) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
-    for(size_t a=M+N; a<nSamples; a+=N) {if(j==8) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
+    for(int a=M-N; a>int(R); a-=N) {if(j==L) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
+    for(size_t a=M+N; a<nSamples; a+=N) {if(j==L) break; values[iCh*L+j]=(scrAry[a]-scrAry[a-R]); j+=1;}
   }
   return;
 }

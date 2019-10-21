@@ -157,6 +157,36 @@ class Train(threading.Thread):
             ### save
             self.tree1.Fill()
 
+
+    def take_data_debug(self):
+        '''For debug, check the details of the return value evalualtion to make sure the figure of merit is reasonable
+        Will only process one set of values.
+        '''
+        s1 = self.cd.sigproc
+
+        NV = 4
+        NEVT = 1
+        Values = [[0.]*(NV*NEVT) for i in range(self.cd.nAdcCh)]
+
+        for ievt in range(NEVT):
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
+
+            self.sp.measure_multipleX(self.data1, 4000, self.t_values)
+            for ich in range(self.cd.nAdcCh):
+                for ipeak in range(NV):
+                    Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
+                print(ich,  [self.t_values[ich*NV+ipeak] for ipeak in range(NV)])
+
+        for i in range(s1.nAdcCh):
+            self.ret1[i] = -np.mean(Values[i])/np.std(Values[i])
+            print(i, self.ret1[i], np.mean(Values[i]), np.std(Values[i]))
+
+
+
+
+
     def take_data(self):
         '''return an array of FOM'''
         s1 = self.cd.sigproc
@@ -431,6 +461,8 @@ class TestClass:
         tr1.on = True
         tr1.setupOutput(oName)
 
+        tr1.take_data_debug()
+        return
 #         tr1.test_update_sensor()
         tr1.take_data()
 #         return
@@ -533,6 +565,48 @@ def test0():
 #     elist[15] = 2
 #     tc1.save_config1(elist,'new_C0_config6.json',fcName='C0_tt0.root')
 
+
+def FOM_check():
+    '''Check the figure of merit used in the tune.'''
+    ## first, let's take a sample
+    host='192.168.2.3'
+    if socket.gethostname() == 'FPGALin': host = 'localhost'
+
+    dataIpPort = (host+':1024').split(':')
+    sD = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sD.connect((dataIpPort[0],int(dataIpPort[1])))
+
+    ctrlIpPort = (host+':1025').split(':')
+    sC = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
+
+    cmd = Cmd()
+    cd1 = CommonData(cmd, dataSocket=sD, ctrlSocket=sC)
+    cd1.aoutBuf = 1 # AOUT buffer select, 0:AOUT1, 1:AOUT2, >1:disable both
+    cd1.x2gain = 2 # BufferX2 gain 
+    cd1.sdmMode = 0 # SDM working mode, 0:disabled, 1:normal operation, 2:test with signal injection 
+    cd1.bufferTest = 0 #
+    cd1.atTbounds = (4050,4150)
+
+    s1 = cd1.sigproc
+    data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+
+    cd1.dataSocket.sendall(cd1.cmd.send_pulse(1<<2));
+    buf = cd1.cmd.acquire_from_datafifo(cd1.dataSocket, cd1.nWords, cd1.sampleBuf)
+    s1.demux_fifodata(buf, data1, cd1.sdmData)
+
+
+    NVAL = 4
+    t_values = array.array('f',[0]*(s1.nAdcCh*NVAL))
+    sp = SignalProcessor()
+    sp.fltParam.clear()
+    for p in [100,200,300,500]: sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+    sp.measure_multipleX(data1, 4000, t_values)
+
+    for i in range(s1.nAdcCh):
+        print(i, [t_values[i*NVAL+j] for j in range(NVAL)])
+
 if __name__ == '__main__':
 #     test1()
-    test0()
+#     test0()
+    FOM_check()
