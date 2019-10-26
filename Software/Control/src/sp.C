@@ -167,19 +167,19 @@ void SignalProcessor::measure_multipleX(const AWBT *adcData, size_t N, float* va
     /// - find largest
     size_t M = std::distance(scrAry, std::max_element(scrAry, scrAry+nSamples));
 
-    float fM = scrAry[M];
-    cout << "ch=" << iCh << " inital M=" << M << " and fM=" << fM << endl;
+//     float fM = scrAry[M];
+//     cout << "ch=" << iCh << " inital M=" << M << " and fM=" << fM << endl;
 
     /// shift M to the middle
     while(M<5000) M+=N;
     while(M>10000) M-=N;
-    cout << "ch=" << iCh << " shifted M=" << M << " and fM=" << scrAry[M] << endl;
+//     cout << "ch=" << iCh << " shifted M=" << M << " and fM=" << scrAry[M] << endl;
 
     /// shift M by half of the window to reduce the bias
     int m1 = M - int(R/3);
     int m2 = M + int(R/3);
     M = scrAry[m1]>scrAry[m2]?m1:m2;
-    cout << "ch=" << iCh << " final M=" << M << " /" << scrAry[M] << " m1->" << scrAry[m1] << " m2->" << scrAry[m2] << " fM=" << fM << endl;
+//     cout << "ch=" << iCh << " final M=" << M << " /" << scrAry[M] << " m1->" << scrAry[m1] << " m2->" << scrAry[m2] << " fM=" << fM << endl;
 
     /// taking the first value
     values[iCh*L] = (scrAry[M] - scrAry[M>R?M-R:0]); 

@@ -77,9 +77,11 @@ class Train(threading.Thread):
         self.pltN = 20
 
         self.sp = SignalProcessor()
-        apply_config(self.sp, 'Helium')
+        self.sp.fltParam.clear()
+        for p in [100,200,900,500]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+#         apply_config(self.sp, 'Helium')
 
-        self.NVAL = 8
+        self.NVAL = 4
         s1 = self.cd.sigproc
         self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
         self.ret1 = array.array('f',[0]*s1.nAdcCh)
@@ -461,8 +463,8 @@ class TestClass:
         tr1.on = True
         tr1.setupOutput(oName)
 
-        tr1.take_data_debug()
-        return
+#         tr1.take_data_debug()
+#         return
 #         tr1.test_update_sensor()
         tr1.take_data()
 #         return
@@ -557,7 +559,7 @@ def test1():
 def test0():
     tc1 = TestClass()
     tc1.muteList = []
-    tc1.test_tune('C0_tt1.root')
+    tc1.test_tune('C0_tt2.root')
 #     elist = [0]*tc1.nCh
 #     elist = [0]*tc1.nCh
 #     elist[6] = 6
@@ -608,5 +610,5 @@ def FOM_check():
 
 if __name__ == '__main__':
 #     test1()
-#     test0()
-    FOM_check()
+    test0()
+#     FOM_check()
