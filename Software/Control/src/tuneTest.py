@@ -16,6 +16,9 @@ from ROOT import *
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from reco_config import apply_config
+import logging
+logging.basicConfig(filename='tune_test.log', level=logging.INFO)
+
 
 class tuner(threading.Thread):
     def __init__(self, idx):
@@ -189,12 +192,11 @@ class Train(threading.Thread):
 
 
 
-    def take_data(self):
+    def take_data(self, NEVT=100):
         '''return an array of FOM'''
         s1 = self.cd.sigproc
 
-        NV = 4
-        NEVT = 100
+        NV = self.NVAL
         Values = [[0.]*(NV*NEVT) for i in range(self.cd.nAdcCh)]
 
         for ievt in range(NEVT):
@@ -322,7 +324,7 @@ class TestClass:
         self.muteList = []
         self.atBounds = None
 
-    def prepare_train(self):
+    def connect(self):
         host='192.168.2.3'
         if socket.gethostname() == 'FPGALin': host = 'localhost'
 
@@ -345,7 +347,13 @@ class TestClass:
 
         sc1 = SensorConfig(cd, configFName='config/C0.json')
 
-        tr1 = Train(cd)
+        return sc1
+
+
+    def prepare_train(self):
+        sc1 = self.connect()
+
+        tr1 = Train(sc1.cd)
         tr1.tx_qs = self.rx_qs
         tr1.rx_qs = self.tx_qs
         tr1.sc = sc1
@@ -400,6 +408,84 @@ class TestClass:
         print(cList)
         self.save_config(cList, oName, fcName)
 
+    def recheck(self, fcName='C0_tt2a.root', oName='C0_tt2a_valid0.root', config_file=None):
+        '''Try the paramters tried in the tune one by one, ordered by the same Figure-Of_Merit to see if
+        the same results can be obtained. This check tries to avoid the unstable parameters'''
+
+        if config_file is None:
+            config_file = oName[:-5]+'.json'
+
+        ### sort the parameter by FOM
+        dT_wait = 50
+        N_data = 1000
+        topN = 100
+        n2 = 100 ### number of events in each take_data
+        NCheck = 1000 ### total number of events with which the results could be considered stable if they are consistent
+
+        cList = [None]*self.nCh
+        ### get the best config
+        fin = TFile(fcName,'read')
+        tree1 = fin.Get('tree1')
+        logging.info("get number of events:{0:d}".format(tree1.GetEntries()))
+
+        cut = ''
+        for ich in range(self.nCh):
+            n = tree1.Draw("ret[{0:d}]:Entry$".format(ich),cut,"goff")
+            v1 = tree1.GetV1()
+            v2 = tree1.GetV2()
+            vx = sorted([(v1[i],int(v2[i])) for i in range(n)], key=lambda x:x[0])
+            cList[ich] = vx[:topN]
+
+        ### loop over the parameters
+        tr1 = self.prepare_train()
+        tr1.setupOutput(oName)
+        nPar = len(tr1.cd.inputVs)
+
+        current_conf = [-1]*self.nCh
+#         next_conf = [0]*self.nCh
+        nCheck = 0
+        while nCheck < NCheck:
+            tr1.take_data(n2)
+            ret = tr1.ret1
+
+            allgood = True
+            inputVs = [None]*self.nCh
+            for ich in range(self.nCh):
+                vals = cList[ich]
+                icnf = current_conf[ich]
+
+                xtemp = vals[icnf][0] if icnf >= 0 else vals[0][0]
+                logging.info("Ch {0:d}. itop={1:d}, Exp {2}, get {3}, next {4}".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
+                if ret[ich] > xtemp+4 and ret[ich] > vals[icnf+1][0]:
+                    ## move to next
+                    allgood = False
+                    logging.info("Will update ch {0:d}.".format(ich))
+#                     logging.info("Will update ch {0:d}. itop={1:d}, Exp {2:.2f}, get {3:.2f}, next {4:.2f}".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
+
+                    current_conf[ich] += 1
+
+                    ### change the inputVs here
+                    ievt = vals[current_conf[ich]][1]
+                    n1 = tree1.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+                    v1 = tree1.GetV1()
+                    inputVs[ich] = [v1[j] for j in range(n1)]
+
+            ## take data
+            if allgood:
+                nCheck += n2
+                logging.info("{0:d} events checked".format(nCheck))
+            else:
+                nCheck = 0
+                ## update the configuration
+                tr1.test_update_sensor(inputVs)
+                time.sleep(dT_wait)
+
+        #### take some data
+
+        #### check the FOM
+
+        #### if it's smaller than the next, move to next one, and keep this one recorded.
+        tr1.sc.write_config_file(config_file)
 
     def validate_tune(self, fcName='C3_tt3.root', oName='C3_tt3_valid0.root'):
         '''Here will will use low frequency pulse'''
@@ -559,7 +645,8 @@ def test1():
 def test0():
     tc1 = TestClass()
     tc1.muteList = []
-    tc1.test_tune('C0_tt2.root')
+#     tc1.test_tune('C0_tt2.root')
+    tc1.recheck('C0_tt2a.root', 'C0_tt2a_valid0.root')
 #     elist = [0]*tc1.nCh
 #     elist = [0]*tc1.nCh
 #     elist[6] = 6
