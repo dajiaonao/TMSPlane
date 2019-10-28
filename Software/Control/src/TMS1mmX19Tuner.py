@@ -99,6 +99,27 @@ class CommonData(object):
     def set_sensor(self, i, l):
         self.sensorVcodes[i] = [self.tms1mmReg.dac_volt2code(v) for v in l]
 
+    def read_config_file(self, fName):
+        try:
+            with open(fName, 'r') as fp:
+                config = json.load(fp)
+                for i in range(len(config)):
+                    for j in range(len(self.voltsNames)):
+                        self.sensorVcodes[i][j] = config[repr(i)][self.voltsNames[j]]
+        except:
+            print("Problem to read config file {0:s}".format(fName))
+
+    def write_config_file(self, fName):
+        try:
+            config = {}
+            for i in range(self.nCh):
+                config[i] = dict(zip(self.voltsNames, self.sensorVcodes[i]))
+            with open(fName, 'w') as fp:
+                fp.write(json.dumps(config, sort_keys=True, indent=4))
+        except:
+            print("Problem to write config file {0:s}.".format(fName))
+
+
 class DataPanelGUI(object):
 
     ##

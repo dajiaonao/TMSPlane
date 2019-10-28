@@ -5,6 +5,7 @@ from PyDE import *
 import threading
 from Queue import Queue
 import time
+import re
 from TMS1mmX19Tuner import SensorConfig, CommonData
 import socket
 from command import *
@@ -17,7 +18,7 @@ gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from reco_config import apply_config
 import logging
-logging.basicConfig(filename='tune_test.log', level=logging.INFO)
+logging.basicConfig(filename='tune_test_C02b.log', level=logging.INFO)
 
 
 class tuner(threading.Thread):
@@ -316,13 +317,14 @@ class Train(threading.Thread):
         self.fout1.Close()
 
 class TestClass:
-    def __init__(self, nCh=19):
+    def __init__(self, nCh=19, config_file='config/default.json'):
         self.x = None
         self.tx_qs = [None]*nCh
         self.rx_qs = [None]*nCh
         self.nCh = nCh
         self.muteList = []
         self.atBounds = None
+        self.config_file = config_file
 
     def connect(self):
         host='192.168.2.3'
@@ -345,7 +347,7 @@ class TestClass:
 #         cd.atTbounds = (2650,2750)
         cd.atTbounds = (4050,4150)
 
-        sc1 = SensorConfig(cd, configFName='config/C0.json')
+        sc1 = SensorConfig(cd, configFName=self.config_file)
 
         return sc1
 
@@ -361,6 +363,7 @@ class TestClass:
         return tr1
 
     def save_config(self, cList, oName, fcName = 'Mar05Te_tt_test.root'):
+        ### cList contains the entry number in the tree
         ### base on the default configuration, overwite it with new ones
         inputVs = [None]*self.nCh
 
@@ -370,6 +373,8 @@ class TestClass:
 
         ## get the parameters
         cd = CommonData(cmd=None)
+        if self.config_file: cd.read_config_file(self.config_file)
+
         for ich in range(self.nCh):
             if cList[ich] is None: continue
 
@@ -385,7 +390,8 @@ class TestClass:
         with open(oName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 
-    def save_config1(self, cList0, oName, fcName = 'Mar05Te_tt_test.root'):
+    def save_config_by_rank(self, cList0, oName, fcName = 'Mar05Te_tt_test.root'):
+        ### The cList0 contains the rank of the choosen configuration
         ### base on the default configuration, overwite it with new ones
         inputVs = [None]*self.nCh
 
@@ -418,7 +424,7 @@ class TestClass:
         ### sort the parameter by FOM
         dT_wait = 50
         N_data = 1000
-        topN = 100
+        topN = 500
         n2 = 100 ### number of events in each take_data
         NCheck = 1000 ### total number of events with which the results could be considered stable if they are consistent
 
@@ -445,6 +451,7 @@ class TestClass:
 #         next_conf = [0]*self.nCh
         nCheck = 0
         while nCheck < NCheck:
+            logging.info("---------")
             tr1.take_data(n2)
             ret = tr1.ret1
 
@@ -455,12 +462,10 @@ class TestClass:
                 icnf = current_conf[ich]
 
                 xtemp = vals[icnf][0] if icnf >= 0 else vals[0][0]
-                logging.info("Ch {0:d}. itop={1:d}, Exp {2}, get {3}, next {4}".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
                 if ret[ich] > xtemp+4 and ret[ich] > vals[icnf+1][0]:
                     ## move to next
                     allgood = False
-                    logging.info("Will update ch {0:d}.".format(ich))
-#                     logging.info("Will update ch {0:d}. itop={1:d}, Exp {2:.2f}, get {3:.2f}, next {4:.2f}".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
+                    logging.info("Ch {0:d}. itop={1:d}, Exp {2}, get {3}, next {4} / Update".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
 
                     current_conf[ich] += 1
 
@@ -469,6 +474,8 @@ class TestClass:
                     n1 = tree1.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
                     v1 = tree1.GetV1()
                     inputVs[ich] = [v1[j] for j in range(n1)]
+                else:
+                    logging.info("Ch {0:d}. itop={1:d}, Exp {2}, get {3}, next {4}".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
 
             ## take data
             if allgood:
@@ -627,7 +634,7 @@ def test1():
 #     cList = [2148, 670, 1288, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
 #     cList = [2148, 670, 804, 2294, 2299, 420, 1521, 1297, 509, 1870, 1258, 1186, 1762,  901, 1747, 513, 1750, 1343, 2192 ]
 #     tc1.save_config(cList,'new_config.json',fcName='Mar05Te_tt_test.root')
-#     tc1.save_config1([0]*tc1.nCh,'new_C3_config.json',fcName='C3_tt3.root')
+#     tc1.save_config_by_rank([0]*tc1.nCh,'new_C3_config.json',fcName='C3_tt3.root')
     elist = [0]*tc1.nCh
 #     elist[4] = 
     elist[6] = 6
@@ -640,19 +647,57 @@ def test1():
 #     elist[14] = 
     elist[15] = 2
 #     elist[16] = 
-    tc1.save_config1(elist,'new_C3_config6.json',fcName='C3_tt6.root')
+    tc1.save_config_by_rank(elist,'new_C3_config6.json',fcName='C3_tt6.root')
+
+def getListFromFile(fname):
+    '''Get the list of best configurations for each channel from the log file.'''
+
+    ### read data from the log file
+    lines = []
+    with open(fname) as f1: lines = f1.readlines()
+
+    ### extract the needed info
+    chan_stats = []
+    for line in lines:
+        ### Ch 0. itop=-1
+        r1 = re.match('.*Ch (\d+)\. itop=(-?\d+),.*',line)
+        if r1 is not None:
+            ch,itop = int(r1.group(1)),int(r1.group(2))
+
+            print(ch,itop)
+            while len(chan_stats)<ch+1: chan_stats.append([0])
+            while len(chan_stats[ch]) < itop+2: chan_stats[ch].append(0)
+
+            chan_stats[ch][itop+1] += 1
+    for ch in range(len(chan_stats)):
+        print(ch, '-->', chan_stats[ch])
+
+    ret = []
+    for ch in range(len(chan_stats)):
+        total = sum(chan_stats[ch])
+        ax = sorted(enumerate(chan_stats[ch]), key=lambda x:x[1], reverse=True)
+        print(ch, ax[0][0]-1, ax[0][1]/float(total), total)
+
+        idx = ax[0][0]-1 if ax[0][0]>0 else None
+        ret.append(idx)
+
+    print(ret)
+    return ret
+
 
 def test0():
-    tc1 = TestClass()
+    tc1 = TestClass(config_file='config/C0.json')
     tc1.muteList = []
 #     tc1.test_tune('C0_tt2.root')
-    tc1.recheck('C0_tt2a.root', 'C0_tt2a_valid0.root')
+    tc1.recheck('C0_tt2a.root', 'C0_tt2b_valid0.root')
+#     elist = getListFromFile('tune_test.log')
+#     tc1.save_config_by_rank(elist,'new_C0_config1.json',fcName='C0_tt2a.root')
 #     elist = [0]*tc1.nCh
 #     elist = [0]*tc1.nCh
 #     elist[6] = 6
 #     elist[11] = 2
 #     elist[15] = 2
-#     tc1.save_config1(elist,'new_C0_config6.json',fcName='C0_tt0.root')
+#     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
 
 
 def FOM_check():
@@ -698,4 +743,5 @@ def FOM_check():
 if __name__ == '__main__':
 #     test1()
     test0()
+#     getListFromFile('tune_test.log')
 #     FOM_check()
