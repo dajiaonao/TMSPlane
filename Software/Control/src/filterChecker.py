@@ -38,11 +38,13 @@ class filterChecker:
 #         data1 = array.array('f',[0]*nData)
         s1 = SigProc(nSamples, nAdcCh, nCh, 5) 
         data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+        ret1  = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nAdcCh)()
 
         
         f1 = TFile(fname,'read')
         tree1 = f1.Get('tree1')
         tree1.SetBranchAddress('adc',data1)
+        tree1.SetBranchAddress('ret',ret1)
         tree1.Show(0)
 
 #         return
@@ -77,6 +79,7 @@ class filterChecker:
         while entry>=0:
             
             tree1.GetEntry(entry)
+            print("ret:", ret1[ich])
             sp1.filter_channel(ich, data1)
 
             ax1.clear()
@@ -213,7 +216,8 @@ class filterChecker:
 def test1():
     fc1 = filterChecker()
 #     fc1.online_check()
-    fc1.offline_check()
+#     fc1.offline_check()
+    fc1.offline_check('C0_tt2c_valid0.root')
 
 if __name__ == '__main__':
     test1()

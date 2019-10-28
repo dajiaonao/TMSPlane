@@ -689,9 +689,9 @@ def test0():
     tc1 = TestClass(config_file='config/C0.json')
     tc1.muteList = []
 #     tc1.test_tune('C0_tt2.root')
-    tc1.recheck('C0_tt2a.root', 'C0_tt2c_valid0.root')
-#     elist = getListFromFile('tune_test.log')
-#     tc1.save_config_by_rank(elist,'new_C0_config1.json',fcName='C0_tt2a.root')
+#     tc1.recheck('C0_tt2a.root', 'C0_tt2c_valid0.root')
+    elist = getListFromFile('tune_test_C02c.log')
+    tc1.save_config_by_rank(elist,'new_C02c_config1.json',fcName='C0_tt2a.root')
 #     elist = [0]*tc1.nCh
 #     elist = [0]*tc1.nCh
 #     elist[6] = 6
