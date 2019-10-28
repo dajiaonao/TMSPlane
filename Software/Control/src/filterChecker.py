@@ -90,6 +90,7 @@ class filterChecker:
             ylim2 = ax2.get_ylim()
             x1 = min(ylim1[0], ylim2[0]+vo[0])
             x2 = max(ylim1[1], ylim2[1]+vo[0])
+            ax1.set_xlim(0,nSamples)
             ax1.set_ylim(x1,x2)
             ax2.set_ylim(x1-vo[0],x2-vo[0])
 
