@@ -3,6 +3,7 @@
 '''
 import socket
 import time
+import sys
 
 class Handle:
     def __init__(self, s):
@@ -50,7 +51,7 @@ class Rigol:
         ### [:SOURce<n>]:APPLy:SQUare [<freq>[,<amp>[,<offset>[,<phase>]]]] //:APPLy:SQUare 100,2.5,0.5,90
 
         ### source1 for trigger: 3.3V Square output
-        self._instr.write(":SOURce1:APPLy:SQUare {0:d},3.3,1.65,90".format(freq))
+        self._instr.write(":SOURce1:APPLy:SQUare {0:d},3.3,1.65,0".format(freq))
 
         ### source2 for trigger: 3.3V Square output
         self._instr.write(":SOURce2:FUNCtion USER")
@@ -66,13 +67,46 @@ class Rigol:
 #         print a
 
         string = ':DATA:DAC VOLATILE,'
-        string += ','.join(['{0:d}'.format(x*16384/120) for x in range(120)])
-#         string += ','.join(['{0:.2f}'.format(1.-0.01*x) for x in range(20)])
-
+        string += ','.join(['0' for i in range(100)]+['{0:d}'.format(x*16384/120) for x in range(120)]+['16384']*20)
         print string
         self._instr.write(string)
 
+        ### coupling
+        ## :COUPling:CHannel:BASE CH1|CH2
+        ## :COUPling:CHannel:BASE?
+        ## :COUPling:FREQuency[:STATe] ON|OFF
+        ## :COUPling:FREQuency[:STATe]?
+        ## :COUPling:FREQuency:DEViation <deviation>
+        ## :COUPling:FREQuency:DEViation?
+        ## :COUPling:PHASe[:STATe] ON|OFF
+        ## :COUPling:PHASe[:STATe]? 
+        ## :COUPling:PHASe:DEViation <deviation>
+        ## :COUPling:PHASe:DEViation?
+        ## :COUPling[:STATe] ON|OFF
+        ## :COUPling[:STATe]?
+        ## :COUPling:AMPL[:STATe] ON|OFF
+        ## :COUPling:AMPL[:STATe]?  
+        ## :COUPling:AMPL:DEViation <deviation>
+        ## :COUPling:AMPL:DEViation?
 
+        self._instr.write(":COUPling:CHannel:BASE CH1")
+        self._instr.write(":COUPling:PHASe ON")
+        self._instr.write(":COUPling:PHASe:DEViation 340")
+
+        ### output
+        ## :OUTPut[<n>][:STATe] ON|OFF
+        ## :OUTPut[<n>][:STATe]?
+        self._instr.write(":OUTPut1 ON")
+        self._instr.write(":OUTPut2 ON")
+
+    def setPulseV(self, dV=0.1, lV=0.2):
+        if len(sys.argv)>1: dV = float(sys.argv[1])
+        self._instr.write(":SOURce2:VOLTage:HIGH {0:g}".format(dV+lV))
+
+    def tune(self):
+#         self._instr.write(":COUPling:PHASe:DEViation 340")
+        var1 = sys.argv[1]
+        self._instr.write(":COUPling:PHASe:DEViation "+var1)
 
     def normal_run(self):
         '''normal_run'''
@@ -147,7 +181,9 @@ def test2():
     r1 = Rigol()
     r1.connect()
 #     r1.test_volatile()
-    r1.calibration()
+#     r1.calibration()
+    r1.setPulseV()
+#     r1.tune()
 #     r1.test(20)
 
 def test1():
