@@ -11,6 +11,7 @@ from ROOT import *
 from subprocess import call
 from math import isnan
 from datetime import datetime, timedelta
+from Rigol import Rigol
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -137,11 +138,21 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
         if status: break
         nSample += 1
 
+def take_calibration():
+    rg1 = Rigol()
+    rg1.connect()
+
+    for dV in [0.02, 0.04, 0.06, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]:
+        rg1.setPulseV(dV)
+        tag1 = '_{0:d}mV'.format(int(dV*1000))
+        take_data(sTag='Nov04d'+tag1,n=1000, N=5, dirx='raw/Nov04d',nm=200)
+
 if __name__ == '__main__':
 #     useLHCbStyle()
 #       take_data(sTag='Sep12b1',n=1000, N=-1, dirx='raw/Sep12b')
 #       take_data(sTag='Oct09a',n=2000, N=5, dirx='raw/Oct09a',nm=200)
 #       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
-      take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
+#       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
+    take_calibration()

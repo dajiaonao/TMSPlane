@@ -144,6 +144,7 @@ class DataUpdater(threading.Thread):
         if len(files)>0:
             f = files[-1]
             if f != self.currentFile: self.update_tree(f)
+
     def update_tree(self, f):
         tFile = TFile(f,'read')
         tree = tFile.Get('tree1')
@@ -166,6 +167,11 @@ class DataUpdater(threading.Thread):
         with self.cd.cv:
             while not self.cd.quit:
                 self.get_file()
+                if self.tFile is None:
+                    print "No file"
+                    time.sleep(10)
+                    continue
+
                 self.tree.Refresh()
                 n = self.tree.GetEntries()
                 if n==0:
@@ -186,7 +192,7 @@ class DataUpdater(threading.Thread):
 def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     cd = CommonData()
     root = tk.Tk()
-    dataPanel = DataPanelGUI(root, cd, visibleChannels=None, guiI=False)
+    dataPanel = DataPanelGUI(root, cd, visibleChannels=None)
 
     du1 = DataUpdater(cd, dataPanel)
     du1.fPattern = pattern
@@ -200,7 +206,7 @@ def view(fname='data/fpgaLin/tt_test.root'):
 
     cd = CommonData()
     root = tk.Tk()
-    dataPanel = DataPanelGUI(root, cd, visibleChannels=None, guiI=False)
+    dataPanel = DataPanelGUI(root, cd, visibleChannels=None)
 
     dv1 = DataViewer(cd, dataPanel)
     dv1.fName = fname
