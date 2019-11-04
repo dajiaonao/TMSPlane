@@ -18,6 +18,7 @@ from command import *
 from sigproc import *
 import TMS1mmX19Config
 from PyDE import *
+import logging
 
 if sys.version_info[0] < 3:
     import Tkinter as tk
@@ -41,7 +42,7 @@ class CommonData(object):
         self.cmd = cmd
         self.dataSocket = dataSocket
         self.ctrlSocket = ctrlSocket
-        self.dataFName = ["adc.dat", "sdm.dat"]
+        self.dataFName = ["temp_dat/adc.dat", "temp_dat/sdm.dat"]
         # number of chips
         self.nCh = 19
         self.nAdcCh = 20
@@ -101,6 +102,27 @@ class CommonData(object):
     def set_sensor(self, i, l):
         self.sensorVcodes[i] = [self.tms1mmReg.dac_volt2code(v) for v in l]
 
+    def read_config_file(self, fName):
+        try:
+            with open(fName, 'r') as fp:
+                config = json.load(fp)
+                for i in range(len(config)):
+                    for j in range(len(self.voltsNames)):
+                        self.sensorVcodes[i][j] = config[repr(i)][self.voltsNames[j]]
+        except:
+            print("Problem to read config file {0:s}".format(fName))
+
+    def write_config_file(self, fName):
+        try:
+            config = {}
+            for i in range(self.nCh):
+                config[i] = dict(zip(self.voltsNames, self.sensorVcodes[i]))
+            with open(fName, 'w') as fp:
+                fp.write(json.dumps(config, sort_keys=True, indent=4))
+        except:
+            print("Problem to write config file {0:s}.".format(fName))
+
+
 class DataPanelGUI(object):
 
     ##
@@ -148,18 +170,18 @@ class DataPanelGUI(object):
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
         #
-        if guiI:
-            self.buttonFrame = tk.Frame(self.master)
-            self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
-            self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
-            self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
-            self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
+#         self.buttonFrame = tk.Frame(self.master)
+#         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+#         self.resampleButton = tk.Button(master=self.buttonFrame, text='Re-sample', command=self.get_and_plot_data)
+#         self.resampleButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+#         self.refreshButton = tk.Button(master=self.buttonFrame, text='Refresh', command=self.plot_data)
+#         self.refreshButton.pack(side=tk.RIGHT, fill=tk.X)
         #
         self.plot_data()
 
     def on_key_event(self, event):
         print('You pressed {:s}'.format(event.key))
+        print (event.key, event.key=='r')
         key_press_handler(event, self.dataPlotsCanvas, self.dataPlotsToolbar)
 
     def on_resize(self, event):
@@ -266,11 +288,14 @@ class DataPanelGUI(object):
 
 class ControlPanelGUI(object):
 
-    def __init__(self, master, cd):
+    def __init__(self, master, cd, data_panel=None):
         self.master = master
         self.cd = cd
         self.nVolts = self.cd.nVolts
         self.nCh = self.cd.nCh
+
+        self.sensor_config = None
+        self.data_panel = data_panel
 
         # appropriate quitting
         master.wm_protocol("WM_DELETE_WINDOW", self.quit)
@@ -356,8 +381,10 @@ class ControlPanelGUI(object):
         self.buttonFrame.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
         self.autoTuneButton = tk.Button(master=self.buttonFrame, text='AutoTune', command=self.auto_tune)
         self.autoTuneButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        self.autoTuneButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
-        self.autoTuneButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+        self.autoSaveButton = tk.Button(master=self.buttonFrame, text='Save', command=self.save_config)
+        self.autoSaveButton.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.autoSampleButton = tk.Button(master=self.buttonFrame, text='Sample', command=self.data_panel.get_and_plot_data)
+        self.autoSampleButton.pack(side=tk.RIGHT, fill=tk.X, expand=True)
 
 
         # self-updating functions
@@ -409,6 +436,10 @@ class ControlPanelGUI(object):
             self.cd.vUpdated = True
             print(self.cd.inputVcodes)
         return True
+
+    def save_config(self):
+        if self.sensor_config is not None:
+            self.sensor_config.write_config_file()
 
     def auto_tune(self, *args):
         startTime = datetime.now()
@@ -476,9 +507,7 @@ class SensorConfig(threading.Thread):
                                       2 : [7, 1, 0, 4, 13],
                                       3 : [18, 6, 5, 14],
                                       4 : [17, 16, 15]}
-        self.configFName = configFName
-        self.read_config_file()
-        #
+        self.read_config_file(configFName)
         self.set_global_defaults()
 
     def run(self):
@@ -604,14 +633,16 @@ class SensorConfig(threading.Thread):
     def read_config_file(self, fName=None):
         if fName:
             self.configFName = fName
-        if os.path.isfile(self.configFName):
-            with open(self.configFName, 'r') as fp:
-                config = json.load(fp)
-                for i in range(len(config)):
-                    for j in range(len(self.cd.voltsNames)):
-                        self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
-        else:
-            return self.cd.sensorVcodes
+            if os.path.isfile(self.configFName):
+                with open(self.configFName, 'r') as fp:
+                    config = json.load(fp)
+                    for i in range(len(config)):
+                        for j in range(len(self.cd.voltsNames)):
+                            self.cd.sensorVcodes[i][j] = config[repr(i)][self.cd.voltsNames[j]]
+            else:
+                logging.warning("config file {0:s} does not exist".format(self.configFName))
+            
+        return self.cd.sensorVcodes
 
     def write_config_file(self, fName=None):
         if fName:
@@ -628,7 +659,6 @@ class SensorConfig(threading.Thread):
             config[i] = dict(zip(self.cd.voltsNames, sensorVcodes[i]))
         with open(fName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
-
 
 if __name__ == "__main__":
 
@@ -666,10 +696,16 @@ if __name__ == "__main__":
     #
     root = tk.Tk()
     root.wm_title("Topmetal-S 1mm version x19 array Tuner")
-    controlPanel = ControlPanelGUI(root, cd)
-    #
+
+    # data
     dataPanelMaster = tk.Toplevel(root)
     dataPanel = DataPanelGUI(dataPanelMaster, cd, visibleChannels=eval(args.visible_channels))
+
+    ## control
+    controlPanel = ControlPanelGUI(root, cd, data_panel = dataPanel)
+    controlPanel.sensor_config = sensorConfig
+#     controlPanel.data_panel = dataPanel
+
     root.mainloop()
     # If you put root.destroy() here, it will cause an error if
     # the window is closed with the window manager.
