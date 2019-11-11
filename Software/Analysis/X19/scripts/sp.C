@@ -123,7 +123,11 @@ class SignalProcessor{
 
   void test2();
   void check_signal(size_t idx, vector< Sig >* v);
+
+  /// simple method
   int measure_pulse(const AWBT *adcData, int chan=-1);
+
+  /// extract more info about the pulse, for example the width
   int measure_pulse2(const AWBT *adcData, int chan=-1);
   vector < Event >* get_events(){return &IO_evts;}
 

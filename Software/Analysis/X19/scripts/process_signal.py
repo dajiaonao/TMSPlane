@@ -412,7 +412,64 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     tup1.Write()
     fout1.Close()
 
+
+def readSignal2a(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on readSignal2, but only one range'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print("Starting", inRoot, oTag)
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_data_\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print("Failed to get the dV in file:", iRoot)
+
+    ### run info
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            run = int(m.group(1))
+    print(run)
+
+    sp1 = SignalProcessor(16384,20)
+    apply_config(sp1, 'Lithium')
+   
+    ### special configuration not given in the reco_config
+    sp1.sRanges.clear()
+    sp1.sRanges.push_back((3500, 3501))
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:im:idx:A:T:dV')
+
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse(data1)
+        for i in range(sp1.nAdcCh):
+            itmp = sp1.nMeasParam*i
+            for j in range(sp1.nMeasParam/2-1):
+                tup1.Fill(run, ievt, i, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3], dataT[0]-788947200, dV)
+
+    tup1.Write()
+    fout1.Close()
+
 def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
+    '''Write out root file and add more info'''
     if oTag is None:
         oTag = readSignal2.oTag
     print("Starting", inRoot, oTag)
@@ -667,8 +724,6 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
     p = Pool(nThread)
     p.map(funX, [f+';'+oTag for f in files])
 
-
-
 if __name__ == '__main__':
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
@@ -704,7 +759,9 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01c_', False, 3)
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19b/Sep19b_data_3.root', 'atpx01c_', False, 3)
-    process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 'atpx01c_', False, 3)
+#     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 'atpx01c_', False, 3)
+    process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
+#     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')

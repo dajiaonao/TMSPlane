@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 #!/usr/bin/env python36
 '''The script is used to calculate the calibration parameters'''
 
@@ -264,9 +265,10 @@ class calibTester:
         self.autoSave = sDirectly
         self.lt = TLatex()
         self.nCh = 19
+        self.vBinning = ('82,0,0.82','V')
 
     def setTitles(self,h,ztitle=None):
-        h.GetXaxis().SetTitle('Pulse [V]')
+        h.GetXaxis().SetTitle('Pulse ['+self.vBinning[1]+']')
         h.GetYaxis().SetTitle('Channel')
         if ztitle is not None: h.GetZaxis().SetTitle(ztitle)
 
@@ -277,24 +279,35 @@ class calibTester:
         gStyle.SetPadRightMargin(0.15)
 
         ### fit status
-        tree1.Draw('fStatus:chan:V>>hStatus(82,0,0.82,19,0,19)',"","prof colz")
+        tree1.Draw('fStatus:chan:V>>hStatus('+self.vBinning[0]+',19,-0.5,18.5)',"","prof colz")
         hStatus = gPad.GetPrimitive('hStatus')
         self.setTitles(hStatus, "Fit status")
         waitRootCmdX(self.sDir+self.sTag+"fStatus",self.autoSave)
 
-        tree1.Draw('-log10(fProb):chan:V>>hProb(82,0,0.82,19,0,19)',"fStatus==0","prof colz")
+        tree1.Draw('-log10(fProb):chan:V>>hProb('+self.vBinning[0]+',19,-0.5,18.5)',"fStatus==0","prof colz")
         hProb = gPad.GetPrimitive('hProb')
         self.setTitles(hProb, "-log_{10}(P_{Fit})")
         hProb.GetZaxis().SetRangeUser(0,7)
         waitRootCmdX(self.sDir+self.sTag+"fProb",self.autoSave)
 
         #### ENC
-        tree1.SetAlias('enc','sigma/mean*V*7410')
-        tree1.Draw('enc:chan:V>>hENC(82,0,0.82,19,0,19)',"fStatus==0&&fProb>0.005","prof colz")
+        if self.vBinning[1] == 'V':
+            tree1.SetAlias('enc','sigma/mean*V*7410')
+        elif self.vBinning[1] == 'mV':
+            tree1.SetAlias('enc','sigma/mean*V*7.41')
+        else:
+            print("Wrong unit for pulse!!!!!")
+            return
+
+        tree1.Draw('enc:chan:V>>hENC('+self.vBinning[0]+',19,-0.5,18.5)',"fStatus==0&&fProb>0.005","prof colz")
         hENC = gPad.GetPrimitive('hENC')
         self.setTitles(hENC, "ENC [e]")
         hENC.GetZaxis().SetRangeUser(0,200)
         waitRootCmdX(self.sDir+self.sTag+"fENC",self.autoSave)
+
+    def linearity(self,gr):
+        return 0
+#         gr.Fit('pol1')
 
     def showCalib(self):
         gStyle.SetPadRightMargin(0.05)
@@ -310,20 +323,85 @@ class calibTester:
             h1.GetYaxis().SetTitle("N [e]")
             self.lt.DrawLatexNDC(0.2,0.8,"Chan "+str(i))
             
+
             waitRootCmdX(self.sDir+self.sTag+"calib_chan"+str(i),self.autoSave)
 
-def check_calibration(fname):
+def check_calibration(fname, vbinning=None):
     useNxStyle()
     gStyle.SetPalette(55)
-    gStyle.SetNdivisions(510,'xyz')
+    gStyle.SetNdivisions(510,'xz')
+    gStyle.SetNdivisions(220,'y')
 
     ct1 = calibTester(fname)
+    if vbinning is not None: ct1.vBinning = vbinning
     ct1.showBasics()
     ct1.showCalib()
 
+def run_simple_calibration(infiles,outTag=''):
+    ch1 = TChain('tup1')
+    for f in infiles: ch1.Add(f)
+
+    dVs = set()
+    chs = set()
+
+    n = ch1.Draw('dV:ch',"",'goff')
+    v1 = ch1.GetV1()
+    v2 = ch1.GetV2()
+    for i in range(n):
+        dVs.add(int(v1[i]))
+        chs.add(int(v2[i]))
+    chList = sorted(chs)
+    dVList = sorted(dVs)
+    print(chList)
+    print(dVList)
+
+    nCh = 20
+    ### start fitting
+    d1 = [0]*nCh
+    fout = TFile(outTag+'calib_out.root','recreate')
+    tup1 = TNtuple('calib','calibration info','chan:V:nEvt:mean:meanErr:sigma:sigmaErr:fProb:fStatus')
+
+    for v in dVList:
+        for ich in chList:
+            hName = 'h_'+str(ich)+'_'+str(v)
+            n = ch1.Draw('A>>'+hName,'ch=={0:d}&&dV=={1:d}'.format(ich, v),'goff')
+            print(n)
+            if n<1: 
+                tup1.Fill(ich,v,n,-1, -1, -1, -1, -1,-1)
+                continue
+            h1 = gDirectory.Get(hName)
+            r = h1.Fit('gaus','S')
+            fun1 = h1.GetFunction('gaus')
+            nC = 7.41*v
+            enc = nC*fun1.GetParameter(2)/fun1.GetParameter(1)
+
+            tup1.Fill(ich,v,n,fun1.GetParameter(1), fun1.GetParError(1), fun1.GetParameter(2), fun1.GetParError(2), r.Prob(), r.Status())
+
+            print(enc, r.Prob())
+
+            fout.cd()
+            h1.Write()
+
+            d1[ich] = (fun1.GetParameter(1)/v,fun1.GetParameter(2))
+    print(d1)
+
+    tup1.Write()
+
+    for ich in chList:
+        gr = get_gr(tup1,ich)
+        gr.Write('calib_gr_'+str(ich))
+
+    fout.Close()
+
+def make_calibration_file_C0():
+    dir1 = '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c'
+    run_simple_calibration([dir1+'/s2a_*.root'],'C0_')
+
 def test():
 #     make_calibration_file()
-    make_calibration_file_C3()
+#     make_calibration_file_C3()
+#     make_calibration_file_C0()
+    check_calibration('C0_calib_out.root',vbinning=('20,10,410','mV'))
 
 #     check_calibration('C3_calib_out0_save.root')
 #     check_calibration('C3_calib_out0_v2.root')
