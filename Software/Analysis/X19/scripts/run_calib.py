@@ -2,9 +2,10 @@
 #!/usr/bin/env python36
 '''The script is used to calculate the calibration parameters'''
 
-from ROOT import TChain, gDirectory, TFile, TNtuple, TGraphErrors, gStyle, gPad, gROOT, TLatex
+from ROOT import TCanvas, TChain, gDirectory, TFile, TNtuple, TGraphErrors, gStyle, gPad, gROOT, TLatex, TH1F
 from array import array
 import heapq
+import re
 from rootUtil3 import waitRootCmdX, useNxStyle, get_default_fig_dir
 
 sDir = get_default_fig_dir()
@@ -272,6 +273,37 @@ class calibTester:
         h.GetYaxis().SetTitle('Channel')
         if ztitle is not None: h.GetZaxis().SetTitle(ztitle)
 
+    def plotHistos(self,ch):
+        keys = [k for k in self.calibFile.GetListOfKeys() if re.match('h_{0:d}_(\d)'.format(ch), k.GetName()) is not None]
+
+        maxx = -1
+        minx = 0
+        maxy = 0
+        for k in keys:
+            h = k.ReadObj()
+            print(k.GetName())
+            v = re.match('h_{0:d}_(\d)'.format(ch),k.GetName()).group(1)
+#             h.Draw()
+            print(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
+            print(h.GetXaxis().GetBinLowEdge(1))
+            a = h.GetXaxis().GetBinUpEdge(h.GetNbinsX())
+            if a>maxx: maxx = a
+            b = h.GetXaxis().GetBinLowEdge(1)
+            if b<minx: minx = b
+            c = h.GetBinContent(h.GetMaximumBin())
+            if c>maxy: maxy = c
+
+        ht = TH1F('ht','ht',100,minx, maxx)
+        ht.Draw()
+        ht.GetYaxis().SetRangeUser(0,maxy)
+        for k in keys:
+            h = k.ReadObj()
+            h.Draw('PLC same')
+
+        self.lt.DrawLatexNDC(0.2,0.86,"Channel {0:d}".format(ch))
+        ht.GetXaxis().SetTitle('Output [V]')
+        waitRootCmdX(self.sDir+self.sTag+"pulses",self.autoSave)
+
     def showBasics(self):
         tree1 = self.calibFile.Get('calib')
         tree1.Show(0)
@@ -305,9 +337,34 @@ class calibTester:
         hENC.GetZaxis().SetRangeUser(0,200)
         waitRootCmdX(self.sDir+self.sTag+"fENC",self.autoSave)
 
+        tree1.Draw('enc:chan>>hENC2(19,-0.5,18.5,50,0,250)',"fStatus==0&&fProb>0.005","colz")
+        hENC2 = gPad.GetPrimitive('hENC2')
+        hENC2.GetXaxis().SetTitle("Channel")
+        hENC2.GetYaxis().SetTitle("ENC [e]")
+        waitRootCmdX(self.sDir+self.sTag+"fENC2",self.autoSave)
+
     def linearity(self,gr):
         return 0
 #         gr.Fit('pol1')
+
+    def showCalib0(self):
+        '''Draw all plots in the same cavas'''
+        ca = TCanvas('cav',"cav1",1200,800)
+        ca.Divide(4,5)
+        for i in range(self.nCh):
+            print(i)
+            gr = self.calibFile.Get('calib_gr_'+str(i))
+            gr.SetLineColor(2)
+            gr.SetMarkerColor(2)
+            ca.cd(i+1)
+            gr.Draw('APL')
+            h1 = gr.GetHistogram()
+            h1.GetXaxis().SetTitle("Raw output [V]")
+            h1.GetYaxis().SetTitle("N [e]")
+            self.lt.DrawLatexNDC(0.2,0.8,"Chan "+str(i))
+
+        ca.cd()
+        waitRootCmdX(self.sDir+self.sTag+"calib_all",self.autoSave)
 
     def showCalib(self):
         gStyle.SetPadRightMargin(0.05)
@@ -334,8 +391,10 @@ def check_calibration(fname, vbinning=None):
 
     ct1 = calibTester(fname)
     if vbinning is not None: ct1.vBinning = vbinning
-    ct1.showBasics()
-    ct1.showCalib()
+    ct1.plotHistos(6)
+#     ct1.showBasics()
+#     ct1.showCalib()
+#     ct1.showCalib0()
 
 def run_simple_calibration(infiles,outTag=''):
     ch1 = TChain('tup1')

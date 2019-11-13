@@ -138,7 +138,7 @@ class filterChecker:
             elif len(x)>2 and x[:2] == 'ch':
                 try:
                     ch_temp = int(x[2:]) 
-                    if chan<self.nAdcCh:
+                    if ch_temp<self.nAdcCh:
                         print("Switching to channel:", self.chan)
                         self.chan = ch_temp
                     else: print("Channel number out of range:", ch_temp, "Max:", self.nAdcCh-1)

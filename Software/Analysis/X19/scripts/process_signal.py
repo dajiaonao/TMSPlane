@@ -652,6 +652,7 @@ def check_calib():
     sp1.nAdcCh = 20
 
     ### setup the calibration file
+#     fin1 = TFile('fout_calib.root')
     fin1 = TFile('fout_calib.root')
     sp1.corr_spine.clear()
     sp1.corr_TF1.clear()
@@ -665,8 +666,6 @@ def check_calib():
     for x in sp1.corr_spine[5].GetX():
         t = 1
         print(sp1.correction(1,x)*t, sp1.correction(1,x, 1)*t, '|', sp1.correction(5,x)*t, sp1.correction(5,x, 1)*t)
-
-
 
 def test3(pList, pTag='Feb25a', skipExist=True):
     tasks = []
