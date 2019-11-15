@@ -154,4 +154,38 @@ def apply_config(sp1, config_code):
 
         ### we are done
         return "Li7/a" ### anything after slash is a development tag, frozen configurations does not have a slash
+    elif config_code == 'Lithium/b':
+        ### search window
+        sp1.CF_uSize = 600
+        sp1.CF_dSize = 1100
+
+        ## threshold
+        thre = [0.001]*sp1.nAdcCh
+        thre[5] = 0.002
+        thre[19] = 0.02
+
+        sp1.ch_thre.clear()
+        for x in thre: sp1.ch_thre.push_back(x)
+
+        ### filter configuration
+        fltParam = [100,300,400,80]
+        sp1.fltParam.clear()
+        for p in fltParam: sp1.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+
+        scale = 1
+        P = 3000;
+
+        ## channelwise configuration
+        sp1.CF_chan_en.clear()
+        sp1.IO_mAvg.clear()
+        for i in range(sp1.nAdcCh):
+            sp1.CF_chan_en.push_back(1)
+            sp1.IO_mAvg.push_back(0.)
+            sp1.CF_decayC[i] = P
+
+        sp1.CF_decayC[1] = 9000
+        sp1.CF_decayC[5] = 80
+        
+        ### we are done
+        return "Li7/b" ### anything after slash is a development tag, frozen configurations does not have a slash
     return 0

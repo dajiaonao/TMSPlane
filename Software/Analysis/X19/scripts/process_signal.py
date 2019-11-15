@@ -126,6 +126,67 @@ def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
     tf = sp1.processFile(tree1, tree2, outRoot, run)
     tf.Close()
 
+def readSignal4d(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on readSignal4c; Take the dV from the tuple instead of the input file name.'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print("Starting", inRoot, oTag)
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print("Run number not exatracted for file", iRoot)
+                return
+        else:
+            if dV<0:
+                print("Run number not exatracted for file", iRoot)
+                return
+
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Lithium/b')
+
+    ### IO configuration
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+    dataV = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+    tree1.SetBranchAddress('V',dataV)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T:dV')
+    a = TObjString("filter:"+str(sp1.fltParam))
+    a.Write('Info')
+
+    chs = [1,5]
+#     chs = [i for i in range(19)]
+    chx = chs[0] if (chs and len(chs)==1) else -1
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse2(data1, chx)
+        for ich in range(sp1.nAdcCh):
+            if chs and (ich not in chs): continue
+            ss = sp1.signals[ich]
+
+            itmp = sp1.nMeasParam*ich
+            iA = 0
+            for ii in ss:
+                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200,dataV[0])
+                iA += 1
+
+    tup1.Write()
+    fout1.Close()
+
 def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
     '''Based on readSignal4b; for single channel. And IO is from readSignal3'''
     args = argX.split(';')
@@ -712,7 +773,7 @@ def process_all_match4(pattern, oTag, skipExist=True):
 
 def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
 #     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
-    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Apr','/'+oTag+'Apr'))))], key=lambda f:os.path.getmtime(f))
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Nov','/'+oTag+'Nov'))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
         print("No files matchs.... Aborting...")
         return
@@ -722,6 +783,18 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
 
     p = Pool(nThread)
     p.map(funX, [f+';'+oTag for f in files])
+
+def process_all_matchY(funX, pattern, oTag, skipExist=True):
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Nov','/'+oTag+'Nov'))))], key=lambda f:os.path.getmtime(f))
+    if len(files)==0:
+        print("No files matchs.... Aborting...")
+        return
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print("dropping the latest file, which probably is still being written:", files[-1])
+        files.pop()
+
+    for a in [f+';'+oTag for f in files]: funX(a)
+
 
 if __name__ == '__main__':
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
@@ -759,7 +832,10 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19a/Sep19a_data_0.root', 'atpx01c_', False, 3)
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/data/Sep19b/Sep19b_data_3.root', 'atpx01c_', False, 3)
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 'atpx01c_', False, 3)
-    process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
+#     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
+#     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p2_data_0.root*', 's2a_', False, 3)
+    process_all_matchX(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True, 6)
+#     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
