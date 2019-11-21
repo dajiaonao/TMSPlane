@@ -11,6 +11,7 @@ from ROOT import *
 from subprocess import call
 from math import isnan
 from datetime import datetime, timedelta
+from Rigol import Rigol
 
 def waitRootCmdY():
     a = raw_input("waiting...")
@@ -39,9 +40,8 @@ class DataRecorder:
         self.s.connect((ctrlipport[0],int(ctrlipport[1])))
         self.connected = True
 
-    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0):
+    def take_samples2(self, n=10, outRootName='test_sample.root', runNumber=0, nMonitor = 20):
         if not self.connected: self.connect()
-        nMonitor = 20
 
         s1 = SigProc(nSamples=16384, nAdcCh=20, nSdmCh=19, adcSdmCycRatio=5)
         data1 = s1.generate_adcDataBuf()
@@ -91,9 +91,9 @@ class DataRecorder:
         fout1.Write()
         return status
 
-def take_data(sTag, n=5000, N=-1, dirx=None):
+def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000):
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     ### put in a dedicated direcotry
@@ -108,7 +108,7 @@ def take_data(sTag, n=5000, N=-1, dirx=None):
     nSample = 0
     while nSample != N:
         print "Start sample {0:d}".format(nSample)
-        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
 
@@ -116,7 +116,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     ''' Take data for Tmin minutes'''
 
     sc1 = DataRecorder()
-    sc1.control_ip_port = "localhost:1024"
+#     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
     sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
@@ -138,7 +138,21 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
         if status: break
         nSample += 1
 
+def take_calibration():
+    rg1 = Rigol()
+    rg1.connect()
+
+    for dV in [0.02, 0.04, 0.06, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]:
+        rg1.setPulseV(dV)
+        tag1 = '_{0:d}mV'.format(int(dV*1000))
+        take_data(sTag='Nov04d'+tag1,n=1000, N=5, dirx='raw/Nov04d',nm=200)
+
 if __name__ == '__main__':
 #     useLHCbStyle()
+#       take_data(sTag='Sep12b1',n=1000, N=-1, dirx='raw/Sep12b')
+#       take_data(sTag='Oct09a',n=2000, N=5, dirx='raw/Oct09a',nm=200)
+#       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
+#       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
-      take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
+#       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
+    take_calibration()

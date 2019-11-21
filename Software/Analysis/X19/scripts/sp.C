@@ -22,6 +22,7 @@ typedef ANALYSIS_WAVEFORM_BASE_TYPE AWBT;
 int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
                         size_t k, size_t l, double M)
 {
+//   cout << "k=" << k << " l=" << l << " M=" << M << endl;
     double s, pp;
     ssize_t j, jk, jl, jkl;
     double vj, vjk, vjl, vjkl, dkl;
@@ -122,7 +123,11 @@ class SignalProcessor{
 
   void test2();
   void check_signal(size_t idx, vector< Sig >* v);
+
+  /// simple method
   int measure_pulse(const AWBT *adcData, int chan=-1);
+
+  /// extract more info about the pulse, for example the width
   int measure_pulse2(const AWBT *adcData, int chan=-1);
   vector < Event >* get_events(){return &IO_evts;}
 
@@ -570,7 +575,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 //             cout << "l_max_x " << l_max_x << endl;
 //             cout << "ilarger " << ilarger << endl;
 //             cout << "ismaller " << ismaller << endl;
-            cout << "l_max_i=" << l_max_i << endl;
+//             cout << "l_max_i=" << l_max_i << endl;
             check_signal(l_max_i, sigV);
            }
 
@@ -593,7 +598,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
        }
      }
     if(sigV->size()==0){
-      cout << "g_max_i=" << g_max_i << endl;
+//       cout << "g_max_i=" << g_max_i << endl;
       check_signal(g_max_i, sigV);
     }
    }
