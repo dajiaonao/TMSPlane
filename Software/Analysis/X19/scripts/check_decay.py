@@ -9,7 +9,7 @@ import sys
 # from os
 from ROOT import gROOT
 gROOT.LoadMacro("sp.C+")
-from 
+from sigproc import filters_trapezoidal as filters_trapezoidal0 
 
 from ROOT import filters_trapezoidal
 import matplotlib.pyplot as plt
@@ -182,7 +182,8 @@ def testFit():
 
         ### processing data
         data1a = data1[ich*waveLen:(ich+1)*waveLen]
-        filters_trapezoidal(waveLen,data1a,data2,par1,par2, par3)
+#         filters_trapezoidal(waveLen,data1a,data2,par1,par2, par3)
+        filters_trapezoidal0(waveLen,data1a,data2,[500, par1,par2, par3])
 
         ### plotting
         plt.cla()
