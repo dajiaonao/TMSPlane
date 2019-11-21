@@ -77,7 +77,10 @@ class DataViewer():
                 if itree != itree0:
                     itree0 = itree
                     fname = self.tree.GetListOfFiles()[itree0].GetTitle()
-                    irun = int(fname.rstrip('.root').split('_')[-1])
+                    try:
+                        irun = int(fname.rstrip('.root').split('_')[-1])
+                    except ValueError:
+                        irun = -1
                     print fname, irun
 
                 self.dataPanel.dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(self.dataT[0]))])
@@ -156,7 +159,8 @@ class DataUpdater(threading.Thread):
         self.tree = tree
         print "Using file", self.currentFile
         try:
-            self.irun = int(self.currentFile.rstrip('.root').split('_')[-1])
+            self.irun = int(self.currentFile.rstrip('.1').rstrip('.root').split('_')[-1])
+#             self.irun = int(self.currentFile.rstrip('.root').split('_')[-1])
         except TypeError:
             self.irun = -1
         self.tree.SetBranchAddress('adc',self.cd.adcData)
