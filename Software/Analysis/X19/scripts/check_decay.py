@@ -9,6 +9,7 @@ import sys
 # from os
 from ROOT import gROOT
 gROOT.LoadMacro("sp.C+")
+from 
 
 from ROOT import filters_trapezoidal
 import matplotlib.pyplot as plt
@@ -142,7 +143,8 @@ def testFit():
     #Let's get one waveform first
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_data_20.root'
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5_data_0.root'
-    fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_data_100.root'
+#     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_data_100.root'
+    fname1 = '/media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
     tree1 = TChain('tree1')
     tree1.Add(fname1)
     tree1.Show(0)
@@ -187,7 +189,7 @@ def testFit():
         data1b = [x - data1a[0] for x in data1a]
         plt.plot(data1b)
         plt.plot(data2)
-        plt.show()
+#         plt.show()
 
         ### decide the next move
         while True:
