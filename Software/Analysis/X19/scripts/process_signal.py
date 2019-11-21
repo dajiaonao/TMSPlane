@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from SignalChecker import SignalChecker
+# from SignalChecker import SignalChecker
 
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
@@ -15,6 +15,7 @@ import numpy as np
 import cmath
 from check_decay import FilterConfig
 from reco_config import apply_config
+from math import sqrt
 
 class bkgEstimator:
     def __init__(self):
@@ -57,6 +58,78 @@ def apply_wiener_filter(data,ich,n=16384):
     x = [data[ich*n+i] for i in range(n)]
     y = wiener(x, mysize=500)
     for i in range(n): data[ich*n+i] = y[i]
+
+def readSignal5a(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on readSignal4c; for single channel. Pulse processing'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print("Starting", inRoot, oTag)
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f.*.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print("Failed to get the dV in file:", iRoot)
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print("Run number not exatracted for file", iRoot)
+                return
+        else:
+            if dV<0:
+                print("Run number not exatracted for file", iRoot)
+                return
+
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'TEST1')
+
+
+    ### IO configuration
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+    tree1.SetBranchAddress('adc',data1)
+    tree1.SetBranchAddress('T',dataT)
+
+    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T:dV')
+    a = TObjString("filter:"+str(sp1.fltParam))
+    a.Write('Info')
+
+    chs = [10]
+    chx = chs[0] if (chs and len(chs)==1) else -1
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse2(data1, chx)
+        for ich in range(sp1.nAdcCh):
+            if chs and (ich not in chs): continue
+            ss = sp1.signals[ich]
+
+            itmp = sp1.nMeasParam*ich
+            iA = 0
+            for ii in ss:
+                tup1.Fill(run, ievt, ich, sp1.measParam[itmp], sp1.measParam[itmp+1],iA,ii.im,ii.idx,ii.Q,ii.w0,ii.w1,ii.w2,dataT[0]-788947200,dV)
+                iA += 1
+
+    tup1.Write()
+    fout1.Close()
+
+
+
 
 def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
     '''Use non default time window'''
@@ -572,18 +645,18 @@ def check_Jan22bx(fname):
     print("Starting", fname, out)
     readSignal(fname, out, 1000)
 
-def testJ():
-    sc1 = SignalChecker()
-    sc1.control_ip_port = "localhost:1024"
-    dir1 = 'data/fpgaLin/'
-    tag1 = dir1+'Jan22a_C2_100mV_'
-    for f in [100,200,500,1000]:
-#         setPulse(0.1,f)
-#         time.sleep(20)
-#         sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
-#         if f not in [1000]: continue
-#         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
-        readSignal(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f), f)
+# def testJ():
+#     sc1 = SignalChecker()
+#     sc1.control_ip_port = "localhost:1024"
+#     dir1 = 'data/fpgaLin/'
+#     tag1 = dir1+'Jan22a_C2_100mV_'
+#     for f in [100,200,500,1000]:
+# #         setPulse(0.1,f)
+# #         time.sleep(20)
+# #         sc1.take_samples2(5000, tag1+"f{0:d}.root".format(f))
+# #         if f not in [1000]: continue
+# #         sc1.check_enc2(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f))
+#         readSignal(tag1+"f{0:d}.root".format(f), tag1+"f{0:d}.dat".format(f), f)
 
 def check_calib():
     sp1 = SignalProcessor()
@@ -697,7 +770,9 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx02a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_64??.root', 'tpx01b_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
-    process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_609.root', 'atpx01a_', False)
+    process_all_matchX(readSignal5a, '/data/Samples/TMSPlane/CCNU_tests/extended_plane/raw/Jul19C1a/Jul19C1a_*.root', 'aa1_', False)
+#     readSignal5a('/data/Samples/TMSPlane/CCNU_tests/extended_plane/raw/Jul19C1a/Jul19C1a_55mV_f50_2.root;aa1_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')

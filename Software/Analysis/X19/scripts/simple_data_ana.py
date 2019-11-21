@@ -109,7 +109,7 @@ def test1():
     except KeyboardInterrupt:
         pass
 
-def check2(fname):
+def check2(fname, br='val1'):
     print("test")
     INTVAL = 200
 
@@ -130,7 +130,7 @@ def check2(fname):
     NP = 62500
     inWav = array('f',[0.]*NP)
     outWav = array('f',[0.]*NP)
-    tree1.SetBranchAddress('val1',inWav)
+    tree1.SetBranchAddress(br,inWav)
 
 
     NEVT = tree1.GetEntries()
@@ -348,7 +348,7 @@ def run2(files=None, ofname=None, INTVAL = 200):
     except KeyboardInterrupt:
         pass
 
-def run3(infiles, ofname=None, INTVAL = 200):
+def run3(infiles, ofname=None, INTVAL = 200, br='data1'):
     '''Same as run1, but use file list instead of file id'''
 
     ### configuration
@@ -362,7 +362,7 @@ def run3(infiles, ofname=None, INTVAL = 200):
     data1 = array('f',[0]*(NP))
     dataT = array('i',[0])
 
-    tree1.SetBranchAddress('data1',data1)
+    tree1.SetBranchAddress(br,data1)
 
     outWav = array('f',[0.]*NP)
 
@@ -414,6 +414,7 @@ def run4(infiles, ofname=None, INTVAL = 200):
     outWav1 = array('f',[0.]*NP)
     outWav2 = array('f',[0.]*NP)
 
+    iRefx = -2600 
     try:
         with open(ofname,'w') as fout1:
             fout1.write('evt/I:inst/I:A/F:W/I:A1/F:A2/F')
@@ -433,14 +434,15 @@ def run4(infiles, ofname=None, INTVAL = 200):
                 for i in range(NP): dataA[i] = data1[i]+data2[i]
 
                 filters_trapezoidal(NP,dataA,outWav,500,2000,3125)
-                ret = find_H(outWav,0.005, 0.9)
+                ret = find_H(outWav,0.005, 0.9, iRef = iRefx)
 
                 if ret:
                     filters_trapezoidal(NP,data1,outWav1,500,2000,3125)
                     filters_trapezoidal(NP,data2,outWav2,500,2000,3125)
                     for i in range(len(ret)):
                         idx = ret[i][2]
-                        fout1.write('\n'+str(ievt)+' '+str(i)+' '+str(ret[i][0])+' '+str(ret[i][1])+' '+str(outWav1[idx])+' '+str(outWav2[idx]))
+                        idx0 = 0 if idx+iRefx <0 else idx+iRefx
+                        fout1.write('\n'+str(ievt)+' '+str(i)+' '+str(ret[i][0])+' '+str(ret[i][1])+' '+str(outWav1[idx]-outWav1[idx0])+' '+str(outWav2[idx]-outWav2[idx0]))
 
     except KeyboardInterrupt:
         pass
@@ -467,7 +469,7 @@ def check4(infiles):
 
     fig, axs = plt.subplots(3, 1, sharex=True)
     # Remove horizontal space between axes
-    fig.subplots_adjust(hspace=0)
+    fig.subplots_adjust(hspace=0, left=0.08, right=0.94, top=0.99, bottom=0.06)
 
     ax01 = axs[0]
 #     ax01.set_xlabel('time index')
@@ -493,7 +495,10 @@ def check4(infiles):
 #     ax22.set_ylabel('U [V]', color='r')
     ax22.tick_params('y', colors='r')
 
-
+#     R = 2000
+#     W = 4000
+    R = 500
+    W = 2000
     try:
         for ievt in range(tree1.GetEntries()):
             tree1.GetEntry(ievt)
@@ -504,16 +509,16 @@ def check4(infiles):
     
             for i in range(NP): dataA[i] = data1[i]+data2[i]
 
-            filters_trapezoidal(NP,dataA,outWav,500,2000,3125)
+            filters_trapezoidal(NP,dataA,outWav,R,W,3125)
             ret = find_H(outWav,0.005, 0.9)
 
             if ret:
-                filters_trapezoidal(NP,data1,outWav1,500,2000,3125)
-                filters_trapezoidal(NP,data2,outWav2,500,2000,3125)
+                filters_trapezoidal(NP,data1,outWav1,R,W,3125)
+                filters_trapezoidal(NP,data2,outWav2,R,W,3125)
 
             ax01.clear()
             ax02.clear()
-            ax01.plot(dataA, label='Raw', color='b')
+            ax01.plot(dataA, label='Total', color='b')
             ax02.plot(outWav, label='Filtered', color='r')
             ylim1 = ax01.get_ylim()
             ylim2 = ax02.get_ylim()
@@ -523,11 +528,13 @@ def check4(infiles):
             ax02.set_ylim(x1-dataA[0],x2-dataA[0])
             ax01.set_ylabel('U [V]', color='b')
             ax02.set_ylabel('U [V]', color='r')
+            ax02.grid(True)
+            ax01.legend()
 
 
             ax11.clear()
             ax12.clear()
-            ax11.plot(data1, label='Raw', color='b')
+            ax11.plot(data1, label='Ch 1', color='b')
             ax12.plot(outWav1, label='Filtered', color='r')
             ylim1 = ax11.get_ylim()
             ylim2 = ax12.get_ylim()
@@ -537,11 +544,13 @@ def check4(infiles):
             ax12.set_ylim(x1-data1[0],x2-data1[0])
             ax11.set_ylabel('U [V]', color='b')
             ax12.set_ylabel('U [V]', color='r')
+            ax12.grid(True)
+            ax11.legend()
 
 
             ax21.clear()
             ax22.clear()
-            ax21.plot(data2, label='Raw', color='b')
+            ax21.plot(data2, label='Ch 2', color='b')
             ax22.plot(outWav2, label='Filtered', color='r')
             ylim1 = ax21.get_ylim()
             ylim2 = ax22.get_ylim()
@@ -552,10 +561,12 @@ def check4(infiles):
             ax21.set_xlabel('time index')
             ax21.set_ylabel('U [V]', color='b')
             ax22.set_ylabel('U [V]', color='r')
+            ax22.grid(True)
+            ax21.legend()
 
             plt.draw()
-            plt.legend()
-            plt.grid(True)
+#             plt.legend()
+#             plt.grid(True)
             plt.pause(0.001)
 
             a = input()
@@ -619,10 +630,19 @@ if __name__ == '__main__':
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27e/*.dat'],ofname='check1c_Jun27e.dat')
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27g/*.dat'],ofname='check1c_Jun27g.dat')
 #     run3(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27f/*.dat'],ofname='check1c_Jun27f.dat')
-#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul12a_pulse/Jul12a_pulse_*.root'],ofname='check1a_Jul12a.dat')
+#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul12a_pulse/Jul12a_pulse_*.root'],ofname='check2a_Jul12a.dat')
+#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul12b_pulse/Jul12b_pulse_*.root'],ofname='check2a_Jul12b.dat')
+#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul15a_pulse/Jul15a_pulse_*.root'],ofname='check2a_Jul15a.dat')
+#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul15b_pulse/Jul15b_pulse_*.root'],ofname='check2a_Jul15b.dat')
+#     run4(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul15c_pulse/Jul15c_pulse_*.root'],ofname='check2a_Jul15c.dat')
+#     run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul16a_pulse/Jul16a_pulse_*.root'],ofname='check2a_Jul16a.dat',br='val3')
+#     run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul15d_pulse/Jul15d_pulse_*.root'],ofname='check2a_Jul15d.dat',br='val3')
+#     run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul16a_pulse/Jul16a_pulse_*.root'],ofname='check2a_Jul16a_ch1.dat',br='val1')
+#     run3(infiles=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul15d_pulse/Jul15d_pulse_*.root'],ofname='check2a_Jul15d_ch1.dat',br='val1')
 #     check1()
 #     check2("/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul11a_pulse/Jul11a_pulse_0.root")
-    check4(["/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul11a_pulse/Jul11a_pulse_0.root"])
+    check2("/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul16a_pulse/Jul16a_pulse_5.root",br='val3')
+#     check4(["/data/Samples/TMSPlane/CCNU_tests/plate_data/Jul12b_pulse/Jul12b_pulse_0.root"])
 
     ### debug
 #     run2(files=['/data/Samples/TMSPlane/CCNU_tests/plate_data/Jun27g/*_0.dat'],ofname='temp1.dat')

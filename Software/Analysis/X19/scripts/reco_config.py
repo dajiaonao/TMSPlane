@@ -8,6 +8,10 @@ def apply_config(sp1, config_code):
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
 
+
+
+
+
     ## now the variations
     if config_code == 'Hydrogen':
         ### search window
@@ -110,5 +114,21 @@ def apply_config(sp1, config_code):
 
         ### we are done
         return "He4/a" ### anything after slash is a development tag, frozen configurations does not have a slash
+
+    elif config_code == 'TEST1':
+        ## enable channels
+        sp1.ch_thre.clear()
+        sp1.CF_chan_en.clear()
+        for i in range(20):
+            sp1.CF_chan_en.push_back(1)
+            sp1.ch_thre.push_back(0.002)
+
+        sp1.fltParam.clear()
+        flt = [50, 100, 300, 1./0.001348] # dp01a
+        for x in flt: sp1.fltParam.push_back(x)
+
+        sp1.CF_decayC[10] = sqrt(2)/0.001348;
+
+        return 'TEST1a'
 
     return 0
