@@ -181,8 +181,8 @@ def test2():
     r1 = Rigol()
     r1.connect()
 #     r1.test_volatile()
-#     r1.calibration()
-    r1.setPulseV()
+    r1.calibration()
+    r1.setPulseV(0.2)
 #     r1.tune()
 #     r1.test(20)
 

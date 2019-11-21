@@ -33,6 +33,8 @@ class DataRecorder:
         self.connected = False
         self.fileSuffix = '.1'
         self.tStop = None
+        self.dV = None
+        self.HV = 0
 
     def connect(self):
         ctrlipport = self.control_ip_port.split(':')
@@ -49,18 +51,23 @@ class DataRecorder:
 
         T = array.array('i',[0])
         V = array.array('i',[0])
+        HV = array.array('i',[0])
         if self.fileSuffix:
             while os.path.exists(outRootName): outRootName += self.fileSuffix
         fout1 = TFile(outRootName,'recreate')
         tree1 = TTree('tree1',"data: {0:d} channel, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         tree1.Branch('T',T,'T/i')
         tree1.Branch('V',V,'V/I')
+        tree1.Branch('HV',HV,'HV/I')
         tree1.Branch('adc',data1, "adc[{0:d}][{1:d}]/F".format(s1.nAdcCh, s1.nSamples))
 
         # FPGA internal fifo : 512 bit width x 16384 depth
         nWords = (512 // 32) * 16384
         nBytes = nWords * 4
         buf = bytearray(nBytes)
+
+        V[0] = -999 if self.dV is None else self.dV
+        HV[0] = self.HV
 
         status = 0
         try:
@@ -70,7 +77,7 @@ class DataRecorder:
                     status = 2
                     break
 
-                if i%100==0:
+                if self.dV is None and i%100==0:
                     print(str(i)+' samples taken.')
                     try:
                         with open('/home/dlzhang/work/repos/TMSPlane2/Software/Control/src/.pulse_status') as f1:
@@ -91,8 +98,41 @@ class DataRecorder:
         fout1.Write()
         return status
 
-def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000):
+def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
     sc1 = DataRecorder()
+    sc1.dV = None
+    sc1.HV = HV
+    dir1 = 'data/fpgaLin/'
+
+    ### put in a dedicated direcotry
+    if dirx is not None:
+        dir1 += dirx
+        if not os.path.exists(dir1):
+            os.makedirs(dir1)
+    dir1 = dir1.rstrip()
+    if dir1[-1] != '/': dir1 += '/'
+
+    ### really start taking samples
+    idV = 0
+    nSample = 0
+    while nSample != N:
+        if dVList:
+            dv = dVList[idV]
+            idV = (idV+1)%len(dVList)
+
+            rg1 = Rigol()
+            rg1.connect()
+            rg1.setPulseV(dv)
+
+            sc1.dV = int(1000*dv)
+        print "Start sample {0:d}".format(nSample)
+        status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
+        if status: break
+        nSample += 1
+
+def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000, dV=None):
+    sc1 = DataRecorder()
+    sc1.dV = dV
 #     sc1.control_ip_port = "localhost:1024"
     dir1 = 'data/fpgaLin/'
 
@@ -138,6 +178,15 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
         if status: break
         nSample += 1
 
+def take_Run():
+    for dV in [0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35]:
+#     for dV in [0.1, 0.2]:
+        rg1 = Rigol()
+        rg1.connect()
+
+        rg1.setPulseV(dV)
+        take_data(sTag='Nov13b_HV0p5b',n=1000, N=2, dirx='raw/Nov13b',nm=200, dV=int(1000*dV))
+
 def take_calibration():
     rg1 = Rigol()
     rg1.connect()
@@ -153,6 +202,9 @@ if __name__ == '__main__':
 #       take_data(sTag='Oct09a',n=2000, N=5, dirx='raw/Oct09a',nm=200)
 #       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
 #       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
+      take_data(sTag='Nov19b',n=1000, N=-1, dirx='raw/Nov19b',nm=1)
+#       take_dataR(sTag='Nov19a',n=1000, N=-1, dirx='raw2/Nov19a',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
+#       take_Run()
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
-    take_calibration()
+#     take_calibration()
