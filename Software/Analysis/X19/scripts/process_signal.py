@@ -131,6 +131,10 @@ def readSignal4d(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
+    oDir = args[2] if len(args)>2 else os.path.dirname(inRoot)
+    if oTag.find('/') != -1:
+        oDir = os.path.dirname(oTag)
+        oTag = os.path.basename(oTag)
     print("Starting", inRoot, oTag)
 
     ### data check
@@ -162,13 +166,13 @@ def readSignal4d(argX, runPattern='.*_data_(\d+).root'):
     tree1.SetBranchAddress('T',dataT)
     tree1.SetBranchAddress('V',dataV)
 
-    fout1 = TFile(os.path.dirname(inRoot)+'/'+oTag+os.path.basename(inRoot),'recreate')
+    fout1 = TFile(oDir+'/'+oTag+os.path.basename(inRoot),'recreate')
     tup1 = TNtuple('tup1',"filter analysis tuple",'run:evt:ch:B:dB:iA:imean:imax:A:w0:w1:w2:T:dV')
     a = TObjString("filter:"+str(sp1.fltParam))
     a.Write('Info')
 
-    chs = [1,5]
-#     chs = [i for i in range(19)]
+#     chs = [1,5]
+    chs = [i for i in range(19)]
     chx = chs[0] if (chs and len(chs)==1) else -1
     for ievt in range(tree1.GetEntries()):
         tree1.GetEntry(ievt)
@@ -834,7 +838,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4c, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 'atpx01c_', False, 3)
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p2_data_0.root*', 's2a_', False, 3)
-    process_all_matchX(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True, 6)
+#     process_all_matchX(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True, 6)
+    process_all_matchX(readSignal4d, '/media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')

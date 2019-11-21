@@ -39,6 +39,10 @@ class SigProc(object):
                    byref(adcData), c_size_t(self.nAdcCh), byref(sdmData), c_size_t(self.nSdmCh), c_double(adcVoffset), c_double(adcLSB))
         return adcData
 
+    def filters_trapezoidal(self, adcChData, scrAry, fltParam=[500, 150, 200, -1.0]):
+        cfun = self.sigprocSO.filters_trapezoidal
+        cfun(self.nSamples, adcChData, scrAry, c_size_t(fltParam[1]), c_size_t(fltParam[2]), c_double(fltParam[3]));
+
     def save_data(self, fNames, adcData, sdmData):
         timeStamp = int(time.time())
         nSamples = len(adcData[0])

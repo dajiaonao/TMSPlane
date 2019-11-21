@@ -183,8 +183,26 @@ def apply_config(sp1, config_code):
             sp1.IO_mAvg.push_back(0.)
             sp1.CF_decayC[i] = P
 
-        sp1.CF_decayC[1] = 9000
-        sp1.CF_decayC[5] = 80
+        ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
+        sp1.CF_decayC[0] = -1
+        sp1.CF_decayC[1] = 3000
+        sp1.CF_decayC[2] = 5
+        sp1.CF_decayC[3] = -1
+        sp1.CF_decayC[4] = 900
+        sp1.CF_decayC[5] = 10
+        sp1.CF_decayC[6] = -1
+        sp1.CF_decayC[7] = 5000
+        sp1.CF_decayC[8] = -1
+        sp1.CF_decayC[9] = -1
+        sp1.CF_decayC[10] = -1
+        sp1.CF_decayC[11] = 5000
+        sp1.CF_decayC[12] = 4000
+        sp1.CF_decayC[13] = 4000
+        sp1.CF_decayC[14] = -1
+        sp1.CF_decayC[15] = 3000
+        sp1.CF_decayC[16] = -1
+        sp1.CF_decayC[17] = 600
+        sp1.CF_decayC[18] = 4000
         
         ### we are done
         return "Li7/b" ### anything after slash is a development tag, frozen configurations does not have a slash
