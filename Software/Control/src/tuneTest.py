@@ -82,7 +82,7 @@ class Train(threading.Thread):
 
         self.sp = SignalProcessor()
         self.sp.fltParam.clear()
-        for p in [100,200,900,500]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+        for p in [100,100,200,500]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
 #         apply_config(self.sp, 'Helium')
 
         self.NVAL = 4
@@ -325,6 +325,7 @@ class TestClass:
         self.muteList = []
         self.atBounds = None
         self.config_file = config_file
+        self.train = None
 
     def connect(self):
         host='192.168.2.3'
@@ -360,6 +361,7 @@ class TestClass:
         tr1.rx_qs = self.tx_qs
         tr1.sc = sc1
 
+        self.train = tr1
         return tr1
 
     def save_config(self, cList, oName, fcName = 'Mar05Te_tt_test.root'):
@@ -552,7 +554,9 @@ class TestClass:
         tr1.fout1.Close()
 
     def test_tune(self, oName='tt_out1.root'):
-        tr1 = self.prepare_train()
+        if self.train is None: self.prepare_train()
+        tr1 = self.train
+
         tr1.on = True
         tr1.setupOutput(oName)
 
@@ -698,6 +702,22 @@ def test0():
 #     elist[11] = 2
 #     elist[15] = 2
 #     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
+def test7():
+    tc1 = TestClass(config_file='config/C7.json')
+    tc1.muteList = []
+    tc1.prepare_train()
+    tc1.train.bestConfigFile = 'C7_tt2.json'
+    tc1.test_tune('C7_tt2.root')
+#     tc1.recheck('C0_tt2a.root', 'C0_tt2c_valid0.root')
+#     elist = getListFromFile('tune_test_C07a.log')
+#     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
+#     elist = [0]*tc1.nCh
+#     elist = [0]*tc1.nCh
+#     elist[6] = 6
+#     elist[11] = 2
+#     elist[15] = 2
+#     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
+
 
 
 def FOM_check():
@@ -742,6 +762,7 @@ def FOM_check():
 
 if __name__ == '__main__':
 #     test1()
-    test0()
+#     test0()
+    test7()
 #     getListFromFile('tune_test.log')
 #     FOM_check()

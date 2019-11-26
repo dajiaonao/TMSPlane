@@ -42,8 +42,7 @@ class Rigol:
 
         self._instr = Handle(self.s3)
 
-    def calibration(self):
-        freq = 100
+    def calibration(self, freq=100):
         hV = 0.3
         lV = 0.2
         '''for calibration'''
@@ -98,6 +97,9 @@ class Rigol:
         ## :OUTPut[<n>][:STATe]?
         self._instr.write(":OUTPut1 ON")
         self._instr.write(":OUTPut2 ON")
+
+    def setPhaseDev(self, ph=340):
+        self._instr.write(":COUPling:PHASe:DEViation {0:d}".format(ph))
 
     def setPulseV(self, dV=0.1, lV=0.2):
         if len(sys.argv)>1: dV = float(sys.argv[1])
@@ -186,6 +188,13 @@ def test2():
 #     r1.tune()
 #     r1.test(20)
 
+def optimization(fq=1250):
+    r1 = Rigol()
+    r1.connect()
+#     r1.calibration(fq)
+    r1.setPhaseDev(300)
+#     r1.setPulseV(0.2)
+
 def test1():
     freq = 50
     Rig_hostname = '192.168.2.5'                    #rigol dds ip address
@@ -201,4 +210,5 @@ def test1():
     s3.close()
 
 if __name__ == '__main__':
-    test2()
+#     test2()
+    optimization()
