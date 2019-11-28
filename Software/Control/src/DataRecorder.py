@@ -112,6 +112,10 @@ def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
     dir1 = dir1.rstrip()
     if dir1[-1] != '/': dir1 += '/'
 
+    rg1 = Rigol()
+    rg1.connect()
+    rg1.calibration()
+
     ### really start taking samples
     idV = 0
     nSample = 0
@@ -202,8 +206,8 @@ if __name__ == '__main__':
 #       take_data(sTag='Oct09a',n=2000, N=5, dirx='raw/Oct09a',nm=200)
 #       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
 #       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
-      take_data(sTag='Nov19b',n=1000, N=-1, dirx='raw/Nov19b',nm=1)
-#       take_dataR(sTag='Nov19a',n=1000, N=-1, dirx='raw2/Nov19a',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
+#       take_data(sTag='Nov19b',n=1000, N=-1, dirx='raw/Nov19b',nm=1)
+      take_dataR(sTag='Nov28a',n=1000, N=-1, dirx='raw2/Nov28a',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
 #       take_Run()
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')

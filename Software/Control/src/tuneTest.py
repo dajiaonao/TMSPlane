@@ -18,7 +18,7 @@ gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from reco_config import apply_config
 import logging
-logging.basicConfig(filename='tune_test_C02c.log', level=logging.INFO)
+logging.basicConfig(filename='tune_test_C7_v2.log', level=logging.INFO)
 
 
 class tuner(threading.Thread):
@@ -705,10 +705,13 @@ def test0():
 def test7():
     tc1 = TestClass(config_file='config/C7.json')
     tc1.muteList = []
-    tc1.prepare_train()
-    tc1.train.bestConfigFile = 'C7_tt2.json'
-    tc1.test_tune('C7_tt2.root')
-#     tc1.recheck('C0_tt2a.root', 'C0_tt2c_valid0.root')
+    tuneTag = 'C7_tt2'
+    
+#     if True:
+#     tc1.prepare_train()
+#     tc1.train.bestConfigFile = 'C7_tt2.json'
+#     tc1.test_tune('C7_tt2.root')
+    tc1.recheck('C7_tt2.root', 'C7_tt2_valid2.root')
 #     elist = getListFromFile('tune_test_C07a.log')
 #     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
 #     elist = [0]*tc1.nCh
