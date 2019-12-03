@@ -98,7 +98,7 @@ class DAC8568(object):
     def DACVolt(self, x):
         return int(x / 2.5 * 65536.0 / 2.0)    #calculation
     def write_spi(self, val):
-        ret = ""          # 32 bits
+        ret = bytes()          # 32 bits
         ret += self.cmd.write_register(self.regAddr, (val >> 16) & 0xffff)
         ret += self.cmd.send_pulse(1<<self.pulseAddr)
         ret += self.cmd.write_register(self.regAddr, val & 0xffff)
@@ -216,7 +216,7 @@ def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRe
     cmdStr = cmd.write_register(dcfgBase+8, colAddrClkDivVal)
     s.sendall(cmdStr)
     # drive dout
-    cmdStr = ""
+    cmdStr = bytes()
     for i in range(8):
         cmdStr += cmd.write_register(dcfgBase+i, (dout >> i*16) & 0xffff)
     i = 8
@@ -226,15 +226,15 @@ def tms_sio_rw(s, cmd, colAddr, dout, clkDiv=7, dcfgBase=5, dstatBase=1, pulseRe
 #    print(":".join("{:02x}".format(ord(c)) for c in cmdStr))
     # readback
     time.sleep(0.1)
-    cmdStr = ""
+    cmdStr = bytes()
     for i in range(9):
         cmdStr += cmd.read_status(8-i + dstatBase)
     s.sendall(cmdStr)
     retw = s.recv(4*9, socket.MSG_WAITALL)
     ret = 0
     for i in range(9):
-        ret = ret | ( int(ord(retw[i*4+2])) << ((8-i) * 16 + 8) |
-                      int(ord(retw[i*4+3])) << ((8-i) * 16))
+        ret = ret | ( int(retw[i*4+2]) << ((8-i) * 16 + 8) |
+                      int(retw[i*4+3]) << ((8-i) * 16))
     ret = ret & 0x3ffffffffffffffffffffffffffffffff
     return ret
 
