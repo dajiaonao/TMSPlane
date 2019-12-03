@@ -110,5 +110,5 @@ class Cmd(object):
 
 if __name__ == "__main__":
     cmd = Cmd()
-    ret = cmd.write_register(1, 0x5a5a)
+    ret = cmd.write_register(1, 0x5a5b)
     print([hex(ord(s)) for s in ret])
