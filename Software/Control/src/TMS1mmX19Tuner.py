@@ -28,7 +28,8 @@ import threading
 
 import matplotlib
 matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+#NavigationToolbar2TkAgg
 from matplotlib.backend_bases import key_press_handler # for the default matplotlib key bindings
 from matplotlib.figure import Figure
 from matplotlib.ticker import FormatStrFormatter
@@ -163,9 +164,10 @@ class DataPanelGUI(object):
             artist.setp(a.get_xticklabels(), visible=False)
         self.dataPlotsSubplots[self.nAdcCh-1] = dataPlotsSubplotN
         self.dataPlotsCanvas = FigureCanvasTkAgg(self.dataPlotsFigure, master=self.dataPlotsFrame)
-        self.dataPlotsCanvas.show()
+        self.dataPlotsCanvas.draw()
         self.dataPlotsCanvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.dataPlotsToolbar = NavigationToolbar2TkAgg(self.dataPlotsCanvas, self.dataPlotsFrame)
+        #self.dataPlotsToolbar = NavigationToolbar2TkAgg(self.dataPlotsCanvas, self.dataPlotsFrame)
+        self.dataPlotsToolbar = NavigationToolbar2Tk(self.dataPlotsCanvas, self.dataPlotsFrame)
         self.dataPlotsToolbar.update()
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsCanvas.mpl_connect('key_press_event', self.on_key_event)
@@ -232,7 +234,7 @@ class DataPanelGUI(object):
                 self.dataInfo = self.dataPlotsFigure.text(0.02, 0.01, self.dataInfoText, ha='left', va='bottom', color='m', transform=self.dataPlotsFigure.transFigure)
             else: self.dataInfo.set_text(self.dataInfoText)
 
-        self.dataPlotsCanvas.show()
+        self.dataPlotsCanvas.draw()
         self.dataPlotsToolbar.update()
         return
 
