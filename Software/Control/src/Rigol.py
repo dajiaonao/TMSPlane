@@ -11,7 +11,7 @@ class Handle:
 
     def write(self, cmd, dt=0.5):
         print('sending',cmd)
-        self.s.send(cmd+'\n')
+        self.s.send(bytes(cmd+'\n','UTF-8'))
         if dt is not None: time.sleep(dt)
 
     def read(self,cmd,ndata=-1):
@@ -66,7 +66,7 @@ class Rigol:
 #         print a
 
         string = ':DATA:DAC VOLATILE,'
-        string += ','.join(['0' for i in range(100)]+['{0:d}'.format(x*16384/120) for x in range(120)]+['16384']*20)
+        string += ','.join(['0' for i in range(100)]+['{0:d}'.format(int(x*16384/120)) for x in range(120)]+['16384']*20)
         print(string)
         self._instr.write(string)
 
