@@ -141,11 +141,12 @@ class DataUpdater(threading.Thread):
         self.dataT = array('i',[0])
         self.tFile = None
         self.irun = -1
+        self.mfileI = -1
 
     def get_file(self):
         files = sorted(glob(self.fPattern), key=lambda f:os.path.getmtime(f))
-        if len(files)>0:
-            f = files[-1]
+        if len(files)>-self.mfileI-1:
+            f = files[self.mfileI]
             if f != self.currentFile: self.update_tree(f)
 
     def update_tree(self, f):
@@ -187,7 +188,7 @@ class DataUpdater(threading.Thread):
                 if n != n_old:
                     self.dataPanel.dataInfoText = ', '.join(['Run '+str(self.irun), 'Event '+str(n-1), str(datetime.fromtimestamp(self.dataT[0]))])
                     self.dataPanel.plot_data()
-
+             
                 ### to get notified from the data pannel
                 self.cd.cv.acquire()
                 self.cd.cv.wait(self.dT)
@@ -199,11 +200,13 @@ def monitor(pattern='data/fpgaLin/Feb27a_data_*.root'):
     dataPanel = DataPanelGUI(root, cd, visibleChannels=None)
 
     du1 = DataUpdater(cd, dataPanel)
+    du1.mfileI = -1
     du1.fPattern = pattern
-    du1.start()
+    du1.run()
+    #du1.start()
 
-    root.mainloop()
-    du1.join()
+    #root.mainloop()
+    #du1.join()
 
 def view(fname='data/fpgaLin/tt_test.root'):
 #     if len(sys.argv)>1: fname = sys.argv[1]
