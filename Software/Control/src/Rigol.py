@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''For Rigol DG4162. The device should be configured to use ip 192.168.2.3 and subnet mask 255.255.255.0
 '''
 import socket
@@ -10,12 +10,12 @@ class Handle:
         self.s = s
 
     def write(self, cmd, dt=0.5):
-        print 'sending',cmd
+        print('sending',cmd)
         self.s.send(cmd+'\n')
         if dt is not None: time.sleep(dt)
 
     def read(self,cmd,ndata=-1):
-        print 'reading',cmd
+        print('reading',cmd)
         self.s.send(cmd+'\n')
 
         a = self.s.recv(1024)
@@ -67,7 +67,7 @@ class Rigol:
 
         string = ':DATA:DAC VOLATILE,'
         string += ','.join(['0' for i in range(100)]+['{0:d}'.format(x*16384/120) for x in range(120)]+['16384']*20)
-        print string
+        print(string)
         self._instr.write(string)
 
         ### coupling
@@ -126,7 +126,7 @@ class Rigol:
 #         a = self._instr.read(':PA:OFFSet?')
 #         self.s3.send(':PA:OFFSet:VALUe?\n')
 #         a = self.s3.recv(20)
-        print a
+        print(a)
 #         self._instr.write("FUNC:USER VOLATILE")
 
 #         return
@@ -134,7 +134,7 @@ class Rigol:
         string += ','.join(['{0:d}'.format(x*16300/120) for x in range(120)])
 #         string += ','.join(['{0:.2f}'.format(1.-0.01*x) for x in range(20)])
 
-        print string
+        print(string)
         self._instr.write(string)
 
     def setup_tail_pulse3(self, freq=100, xp=16, np=1024, alpha=0.01):
@@ -144,7 +144,7 @@ class Rigol:
         time.sleep(0.5)
 
         amax = 16383
-        vals=[0 for i in xrange(np)]
+        vals=[0 for i in range(np)]
         k = np/1024.
 
         alpha /= k
@@ -154,7 +154,7 @@ class Rigol:
         for i in range(dp,np): vals[i] = int(amax*(1-math.exp(-(i-dp)*alpha)))
 
         string = "DATA:DAC VOLATILE"
-        for i in xrange(np):
+        for i in range(np):
             string += (",%d"% vals[i])
 #         print(string)
         self._instr.write(string)

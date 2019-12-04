@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import socket, os
 # import argparse
 # import pprint
@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 from Rigol import Rigol
 
 def waitRootCmdY():
-    a = raw_input("waiting...")
+    a = input("waiting...")
 
 def useLHCbStyle0():
     pass
@@ -78,7 +78,7 @@ class DataRecorder:
                     break
 
                 if self.dV is None and i%100==0:
-                    print(str(i)+' samples taken.')
+                    print((str(i)+' samples taken.'))
                     try:
                         with open('/home/dlzhang/work/repos/TMSPlane2/Software/Control/src/.pulse_status') as f1:
                             V[0] = int(f1.readline().rstrip())
@@ -129,7 +129,7 @@ def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
             rg1.setPulseV(dv)
 
             sc1.dV = int(1000*dv)
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
@@ -151,7 +151,7 @@ def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000, dV=None):
     ### really start taking samples
     nSample = 0
     while nSample != N:
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
@@ -164,7 +164,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     dir1 = 'data/fpgaLin/'
 
     sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
-    print sc1.tStop, datetime.now()
+    print(sc1.tStop, datetime.now())
 
     ### put in a dedicated direcotry
     if dirx is not None:
@@ -177,7 +177,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     ### really start taking samples
     nSample = 0
     while True:
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
         if status: break
         nSample += 1

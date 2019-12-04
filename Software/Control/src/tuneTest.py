@@ -1,9 +1,9 @@
-#!/usr/bin/env python
-from __future__ import print_function
-from __future__ import division
+#!/usr/bin/env python3
+
+
 from PyDE import *
 import threading
-from Queue import Queue
+from queue import Queue
 import time
 import re
 from TMS1mmX19Tuner import SensorConfig, CommonData
@@ -388,7 +388,7 @@ class TestClass:
         ### save
         config = {}
         for i in range(cd.nCh):
-            config[i] = dict(zip(cd.voltsNames, cd.sensorVcodes[i]))
+            config[i] = dict(list(zip(cd.voltsNames, cd.sensorVcodes[i])))
         with open(oName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import sys, os
 import time
 import threading
@@ -9,7 +9,7 @@ from ROOT import TFile, TChain, gDirectory
 from datetime import datetime
 
 if sys.version_info[0] < 3:
-    import Tkinter as tk
+    import tkinter as tk
 else:
     import tkinter as tk
 
@@ -45,7 +45,7 @@ class DataViewer():
             self.fIndx = 0
         if show:
             for i,f in enumerate(self.fList):
-                print(i, f)
+                print((i, f))
 
     def get_file(self, fname):
         self.tree = TChain(self.treename)
@@ -66,12 +66,12 @@ class DataViewer():
             ievt1 = ievt
             if elist is not None:
                 ievt1 = self.tree.GetEntryNumber(ievt)
-                print 'Entry:'
+                print('Entry:')
 
             if ievt1 >= 0:
                 ret = self.tree.GetEntry(ievt1)
                 if ret == 0:
-                    print "Invalid event number:", ievt1, '. Not read from file!!!!!'
+                    print("Invalid event number:", ievt1, '. Not read from file!!!!!')
 
                 itree = self.tree.GetTreeNumber()
                 if itree != itree0:
@@ -81,16 +81,16 @@ class DataViewer():
                         irun = int(fname.rstrip('.root').split('_')[-1])
                     except ValueError:
                         irun = -1
-                    print fname, irun
+                    print(fname, irun)
 
                 self.dataPanel.dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(self.dataT[0]))])
                 self.dataPanel.plot_data()
             else:
-                print "Invalid event number:", ievt1, '!!!!!'
+                print("Invalid event number:", ievt1, '!!!!!')
 
-            print 'Event:', ievt1, itree, irun
+            print('Event:', ievt1, itree, irun)
 
-            x = raw_input("Next:")
+            x = input("Next:")
 #             if x=='q': sys.exit()
             if x=='q': return
             elif len(x)>0 and x[0] == 's':
@@ -103,25 +103,25 @@ class DataViewer():
 #                     print dirx, 'ppp'
                     if dirx and (not os.path.exists(dirx)): os.makedirs(dirx)
                     self.dataPanel.dataPlotsFigure.savefig(name)
-                    print "saved figure to", name
+                    print("saved figure to", name)
             elif len(x)>2 and x[:2] == 'f ':
                 try:
                     fname = x[2:]
-                    print "Switching to file:", fname
+                    print("Switching to file:", fname)
                     self.get_file(fname)
                     ievt = 0
                 except ValueError:
-                    print "Error in parsing the file name:",fname
+                    print("Error in parsing the file name:",fname)
             elif len(x)>2 and x[:2] == 'c ':
                 try:
                     self.tree.SetEntryList(0)
                     self.tree.Draw('>>elist',x[2:],'entrylist')
                     elist = gDirectory.Get('elist')
                     self.tree.SetEntryList(elist)
-                    print "selection",x[2:], 'applied (', elist.GetN(), 'entries)'
+                    print("selection",x[2:], 'applied (', elist.GetN(), 'entries)')
                     ievt = 0
                 except ValueError:
-                    print "failed to set the entrylist"
+                    print("failed to set the entrylist")
                     self.tree.SetEntryList(0)
                     elist = None
             else:
@@ -157,7 +157,7 @@ class DataUpdater(threading.Thread):
         self.currentFile = f
         self.tFile = tFile
         self.tree = tree
-        print "Using file", self.currentFile
+        print("Using file", self.currentFile)
         try:
             self.irun = int(self.currentFile.rstrip('.1').rstrip('.root').split('_')[-1])
 #             self.irun = int(self.currentFile.rstrip('.root').split('_')[-1])
@@ -172,17 +172,17 @@ class DataUpdater(threading.Thread):
             while not self.cd.quit:
                 self.get_file()
                 if self.tFile is None:
-                    print "No file"
+                    print("No file")
                     time.sleep(10)
                     continue
 
                 self.tree.Refresh()
                 n = self.tree.GetEntries()
                 if n==0:
-                    print "0 Entry, waiting...."
+                    print("0 Entry, waiting....")
                     continue
                 self.tree.GetEntry(n-1)
-                print 'Event', n-1
+                print('Event', n-1)
 
                 if n != n_old:
                     self.dataPanel.dataInfoText = ', '.join(['Run '+str(self.irun), 'Event '+str(n-1), str(datetime.fromtimestamp(self.dataT[0]))])
