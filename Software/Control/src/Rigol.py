@@ -210,5 +210,5 @@ def test1():
     s3.close()
 
 if __name__ == '__main__':
-#     test2()
-    optimization()
+    test2()
+    #optimization()
