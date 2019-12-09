@@ -146,7 +146,8 @@ def testFit():
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_data_100.root'
 #     fname1 = '/media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
-    fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_1.root'
+#     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_1.root'
+    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_15.root'
     tree1 = TChain('tree1')
     tree1.Add(fname1)
     tree1.Show(0)
