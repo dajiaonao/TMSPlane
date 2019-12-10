@@ -241,7 +241,7 @@ def apply_config(sp1, config_code):
             sp1.IO_mAvg.push_back(0.)
             sp1.CF_decayC[i] = P
 
-        sp1.CF_trig_ch = 0
+        sp1.CF_trig_ch = 6
         ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
         sp1.CF_decayC[0] = 250
         sp1.CF_decayC[1] = 3000
