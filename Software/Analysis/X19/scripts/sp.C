@@ -117,6 +117,7 @@ class SignalProcessor{
 
 //  private:
   AWBT* scrAry{nullptr};
+  AWBT* scrAryp{nullptr};
   vector< AWBT* > scrArys{20, nullptr};
 
   int CF_trig_ch{19};
@@ -142,6 +143,7 @@ class SignalProcessor{
   int build_events();
   int filter_channels();
   int filter_channel(size_t iCh, const AWBT* data);
+  int filter_channelx(size_t iCh, const AWBT* data);
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
 //   void testReco(TTree& treeIn, size_t ievt);
@@ -271,6 +273,16 @@ int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
   if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
   if(!scrAry) scrAry=scrArys[iCh];
+
+  return 0;
+}
+
+int SignalProcessor::filter_channelx(size_t iCh, const AWBT* data){
+  const AWBT* adcChData = data + nSamples * iCh;
+  if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
+  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+  scrAryp=scrArys[iCh];
+//   cout << iCh << " " <<  adcChData[100] << " "<< scrArys[iCh][100] << " " << scrAryp[100] << " " << fltParam[1] << " " << fltParam[2] << " " << CF_decayC[iCh] << endl;
 
   return 0;
 }

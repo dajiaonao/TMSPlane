@@ -19,22 +19,20 @@ import tkinter as tk
 class DataPanelGUILite(object):
     # @param [in] dataFigSize (w, h) in inches for the data plots figure assuming dpi=72
     def __init__(self, dataFigSize=(13, 12.5), visibleChannels=None, guiI=True):
-        self.master = None
         self.nAdcCh = 20
-        self.nSdmCh = 19
         self.adcDt =  0.2
         self.nSamples = 16384
         self.adcData = array.array('f',[0]*(self.nSamples*self.nAdcCh))
         self.sp = None
+        self.yx = {}
 
         # frame for plotting
         self.dataInfo = None
         self.dataInfoText = None
-#         self.dataPlotsFrame = tk.Frame(self.master)
         self.dataPlotsFrame = tk.Frame()
         self.dataPlotsFrame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsFigure = Figure(figsize=dataFigSize, dpi=72)
-        self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.98, top=0.98, bottom=0.05, hspace=0, wspace=0)
+        self.dataPlotsFigure.subplots_adjust(left=0.1, right=0.9, top=0.98, bottom=0.05, hspace=0, wspace=0)
         if visibleChannels == None or len(visibleChannels) == 0:
             visibleChannels = [i for i in range(self.nAdcCh-1)]
         # x-axis is shared
@@ -46,30 +44,30 @@ class DataPanelGUILite(object):
                 len(visibleChannels)+1, 1, i+1, sharex=dataPlotsSubplotN)
         for i,a in list(self.dataPlotsSubplots.items()):
             artist.setp(a.get_xticklabels(), visible=False)
+            self.yx[i] = a.twinx()
         self.dataPlotsSubplots[self.nAdcCh-1] = dataPlotsSubplotN
+        self.yx[self.nAdcCh-1] = dataPlotsSubplotN.twinx()
+
         self.dataPlotsCanvas = FigureCanvasTkAgg(self.dataPlotsFigure, master=self.dataPlotsFrame)
         self.dataPlotsCanvas.draw()
         self.dataPlotsCanvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.dataPlotsToolbar = NavigationToolbar2Tk(self.dataPlotsCanvas, self.dataPlotsFrame)
         self.dataPlotsToolbar.update()
         self.dataPlotsCanvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.plot_data()
+        if self.adcData is not None: self.plot_data()
 
     def on_key_event(self, event):
         print(('You pressed {:s}'.format(event.key)))
         print((event.key, event.key=='r'))
         key_press_handler(event, self.dataPlotsCanvas, self.dataPlotsToolbar)
 
-    def quit(self):
-        self.master.quit()     # stops mainloop
-        self.master.destroy()  # this is necessary on Windows to prevent
-                               # Fatal Python Error: PyEval_RestoreThread: NULL tstate
-
     def plot_data(self):
         # self.dataPlotsFigure.clf(keep_observers=True)
+        vx = [None]*self.nAdcCh
+
         for i,a in list(self.dataPlotsSubplots.items()):
             a.cla()
-        for i,a in list(self.dataPlotsSubplots.items()):
+#         for i,a in list(self.dataPlotsSubplots.items()):
             if i == self.nAdcCh-1:
                 a.set_xlabel('t [us]')
                 a.set_ylabel('[V]')
@@ -84,9 +82,10 @@ class DataPanelGUILite(object):
             a.step(x, array.array('f', self.adcData[i*self.nSamples:(i+1)*self.nSamples]), where='post')
 
             if self.sp is not None:
-                self.sp.filter_channel(i, self.adcData)
-                vx = np.array([self.sp.scrAry[k] for k in range(self.sp.nSamples)])
-                a.plot(vx)
+                self.sp.filter_channelx(i, self.adcData)
+                vx[i] = np.array([self.sp.scrAryp[k] for k in range(self.sp.nSamples)])
+                self.yx[i].clear()
+                self.yx[i].plot(x, vx[i], color='red')
 
         if self.dataInfoText:
             if self.dataInfo is None:
@@ -99,11 +98,11 @@ class DataPanelGUILite(object):
 
 def test():
     # data
-    p1 = DataPanelGUILite()
 
     sp1 = SignalProcessor()
     apply_config(sp1, 'Lithium/c')
 
+    p1 = DataPanelGUILite()
     p1.sp = sp1
 
     fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_15.root'
@@ -118,6 +117,7 @@ def test():
     while ievt< NMax:
         print("Event:", ievt)
         tree1.GetEntry(ievt)
+#         sp1.filter_channels()
 
         p1.plot_data()
 
