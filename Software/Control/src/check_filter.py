@@ -487,7 +487,8 @@ def overlayFilters(inRoot):
     fout1.Close()
         
 def test1():
-    overlayFilters('data/fpgaLin/Feb09b_data_1713.root')
+#     overlayFilters('data/fpgaLin/Feb09b_data_1713.root')
+    overlayFilters('data/fpgaLin/Dec05b/Dec05b_data_95.root')
 
 if __name__ == '__main__':
     test1()
