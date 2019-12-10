@@ -56,6 +56,15 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
     return 0;
 }
 
+struct fltPars{
+  int BW; /// width for background estimation
+  int R; /// rising parameter
+  int W; /// width
+  float T; /// decay constant
+
+  void setV(int a, int b, int c, float d){BW = a; R = b; W = c; T = d;}
+};
+
 struct Sig{
   float Q;//!
   int im; //!
@@ -91,6 +100,7 @@ class SignalProcessor{
   size_t nAdcCh;
   vector< double > fltParam{100,200,300,-1};
   vector< double > CF_decayC; /// decay constant of each channel
+  vector< fltPars > CF_fltParams;
   double* measParam{nullptr};
   size_t nMeasParam{2};
   vector< float > ch_thre;
@@ -107,7 +117,8 @@ class SignalProcessor{
 
   SignalProcessor(size_t _nSamples=16384, size_t _nAdcCh=20):nSamples(_nSamples),nAdcCh(_nAdcCh),
                                                              scrAry(nullptr),CF_decayC(_nAdcCh, -1),
-                                                             CF_chan_en(_nAdcCh, 1),IO_mAvg(_nAdcCh, 0){};
+                                                             CF_chan_en(_nAdcCh, 1),IO_mAvg(_nAdcCh, 0),
+                                                             CF_fltParams(_nAdcCh){};
   ~SignalProcessor(){
     /// FIXME: are these "free"s really needed?
     if(IO_adcData) free(IO_adcData);
@@ -271,7 +282,9 @@ int SignalProcessor::build_events(const AWBT *adcData){
 int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
   const AWBT* adcChData = data + nSamples * iCh;
   if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+//   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+  auto& p = CF_fltParams[iCh];
+  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
   if(!scrAry) scrAry=scrArys[iCh];
 
   return 0;
@@ -280,7 +293,9 @@ int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
 int SignalProcessor::filter_channelx(size_t iCh, const AWBT* data){
   const AWBT* adcChData = data + nSamples * iCh;
   if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+//   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+  auto& p = CF_fltParams[iCh];
+  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
   scrAryp=scrArys[iCh];
 //   cout << iCh << " " <<  adcChData[100] << " "<< scrArys[iCh][100] << " " << scrAryp[100] << " " << fltParam[1] << " " << fltParam[2] << " " << CF_decayC[iCh] << endl;
 
@@ -296,7 +311,9 @@ int SignalProcessor::filter_channels(){
 
     const AWBT* adcChData = IO_adcData + nSamples * iCh;
     if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+//     filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+    auto& p = CF_fltParams[iCh];
+    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
    }
 //   cout << "Done in filter_channels" << endl;
 

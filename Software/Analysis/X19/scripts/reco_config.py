@@ -225,7 +225,8 @@ def apply_config(sp1, config_code):
         for x in thre: sp1.ch_thre.push_back(x)
 
         ### filter configuration
-        fltParam = [100,300,350,80]
+#         fltParam = [100,300,350,80]
+        fltParam = [100,100,350,80]
         sp1.fltParam.clear()
         for p in fltParam: sp1.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
 
@@ -261,7 +262,11 @@ def apply_config(sp1, config_code):
         sp1.CF_decayC[16] = 5
         sp1.CF_decayC[17] = 1200
         sp1.CF_decayC[18] = 3200
-        
+        sp1.CF_decayC[19] = -1
+
+        for i in range(sp1.nAdcCh):
+            sp1.CF_fltParams[i].setV(100, 100,300,sp1.CF_decayC[i])
+
         ### we are done
         return "Li7/c" ### anything after slash is a development tag, frozen configurations does not have a slash
 
