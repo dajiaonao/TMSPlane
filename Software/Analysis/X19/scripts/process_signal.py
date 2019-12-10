@@ -336,6 +336,57 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
     tup1.Write()
     fout1.Close()
 
+def readSignal5b(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on 4b, using new '''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    oDir = args[2] if len(args)>2 else os.path.dirname(inRoot)
+    if oTag.find('/') != -1:
+        oDir = os.path.dirname(oTag)
+        oTag = os.path.basename(oTag)
+    print("Starting", inRoot, oTag)
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print("Failed to get the dV in file:", iRoot)
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print("Run number not exatracted for file", iRoot)
+                return
+        else:
+            if dV<0:
+                print("Run number not exatracted for file", iRoot)
+                return
+
+    sp1 = SignalProcessor()
+#     apply_config(sp1, 'Hydrogen')
+#     apply_config(sp1, 'Hydrogen/c3')
+#     apply_config(sp1, 'Helium')
+    apply_config(sp1, 'Lithium/c')
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    outRoot = oDir+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
+
+
 def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
     '''For Mar08 data processing, take the decay time from configuration file'''
     args = argX.split(';')
@@ -371,7 +422,8 @@ def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
     sp1 = SignalProcessor()
 #     apply_config(sp1, 'Hydrogen')
 #     apply_config(sp1, 'Hydrogen/c3')
-    apply_config(sp1, 'Helium')
+#     apply_config(sp1, 'Helium')
+    apply_config(sp1, 'Lithium/c')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -863,6 +915,7 @@ def process_all_match4(pattern, oTag, skipExist=True):
 
 def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
 #     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
+#     print(glob(pattern))
     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Nov','/'+oTag+'Nov'))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
         print("No files matchs.... Aborting...")
@@ -887,7 +940,7 @@ def process_all_matchY(funX, pattern, oTag, skipExist=True):
 
 
 if __name__ == '__main__':
-    nThread = 3 if socket.gethostname() == 'eastlake' else 6
+    nThread = 6 if socket.gethostname() == 'eastlake' else 3
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
 #     testK()
@@ -915,7 +968,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Mar08D1a/Mar08D1a_data_*.root', 'tpx01a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_5*.root', 'tpx01a_', True)
-#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_???.root', 'tpx02a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_???.root', 'tpx02a_', 1False)
+#     process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx02a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_64??.root', 'tpx01b_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
@@ -928,9 +982,12 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p2_data_0.root*', 's2a_', False, 3)
 #     process_all_matchX(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True, 6)
-    dataDir = '/data/Samples/TMSPlane/fpgaLin/'
+    dataDir = '/data/Samples/TMSPlane/fpgaLin/raw2/'
+#     dataDir = '/run/media/dzhang/Backup\ Plus/TMS_data/'
 #     dataDir = '/media/dzhang/dzhang/tms_data/'
-    process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
+#     process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
+#     print('/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_*.root*')
+    process_all_matchX(readSignal5b, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/s1a_', False, nThread)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')

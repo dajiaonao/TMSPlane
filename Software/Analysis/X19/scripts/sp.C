@@ -27,6 +27,13 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
     ssize_t j, jk, jl, jkl;
     double vj, vjk, vjl, vjkl, dkl;
 
+    //// fix for very short lived signal, use k = 2*M, and the same width
+    if (k>2*M){
+      l = int(2*M)+l-k;
+      k = int(2*M);
+     }
+    //// end of the fix
+
     s = 0.0; pp = 0.0;
 
     for(size_t i=0; i<wavLen; i++) {
@@ -300,6 +307,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
   auto t_scrAry = scrArys[chan];
   scrAry = t_scrAry;
   x_thre = ch_thre[chan];
+//   cout << "ch" << chan << " x_thre=" << x_thre << endl;
 
   /// start the search...
   int g_max_i = -999;
@@ -375,13 +383,13 @@ int SignalProcessor::reco(){
 //     cout << "ii=" << ii << " w2=" << s.w2 << endl;
 //     if(s.w2>300) continue; /// irrelevent
 
-    if(s.w2>80){ /// pulse
-      CF_uSize = 800;
-      CF_dSize = 1200;
-    }else{ /// alpha signal
-      CF_uSize = -50;
-      CF_dSize = 200;
-    }
+//     if(s.w2>80){ /// pulse
+//       CF_uSize = 800;
+//       CF_dSize = 1200;
+//     }else{ /// alpha signal
+//       CF_uSize = -50;
+//       CF_dSize = 200;
+//     }
 
     /// keep the search window inside the sample
     if((s.im+CF_uSize)>=int(nSamples)){
@@ -512,7 +520,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     if(chan>=0 && chan != int(iCh)) continue;
 
     x_thre = ch_thre[iCh];
-//     std::cout << "chan " << iCh << std::endl;
+    std::cout << "chan " << iCh << " thre=" << x_thre << std::endl;
     /// create the vector if not exist yet
     if(signals[iCh]) {
       signals[iCh]->clear();
@@ -549,8 +557,8 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
     //// Start working on the filtered sample
     //// find the largest point, if it's bigger than the threshold, find other local maximum
-    int g_max_i = -999;
-    int l_max_i = -999;
+    int g_max_i = 0;
+    int l_max_i = 0;
     float g_max_x = -999.;
     float l_max_x = -1999.;
 
@@ -571,7 +579,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
         if(ismaller>nSmaller){
           if(ilarger>nLarger && l_max_x > x_thre){
-//             cout << "l_max_i " << l_max_i << endl;
+            cout << "l_max_i " << l_max_i << endl;
 //             cout << "l_max_x " << l_max_x << endl;
 //             cout << "ilarger " << ilarger << endl;
 //             cout << "ismaller " << ismaller << endl;
@@ -598,7 +606,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
        }
      }
     if(sigV->size()==0){
-//       cout << "g_max_i=" << g_max_i << endl;
+      cout << "g_max_i=" << g_max_i << endl;
       check_signal(g_max_i, sigV);
     }
    }
@@ -925,8 +933,10 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
   //// set branch address for the input tree
   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
   UInt_t dataT;
+  Int_t dataV;
   treeIn.SetBranchAddress("adc", IO_adcData);
   treeIn.SetBranchAddress("T",  &dataT);
+  treeIn.SetBranchAddress("V",  &dataV);
 
   //// create the output tree if it is nullptr, then we need to have a tfile
   /// create the outfile
@@ -941,6 +951,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
     treeOut = new TTree("reco","reco tree");
     treeOut->Branch("run", &run, "run/I");
     treeOut->Branch("evt", &event, "evt/I");
+    treeOut->Branch("V"  , &dataV, "V/I");
     treeOut->Branch("tID", &tID, "tID/I");
     treeOut->Branch("Q", &Q, "Q[20]/F");
     treeOut->Branch("im", &im, "im[20]/I");
@@ -948,6 +959,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
    }else{
     treeOut->SetBranchAddress("run", &run);
     treeOut->SetBranchAddress("evt", &event);
+    treeOut->SetBranchAddress("V", &dataV);
     treeOut->SetBranchAddress("tID", &tID);
     treeOut->SetBranchAddress("Q", &Q);
     treeOut->SetBranchAddress("im", &im);
