@@ -105,7 +105,7 @@ def test():
     p1 = DataPanelGUILite()
     p1.sp = sp1
 
-    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_15.root'
+    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_105.root'
     tree1 = TChain('tree1')
     tree1.Add(fname1)
     tree1.Show(0)

@@ -447,6 +447,11 @@ def run_simple_calibration(infiles,outTag='',prop1=True):
             h1 = gDirectory.Get(hName)
             r = h1.Fit('gaus','S')
             fun1 = h1.GetFunction('gaus')
+
+            ### another fit
+
+
+
             nC = 7.41*v
             enc = nC*fun1.GetParameter(2)/fun1.GetParameter(1)
 

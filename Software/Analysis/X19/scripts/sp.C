@@ -28,11 +28,12 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
     double vj, vjk, vjl, vjkl, dkl;
 
     //// fix for very short lived signal, use k = 2*M, and the same width
-    if (k>2*M){
-      l = int(2*M)+l-k;
-      k = int(2*M);
-     }
-    //// end of the fix
+    //// comment out it now, will let the caller to control 
+//     if (k>2*M){
+//       l = int(2*M)+l-k;
+//       k = int(2*M);
+//      }
+//     //// end of the fix
 
     s = 0.0; pp = 0.0;
 
@@ -720,7 +721,9 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
         measChParam[0] = bl;
         measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
         /* peak location and height */
-        filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+
+        auto& p = CF_fltParams[iCh];
+        filters_trapezoidal(nSamples, adcChData, scrAry, p.R, p.W, p.T);
 
         size_t t=2;
         for(auto& x: sRanges){
@@ -732,6 +735,12 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
                   j = i;
               }
           }
+
+          //// add a correction of those baseline is not 0
+          unsigned int w = p.W;
+          v -= ((j > w)?scrAry[j-w]:scrAry[j+w]);
+
+          //// save them
           measChParam[t] = j;
           measChParam[t+1] = v;
           t += 2;
