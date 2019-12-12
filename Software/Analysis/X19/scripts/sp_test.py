@@ -5,7 +5,7 @@ from ctypes import *
 from ROOT import *
 gROOT.LoadMacro("sp.C+")
 
-from ROOT import SignalProcessor, Event, Sig, showEvents, showEvent
+from ROOT import SignalProcessor, Event, Sig, showEvents, showEvent, fltPars
 from array import array
 import re, time
 from glob import glob

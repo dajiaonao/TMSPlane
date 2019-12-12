@@ -242,15 +242,18 @@ def make_calibration_file():
 
     fout.Close()
 
-def get_gr(ch,chan):
+def get_gr(ch,chan,prop=True):
     n = ch.Draw('V:mean:meanErr',f'abs(chan)=={chan}','goff')
     v1 = ch.GetV1()
     v2 = ch.GetV2()
     v3 = ch.GetV3()
 
-    nElectronPerV = 7410.
+#     nElectronPerV = 7410.
+    nElectronPerV = 7.410 ### 741e / 100 mV
 
-    dx = sorted([(v1[i]*nElectronPerV,v2[i],v3[i]) for i in range(n)]+[(0,0,0)], key=lambda x:x[0])
+    list1 = [(v1[i]*nElectronPerV,v2[i],v3[i]) for i in range(n)]
+    if prop: list1 += [(0,0,0)]
+    dx = sorted(list1, key=lambda x:x[0])
 
     n1 = len(dx)
     px = lambda t: array('f',[dx[i][t] for i in range(n1)])
@@ -396,7 +399,7 @@ def check_calibration(fname, vbinning=None):
 #     ct1.showCalib()
 #     ct1.showCalib0()
 
-def run_simple_calibration(infiles,outTag=''):
+def run_simple_calibration(infiles,outTag='',prop1=True):
     ch1 = TChain('tup1')
     for f in infiles: ch1.Add(f)
 
@@ -407,10 +410,22 @@ def run_simple_calibration(infiles,outTag=''):
     v1 = ch1.GetV1()
     v2 = ch1.GetV2()
     for i in range(n):
-        dVs.add(int(v1[i]))
-        chs.add(int(v2[i]))
+        try:
+            dVi = int(v1[i])
+            chi = int(v2[i])
+        except ValueError:
+            print(i, v1[i], v2[i])
+            print("ValueError")
+            continue
+        if dVi > 800 or chi>20 or dVi==0:
+            print(dVi,chi, v1[i], v2[i])
+            break
+        
+        dVs.add(dVi)
+        chs.add(chi)
     chList = sorted(chs)
     dVList = sorted(dVs)
+#     return
     print(chList)
     print(dVList)
 
@@ -423,6 +438,7 @@ def run_simple_calibration(infiles,outTag=''):
     for v in dVList:
         for ich in chList:
             hName = 'h_'+str(ich)+'_'+str(v)
+#             print('ch=={0:d}&&dV=={1:d}'.format(ich, v))
             n = ch1.Draw('A>>'+hName,'ch=={0:d}&&dV=={1:d}'.format(ich, v),'goff')
             print(n)
             if n<1: 
@@ -431,6 +447,11 @@ def run_simple_calibration(infiles,outTag=''):
             h1 = gDirectory.Get(hName)
             r = h1.Fit('gaus','S')
             fun1 = h1.GetFunction('gaus')
+
+            ### another fit
+
+
+
             nC = 7.41*v
             enc = nC*fun1.GetParameter(2)/fun1.GetParameter(1)
 
@@ -447,7 +468,7 @@ def run_simple_calibration(infiles,outTag=''):
     tup1.Write()
 
     for ich in chList:
-        gr = get_gr(tup1,ich)
+        gr = get_gr(tup1,ich,prop1)
         gr.Write('calib_gr_'+str(ich))
 
     fout.Close()
@@ -456,11 +477,21 @@ def make_calibration_file_C0():
     dir1 = '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c'
     run_simple_calibration([dir1+'/s2a_*.root'],'C0_')
 
+def make_calibration_file_C7():
+    dir1 = '/data/repos/TMSPlane/Software/Analysis/X19/scripts/temp1_out'
+    ### only select files with run number < 140, the later ones are not stable
+    fs = [dir1+'/p1a_Dec05b_data_{0:d}.root'.format(i) for i in range(140)]
+#     print(fs)
+    run_simple_calibration(fs,'C7_',False)
+
+
+
 def test():
 #     make_calibration_file()
 #     make_calibration_file_C3()
 #     make_calibration_file_C0()
-    check_calibration('C0_calib_out.root',vbinning=('20,10,410','mV'))
+    make_calibration_file_C7()
+#     check_calibration('C0_calib_out.root',vbinning=('20,10,410','mV'))
 
 #     check_calibration('C3_calib_out0_save.root')
 #     check_calibration('C3_calib_out0_v2.root')

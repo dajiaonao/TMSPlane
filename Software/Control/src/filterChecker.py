@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''The script is used to check the filter. And it should work in two modes:
     1. Real time mode. It take data and run the filter to see the effect.
     2. Offline mode.

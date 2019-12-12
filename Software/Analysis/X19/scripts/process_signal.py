@@ -1,6 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # from SignalChecker import SignalChecker
-from ROOT import *
+import numpy as np
+from ROOT import gROOT, TChain, TFile, TNtuple
 gROOT.LoadMacro("sp.C+")
 
 from ROOT import SignalProcessor
@@ -10,12 +11,99 @@ from multiprocessing import Pool
 from glob import glob
 import os, time, re
 import socket
-from scipy.signal import wiener
-import numpy as np
+# from scipy.signal import wiener
 import cmath
 from check_decay import FilterConfig
 from reco_config import apply_config
 from math import sqrt
+
+
+def parse_args(argX):
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    oDir = args[2] if len(args)>2 else os.path.dirname(inRoot)
+    if oTag.find('/') != -1:
+        oDir = os.path.dirname(oTag)
+        oTag = os.path.basename(oTag)
+
+    return inRoot,oTag,oDir
+
+def get_number(pattern, filename):
+    ### run info
+    run = -1
+    if pattern is not None:
+        m = re.match(pattern, filename)
+        if m: run = int(m.group(1))
+    return run
+
+def process_pulse(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on readSignal2b. Find signal in a range, meant for pulse calibration, for which you know where the signal is expected.'''
+    inRoot, oTag, oDir = parse_args(argX)
+    print(("Starting", inRoot, oTag))
+
+    ### run info
+    run = get_number(runPattern, inRoot)
+
+    sp1 = SignalProcessor(16384,20)
+    apply_config(sp1, 'Lithium/c')
+   
+    ### special configuration not given in the reco_config
+    sp1.sRanges.clear()
+#     sp1.sRanges.push_back((3500, 3501))
+    sp1.sRanges.push_back((2950, 2951))
+
+    data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
+    dataT = array('i',[0])
+    dataV = array('I',[0])
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    if tree1 is None:
+        print('Problem to get the tree in', inRoot, 'skipping it')
+        return
+    try:
+        tree1.SetBranchAddress('adc',data1)
+        tree1.SetBranchAddress('T',dataT)
+        tree1.SetBranchAddress('V',dataV)
+    except TypeError:
+        print(inRoot)
+
+    fout1 = TFile(oDir+'/'+oTag+os.path.basename(inRoot),'recreate')
+    tup1 = TNtuple('tup1',"filter analysis tuple",'run:sID:ch:B:dB:im:idx:A:T:dV')
+
+    for ievt in range(tree1.GetEntries()):
+        tree1.GetEntry(ievt)
+
+        sp1.measure_pulse(data1)
+        for i in range(sp1.nAdcCh):
+            itmp = sp1.nMeasParam*i
+            if sp1.nMeasParam%2 != 0: print(sp1.nMeasParam, inRoot, ievt)
+            for j in range(int(sp1.nMeasParam/2)-1):
+                tup1.Fill(run, ievt, i, sp1.measParam[itmp], sp1.measParam[itmp+1], j, sp1.measParam[itmp+2*j+2], sp1.measParam[itmp+2*j+3], dataT[0]-788947200, dataV[0])
+
+    tup1.Write()
+    fout1.Close()
+
+def process_event(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on 5b and process_pulse, using new '''
+    inRoot, oTag, oDir = parse_args(argX)
+    print(("Starting", inRoot, oTag))
+
+    ### run info
+    run = get_number(runPattern, inRoot)
+
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Lithium/c')
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    outRoot = oDir+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
 
 class bkgEstimator:
     def __init__(self):
@@ -55,8 +143,10 @@ class bkgEstimator:
         plt.plot(self.data)
 
 def apply_wiener_filter(data,ich,n=16384):
+    print("Doing nothing....")
+    return
     x = [data[ich*n+i] for i in range(n)]
-    y = wiener(x, mysize=500)
+#     y = wiener(x, mysize=500)
     for i in range(n): data[ich*n+i] = y[i]
 
 def readSignal5a(argX, runPattern='.*_data_(\d+).root'):
@@ -64,7 +154,7 @@ def readSignal5a(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -74,7 +164,7 @@ def readSignal5a(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -84,11 +174,11 @@ def readSignal5a(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -136,7 +226,7 @@ def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -146,7 +236,7 @@ def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -156,11 +246,11 @@ def readSignal4a(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -209,7 +299,7 @@ def readSignal4d(argX, runPattern='.*_data_(\d+).root'):
     if oTag.find('/') != -1:
         oDir = os.path.dirname(oTag)
         oTag = os.path.basename(oTag)
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### data check
     run = -1
@@ -219,11 +309,11 @@ def readSignal4d(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -270,7 +360,7 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -280,7 +370,7 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -290,11 +380,11 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -336,12 +426,16 @@ def readSignal4c(argX, runPattern='.*_data_(\d+).root'):
     tup1.Write()
     fout1.Close()
 
-def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
-    '''For Mar08 data processing, take the decay time from configuration file'''
+def readSignal5b(argX, runPattern='.*_data_(\d+).root'):
+    '''Based on 4b, using new '''
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    oDir = args[2] if len(args)>2 else os.path.dirname(inRoot)
+    if oTag.find('/') != -1:
+        oDir = os.path.dirname(oTag)
+        oTag = os.path.basename(oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -351,7 +445,7 @@ def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -361,17 +455,65 @@ def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
 #     apply_config(sp1, 'Hydrogen')
 #     apply_config(sp1, 'Hydrogen/c3')
-    apply_config(sp1, 'Helium')
+#     apply_config(sp1, 'Helium')
+    apply_config(sp1, 'Lithium/c')
+
+    fin1 = TFile(inRoot,'read')
+    tree1 = fin1.Get('tree1')
+
+    tree2 = 0
+    outRoot = oDir+'/'+oTag+os.path.basename(inRoot)
+    tf = sp1.processFile(tree1, tree2, outRoot, run)
+    tf.Close()
+
+
+def readSignal4b(argX, runPattern='.*_data_(\d+).root'):
+    '''For Mar08 data processing, take the decay time from configuration file'''
+    args = argX.split(';')
+    inRoot = args[0]
+    oTag = args[1]
+    print(("Starting", inRoot, oTag))
+
+    ### pulse test
+    dV = -1
+    dvPattern = '.*_(\d+)mV_f\d+.root'
+    m = re.match(dvPattern, inRoot)
+    if m:
+        try:
+            dV = int(m.group(1))
+        except ValueError:
+            print(("Failed to get the dV in file:", iRoot))
+
+    ### data check
+    run = -1
+    if runPattern is not None:
+        m = re.match(runPattern, inRoot)
+        if m:
+            try:
+                run = int(m.group(1))
+            except ValueError:
+                print(("Run number not exatracted for file", iRoot))
+                return
+        else:
+            if dV<0:
+                print(("Run number not exatracted for file", iRoot))
+                return
+
+    sp1 = SignalProcessor()
+#     apply_config(sp1, 'Hydrogen')
+#     apply_config(sp1, 'Hydrogen/c3')
+#     apply_config(sp1, 'Helium')
+    apply_config(sp1, 'Lithium/c')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -385,7 +527,7 @@ def readSignal4(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -395,7 +537,7 @@ def readSignal4(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -405,11 +547,11 @@ def readSignal4(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -450,7 +592,7 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -460,7 +602,7 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### data check
     run = -1
@@ -470,11 +612,11 @@ def readSignal3(argX, runPattern='.*_data_(\d+).root'):
             try:
                 run = int(m.group(1))
             except ValueError:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
         else:
             if dV<0:
-                print("Run number not exatracted for file", iRoot)
+                print(("Run number not exatracted for file", iRoot))
                 return
 
     sp1 = SignalProcessor()
@@ -557,7 +699,7 @@ def readSignal2a(argX, runPattern='.*_data_(\d+).root'):
     args = argX.split(';')
     inRoot = args[0]
     oTag = args[1]
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 
     ### pulse test
     dV = -1
@@ -567,7 +709,7 @@ def readSignal2a(argX, runPattern='.*_data_(\d+).root'):
         try:
             dV = int(m.group(1))
         except ValueError:
-            print("Failed to get the dV in file:", iRoot)
+            print(("Failed to get the dV in file:", iRoot))
 
     ### run info
     run = -1
@@ -611,7 +753,7 @@ def readSignal2(inRoot, oTag=None, freq=1000, runPattern='.*_data_(\d+).root'):
     '''Write out root file and add more info'''
     if oTag is None:
         oTag = readSignal2.oTag
-    print("Starting", inRoot, oTag)
+    print(("Starting", inRoot, oTag))
 #     return
 
     run = -1
@@ -730,7 +872,7 @@ def test_Feb06c(oTag):
 
     files = sorted([f for f in glob('data/fpgaLin/Feb06c_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
 #     p.map(check_Jan22bx, files)
@@ -743,7 +885,7 @@ def test_Feb09(oTag):
 
     files = sorted([f for f in glob('data/fpgaLin/Feb09*_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
 #     p.map(check_Jan22bx, files)
@@ -756,19 +898,19 @@ def test_Feb09b(oTag):
 
     files = sorted([f for f in glob('data/fpgaLin/Feb09b*_data_*.root') if not os.path.exists(f.replace('/Feb','/'+oTag+'Feb'))], key=lambda f:os.path.getmtime(f))
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
     p.map(readSignal3, [f+';'+oTag for f in files])
 
 def check_Jan22by(fname):
     tag = 'sp_'
-    print("Starting", fname, tag)
+    print(("Starting", fname, tag))
     readSignal2(fname, tag, 1000)
 
 def check_Jan22bx(fname):
     out = fname[:-5]+'.dat'
-    print("Starting", fname, out)
+    print(("Starting", fname, out))
     readSignal(fname, out, 1000)
 
 # def testJ():
@@ -816,7 +958,7 @@ def check_calib():
     ## run a test
     for x in sp1.corr_spine[5].GetX():
         t = 1
-        print(sp1.correction(1,x)*t, sp1.correction(1,x, 1)*t, '|', sp1.correction(5,x)*t, sp1.correction(5,x, 1)*t)
+        print((sp1.correction(1,x)*t, sp1.correction(1,x, 1)*t, '|', sp1.correction(5,x)*t, sp1.correction(5,x, 1)*t))
 
 def test3(pList, pTag='Feb25a', skipExist=True):
     tasks = []
@@ -843,7 +985,7 @@ def process_all_match(pattern, oTag, skipExist=True):
         print("No files matchs.... Aborting...")
         return
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
     p = Pool(6)
@@ -855,7 +997,7 @@ def process_all_match4(pattern, oTag, skipExist=True):
         print("No files matchs.... Aborting...")
         return
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
     p = Pool(6)
@@ -863,12 +1005,13 @@ def process_all_match4(pattern, oTag, skipExist=True):
 
 def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
 #     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Mar','/'+oTag+'Mar'))))], key=lambda f:os.path.getmtime(f))
-    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Nov','/'+oTag+'Nov'))))], key=lambda f:os.path.getmtime(f))
+#     print(glob(pattern))
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(oTag+os.path.basename(f))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
         print("No files matchs.... Aborting...")
         return
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
     p = Pool(nThread)
@@ -880,14 +1023,14 @@ def process_all_matchY(funX, pattern, oTag, skipExist=True):
         print("No files matchs.... Aborting...")
         return
     if time.time() - os.path.getmtime(files[-1]) < 10:
-        print("dropping the latest file, which probably is still being written:", files[-1])
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
     for a in [f+';'+oTag for f in files]: funX(a)
 
 
 if __name__ == '__main__':
-    nThread = 3 if socket.gethostname() == 'eastlake' else 6
+    nThread = 6 if socket.gethostname() == 'eastlake' else 3
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
 #     testK()
@@ -915,7 +1058,8 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal4c, 'data/fpgaLin/Mar08D1a_data_*.root', 'tpx01a_')
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Mar08D1a/Mar08D1a_data_*.root', 'tpx01a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_5*.root', 'tpx01a_', True)
-#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_???.root', 'tpx02a_', False)
+#     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_???.root', 'tpx02a_', 1False)
+#     process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx02a_', False)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_64??.root', 'tpx01b_', True)
 #     process_all_matchX(readSignal4b, 'data/fpgaLin/Apr22T1a_data_1???.root', 'tpx01a_', True)
@@ -928,9 +1072,15 @@ if __name__ == '__main__':
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_*.root*', 's2a_', False, 3)
 #     process_all_matchX(readSignal2a, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p2_data_0.root*', 's2a_', False, 3)
 #     process_all_matchX(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True, 6)
-    dataDir = '/data/Samples/TMSPlane/fpgaLin/'
+    dataDir = '/data/Samples/TMSPlane/fpgaLin/raw2/'
+#     dataDir = '/run/media/dzhang/Backup\ Plus/TMS_data/'
 #     dataDir = '/media/dzhang/dzhang/tms_data/'
-    process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
+#     process_all_matchX(readSignal4d, dataDir+'/Nov13b/Nov13b_HV0p5b_data_*.root*', 'temp1_out/s1a_', True, nThread)
+#     print('/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_*.root*')
+#     process_all_matchX(readSignal5b, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/s1a_', False, nThread)
+#     process_all_matchX(process_data, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p1a_', False, nThread)
+    process_all_matchX(process_pulse, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p3a_', False, nThread)
+#     process_all_matchX(process_event, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/trigCh6_', True, nThread)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')

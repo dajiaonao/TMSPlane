@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-from __future__ import print_function
+#!/usr/bin/env python3
+
 # #!/usr/bin/env python36
 from ROOT import TChain, TF1, gStyle, gPad
 from rootUtil3 import waitRootCmdX
@@ -146,7 +146,8 @@ def testFit():
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_data_100.root'
 #     fname1 = '/media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
-    fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_1.root'
+#     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_1.root'
+    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_105.root'
     tree1 = TChain('tree1')
     tree1.Add(fname1)
     tree1.Show(0)
@@ -191,12 +192,12 @@ def testFit():
         plt.cla()
         data1b = [x - data1a[0] for x in data1a]
         plt.plot(data1b)
-        plt.plot(data2)
+        plt.plot(data2,color='red')
 #         plt.show()
 
         ### decide the next move
         while True:
-            x = raw_input("Next:")
+            x = input("Next:")
             if x=='q': sys.exit()
             elif len(x)>0 and x[0] == 's':
                 for name in x.split()[1:]:

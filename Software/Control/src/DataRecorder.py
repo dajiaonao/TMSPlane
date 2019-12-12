@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import socket, os
 # import argparse
 # import pprint
@@ -7,14 +7,14 @@ from sigproc import SigProc
 import time
 import array
 import glob
-from ROOT import *
+from ROOT import TTree, TFile
 from subprocess import call
 from math import isnan
 from datetime import datetime, timedelta
 from Rigol import Rigol
 
 def waitRootCmdY():
-    a = raw_input("waiting...")
+    a = input("waiting...")
 
 def useLHCbStyle0():
     pass
@@ -78,7 +78,7 @@ class DataRecorder:
                     break
 
                 if self.dV is None and i%100==0:
-                    print(str(i)+' samples taken.')
+                    print((str(i)+' samples taken.'))
                     try:
                         with open('/home/dlzhang/work/repos/TMSPlane2/Software/Control/src/.pulse_status') as f1:
                             V[0] = int(f1.readline().rstrip())
@@ -102,7 +102,8 @@ def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
     sc1 = DataRecorder()
     sc1.dV = None
     sc1.HV = HV
-    dir1 = 'data/fpgaLin/'
+    #dir1 = 'data/fpgaLin/'
+    dir1 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/'
 
     ### put in a dedicated direcotry
     if dirx is not None:
@@ -129,7 +130,7 @@ def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
             rg1.setPulseV(dv)
 
             sc1.dV = int(1000*dv)
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
@@ -151,7 +152,7 @@ def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000, dV=None):
     ### really start taking samples
     nSample = 0
     while nSample != N:
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample), nMonitor=nm)
         if status: break
         nSample += 1
@@ -164,7 +165,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     dir1 = 'data/fpgaLin/'
 
     sc1.tStop = datetime.now() + timedelta(minutes=Tmin)
-    print sc1.tStop, datetime.now()
+    print(sc1.tStop, datetime.now())
 
     ### put in a dedicated direcotry
     if dirx is not None:
@@ -177,7 +178,7 @@ def take_dataT(sTag, n=5000, Tmin=30, dirx=None):
     ### really start taking samples
     nSample = 0
     while True:
-        print "Start sample {0:d}".format(nSample)
+        print("Start sample {0:d}".format(nSample))
         status = sc1.take_samples2(n, dir1+sTag+"_data_{0:d}.root".format(nSample))
         if status: break
         nSample += 1
@@ -207,7 +208,7 @@ if __name__ == '__main__':
 #       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
 #       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
 #       take_data(sTag='Nov19b',n=1000, N=-1, dirx='raw/Nov19b',nm=1)
-      take_dataR(sTag='Nov28a',n=1000, N=-1, dirx='raw2/Nov28a',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
+      take_dataR(sTag='Dec05a',n=1000, N=-1, dirx='raw/Dec05a',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
 #       take_Run()
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
