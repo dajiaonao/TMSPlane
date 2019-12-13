@@ -399,7 +399,7 @@ def check_calibration(fname, vbinning=None):
 #     ct1.showCalib()
 #     ct1.showCalib0()
 
-def run_simple_calibration(infiles,outTag='',prop1=True):
+def run_simple_calibration0(infiles,outTag='',prop1=True):
     ch1 = TChain('tup1')
     for f in infiles: ch1.Add(f)
 
@@ -450,8 +450,6 @@ def run_simple_calibration(infiles,outTag='',prop1=True):
 
             ### another fit
 
-
-
             nC = 7.41*v
             enc = nC*fun1.GetParameter(2)/fun1.GetParameter(1)
 
@@ -473,6 +471,106 @@ def run_simple_calibration(infiles,outTag='',prop1=True):
 
     fout.Close()
 
+def run_simple_calibration(infiles,outTag='',prop1=True):
+    '''Not that simple any more'''
+
+    ch1 = TChain('tup1')
+    for f in infiles: ch1.Add(f)
+
+    dVs = set()
+    chs = set()
+
+    n = ch1.Draw('dV:ch',"",'goff')
+    v1 = ch1.GetV1()
+    v2 = ch1.GetV2()
+    for i in range(n):
+        try:
+            dVi = int(v1[i])
+            chi = int(v2[i])
+        except ValueError:
+            print(i, v1[i], v2[i])
+            print("ValueError")
+            continue
+        if dVi > 800 or chi>20 or dVi==0:
+            print(dVi,chi, v1[i], v2[i])
+            break
+        
+        dVs.add(dVi)
+        chs.add(chi)
+    chList = sorted(chs)
+    dVList = sorted(dVs)
+#     return
+    print(chList)
+    print(dVList)
+
+    nCh = 20
+    ### start fitting
+    d1 = [0]*nCh
+    fout = TFile(outTag+'calib_out.root','recreate')
+    tup1 = TNtuple('calib','calibration info','chan:V:nEvt:mean:meanErr:sigma:sigmaErr:ENC:fProb:fStatus')
+
+    for v in dVList:
+        for ich in chList:
+            hName = 'h_'+str(ich)+'_'+str(v)
+#             print('ch=={0:d}&&dV=={1:d}'.format(ich, v))
+            cut = 'ch=={0:d}&&dV=={1:d}'.format(ich, v)
+            n = ch1.Draw('A>>'+hName,cut,'goff')
+            print(n)
+            if n<1: 
+                tup1.Fill(ich,v,n,-1, -1, -1, -1, -1,-1)
+                continue
+            h1 = gDirectory.Get(hName)
+            r = h1.Fit('gaus','S')
+            fun1 = h1.GetFunction('gaus')
+
+            h2 = None
+            ### another fit
+            if fun1:
+                mean = fun1.GetParameter(1)
+                sigma = fun1.GetParameter(2)
+                
+                rms = h1.GetRMS()
+                if sigma < 0.06*rms:
+                    sigma = 0.06*rms
+                    redo = True
+
+                ch1.Draw("A>>"+hName+"_2(100,{0},{1})".format(mean-10*sigma,mean+10*sigma),cut,'goff')
+                h2 = gDirectory.Get(hName+'_2')
+                r2 = h2.Fit('gaus',"S","",max(mean-4*sigma,h1.GetBinLowEdge(1)), min(mean+1.5*sigma,h1.GetBinLowEdge(h1.GetNbinsX())))
+                fun2 = h2.GetFunction('gaus')
+                if fun2:
+                    r,fun1 = r2,fun2
+
+                    ### ugly fix to have a better fit range
+                    mean2 = fun2.GetParameter(1)
+                    sigma2 = fun2.GetParameter(2)
+                    r3 = h2.Fit('gaus',"S","",max(mean2-4*sigma2,h1.GetBinLowEdge(1)), min(mean2+1.5*sigma2,h1.GetBinLowEdge(h1.GetNbinsX())))
+                    fun3 = h2.GetFunction('gaus')
+                    if fun3: r,fun1 = r3,fun3
+
+
+            nC = 7.41*v
+            enc = nC*fun1.GetParameter(2)/fun1.GetParameter(1)
+
+            tup1.Fill(ich,v,n,fun1.GetParameter(1), fun1.GetParError(1), fun1.GetParameter(2), fun1.GetParError(2),enc, r.Prob(), r.Status())
+
+            print(enc, r.Prob())
+
+            fout.cd()
+            h1.Write()
+            if h2: h2.Write()
+
+            d1[ich] = (fun1.GetParameter(1)/v,fun1.GetParameter(2))
+    print(d1)
+
+    tup1.Write()
+
+    for ich in chList:
+        gr = get_gr(tup1,ich,prop1)
+        gr.Write('calib_gr_'+str(ich))
+
+    fout.Close()
+
 def make_calibration_file_C0():
     dir1 = '/data/Samples/TMSPlane/fpgaLin/raw/Nov04c'
     run_simple_calibration([dir1+'/s2a_*.root'],'C0_')
@@ -480,9 +578,10 @@ def make_calibration_file_C0():
 def make_calibration_file_C7():
     dir1 = '/data/repos/TMSPlane/Software/Analysis/X19/scripts/temp1_out'
     ### only select files with run number < 140, the later ones are not stable
-    fs = [dir1+'/p1a_Dec05b_data_{0:d}.root'.format(i) for i in range(140)]
+#     fs = [dir1+'/p1a_Dec05b_data_{0:d}.root'.format(i) for i in range(140)]
+    fs = [dir1+'/p3a_Dec05b_data_{0:d}.root'.format(i) for i in range(140)]
 #     print(fs)
-    run_simple_calibration(fs,'C7_',False)
+    run_simple_calibration(fs,'C7a_',False)
 
 
 
