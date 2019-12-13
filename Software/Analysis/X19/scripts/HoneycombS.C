@@ -30,5 +30,3 @@ void HoneycombS(TH2Poly* h, Double_t a, Int_t n)
 
    return;
  }
-
-

@@ -276,8 +276,10 @@ class calibTester:
         h.GetYaxis().SetTitle('Channel')
         if ztitle is not None: h.GetZaxis().SetTitle(ztitle)
 
-    def plotHistos(self,ch):
-        keys = [k for k in self.calibFile.GetListOfKeys() if re.match('h_{0:d}_(\d)'.format(ch), k.GetName()) is not None]
+    def plotHistos(self,ch,pattern='h_{0:d}_(\d)'):
+        print(pattern.format(ch))
+        keys = [k for k in self.calibFile.GetListOfKeys() if re.match(pattern.format(ch), k.GetName()) is not None]
+        print(keys)
 
         maxx = -1
         minx = 0
@@ -285,7 +287,7 @@ class calibTester:
         for k in keys:
             h = k.ReadObj()
             print(k.GetName())
-            v = re.match('h_{0:d}_(\d)'.format(ch),k.GetName()).group(1)
+            v = re.match(pattern.format(ch),k.GetName()).group(1)
 #             h.Draw()
             print(h.GetXaxis().GetBinUpEdge(h.GetNbinsX()))
             print(h.GetXaxis().GetBinLowEdge(1))
@@ -334,16 +336,24 @@ class calibTester:
             print("Wrong unit for pulse!!!!!")
             return
 
+#         tree1.Draw('enc:chan:V>>hENC('+self.vBinning[0]+',19,-0.5,18.5)',"fStatus==0&&fProb>0.005","prof colz")
         tree1.Draw('enc:chan:V>>hENC('+self.vBinning[0]+',19,-0.5,18.5)',"fStatus==0&&fProb>0.005","prof colz")
         hENC = gPad.GetPrimitive('hENC')
         self.setTitles(hENC, "ENC [e]")
         hENC.GetZaxis().SetRangeUser(0,200)
         waitRootCmdX(self.sDir+self.sTag+"fENC",self.autoSave)
 
-        tree1.Draw('enc:chan>>hENC2(19,-0.5,18.5,50,0,250)',"fStatus==0&&fProb>0.005","colz")
+#         tree1.Draw('enc:chan>>hENC2(19,-0.5,18.5,50,0,250)',"fStatus==0&&fProb>0.005","colz")
+        tree1.Draw('enc:chan>>hENC2(19,-0.5,18.5,50,0,250)',"fStatus==0&&-log10(fProb)<8","colz")
         hENC2 = gPad.GetPrimitive('hENC2')
+
+        nbinsy = hENC2.GetNbinsY()
+        for ix in range(hENC2.GetNbinsX()):
+            hENC2.SetBinContent(ix+1,nbinsy,hENC2.GetBinContent(ix+1,nbinsy)+hENC2.GetBinContent(ix+1,nbinsy+1))
+
         hENC2.GetXaxis().SetTitle("Channel")
         hENC2.GetYaxis().SetTitle("ENC [e]")
+        hENC2.GetZaxis().SetTitle("Entries")
         waitRootCmdX(self.sDir+self.sTag+"fENC2",self.autoSave)
 
     def linearity(self,gr):
@@ -394,10 +404,11 @@ def check_calibration(fname, vbinning=None):
 
     ct1 = calibTester(fname)
     if vbinning is not None: ct1.vBinning = vbinning
-    ct1.plotHistos(6)
-#     ct1.showBasics()
+#     ct1.plotHistos(6,'h_{0:d}_(\d+)_2')
+    ct1.plotHistos(17,'h_{0:d}_(\d+)_2')
+    ct1.showBasics()
 #     ct1.showCalib()
-#     ct1.showCalib0()
+    ct1.showCalib0()
 
 def run_simple_calibration0(infiles,outTag='',prop1=True):
     ch1 = TChain('tup1')
@@ -589,8 +600,9 @@ def test():
 #     make_calibration_file()
 #     make_calibration_file_C3()
 #     make_calibration_file_C0()
-    make_calibration_file_C7()
+#     make_calibration_file_C7()
 #     check_calibration('C0_calib_out.root',vbinning=('20,10,410','mV'))
+    check_calibration('C7a_calib_out.root',vbinning=('30,10,610','mV'))
 
 #     check_calibration('C3_calib_out0_save.root')
 #     check_calibration('C3_calib_out0_v2.root')
