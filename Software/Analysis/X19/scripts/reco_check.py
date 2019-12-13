@@ -79,13 +79,15 @@ class DataPanelGUILite(object):
             a.locator_params(axis='y', tight=True, nbins=4)
             a.yaxis.set_major_formatter(FormatStrFormatter('%7.4f'))
             a.set_xlim([0.0, self.adcDt * self.nSamples])
-            a.step(x, array.array('f', self.adcData[i*self.nSamples:(i+1)*self.nSamples]), where='post')
+            dti = array.array('f', self.adcData[i*self.nSamples:(i+1)*self.nSamples])
+            a.step(x, dti, where='post')
 
             if self.sp is not None:
                 self.sp.filter_channelx(i, self.adcData)
                 vx[i] = np.array([self.sp.scrAryp[k] for k in range(self.sp.nSamples)])
                 self.yx[i].clear()
-                self.yx[i].plot(x, vx[i], color='red')
+#                 self.yx[i].plot(x, vx[i], color='red')
+                a.plot(x, [a+dti[0] for a in vx[i]], color='red')
 
         if self.dataInfoText:
             if self.dataInfo is None:

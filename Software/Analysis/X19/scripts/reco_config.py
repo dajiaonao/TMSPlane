@@ -213,12 +213,13 @@ def apply_config(sp1, config_code):
     elif config_code == 'Lithium/c':
         ## chip 7
         ### search window
-        sp1.CF_uSize = -50
+        sp1.CF_uSize = -100
         sp1.CF_dSize = 100
 
+        sp1.CF_trig_ch = 3
         ## threshold
         thre = [0.001]*sp1.nAdcCh
-#         thre[5] = 0.002
+        thre[4] = 0.002
 #         thre[19] = 0.02
 
         sp1.ch_thre.clear()
@@ -237,7 +238,6 @@ def apply_config(sp1, config_code):
             sp1.CF_chan_en.push_back(1)
             sp1.IO_mAvg.push_back(0.)
 
-        sp1.CF_trig_ch = 6
         ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
         sp1.CF_decayC[0] = 450
         sp1.CF_decayC[1] = 6000

@@ -154,6 +154,7 @@ class SignalProcessor{
   float correction(size_t ich, float raw, int opt=0);
   int build_events();
   int filter_channels();
+  int filter_channel_0(size_t iCh, const AWBT* data);
   int filter_channel(size_t iCh, const AWBT* data);
   int filter_channelx(size_t iCh, const AWBT* data);
   int find_sigs(int chan, int start=0, int end=-1);
@@ -280,43 +281,39 @@ int SignalProcessor::build_events(const AWBT *adcData){
   return 0;
 }
 
-int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
+/// new basic function
+int SignalProcessor::filter_channel_0(size_t iCh, const AWBT* data){
   const AWBT* adcChData = data + nSamples * iCh;
   if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-//   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
   auto& p = CF_fltParams[iCh];
   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
+
+  return 0;
+}
+
+/// the orignal version
+int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
+  filter_channel_0(iCh, data);
   if(!scrAry) scrAry=scrArys[iCh];
 
   return 0;
 }
 
+/// added to make it easier to call from python script to get scrAryp; 
 int SignalProcessor::filter_channelx(size_t iCh, const AWBT* data){
-  const AWBT* adcChData = data + nSamples * iCh;
-  if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-//   filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
-  auto& p = CF_fltParams[iCh];
-  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
+  filter_channel_0(iCh, data);
   scrAryp=scrArys[iCh];
-//   cout << iCh << " " <<  adcChData[100] << " "<< scrArys[iCh][100] << " " << scrAryp[100] << " " << fltParam[1] << " " << fltParam[2] << " " << CF_decayC[iCh] << endl;
 
   return 0;
 }
 
-
-
+/// make it simple to process all channels
 int SignalProcessor::filter_channels(){
-//   cout << "in filter_channels" << endl;
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     if (CF_chan_en[iCh] == 0) continue;
 
-    const AWBT* adcChData = IO_adcData + nSamples * iCh;
-    if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-//     filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
-    auto& p = CF_fltParams[iCh];
-    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
+    filter_channel_0(iCh, IO_adcData);
    }
-//   cout << "Done in filter_channels" << endl;
 
   return 0;
 }
@@ -383,26 +380,29 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
      }
 
    }
-  if(sigV->size()==0){
+
+  int nSigs = sigV->size();
+  if(nSigs==0){
+    /// if nothing found, still try to having something...
 //     if(g_max_i<0) g_max_i = l_max_i;
 //     cout << "g_max_i=" << g_max_i << " mx=" << g_max_x << endl;
 //     cout << "l_max_i=" << l_max_i << " mx=" << l_max_x << endl;
     check_signal(g_max_i, sigV);
    }
 //   cout << "Done in find_sigs for chan " << chan << endl;
-  return 0;
+  return nSigs;
 }
 
 int SignalProcessor::reco(){
 //   cout << "in reco" << endl;
   size_t trig_ch = CF_trig_ch;
-  filter_channels();
-  find_sigs(trig_ch);
-  IO_evts.clear();
 
-//   cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
+  filter_channels(); /// this part could be updated to save time, at this moment only trigger channel need to be processed.
+  if(find_sigs(trig_ch) == 0) return 0;
+
+  /// start saving the interesting events found in trigger channel
+  IO_evts.clear();
   for(size_t ii=0; ii<signals[trig_ch]->size(); ii++){
-//     cout << "checking trigger " << ii << endl;
     auto&s = signals[trig_ch]->at(ii);
     IO_evts.emplace_back(ii);
     auto& evt = IO_evts.back();
@@ -423,6 +423,7 @@ int SignalProcessor::reco(){
 
     /// keep the search window inside the sample
     if((s.im+CF_uSize)>=int(nSamples)){
+      /// should not happend.... the up er part bigger than sample size?
 //       cout << s.im << " " << s.im+CF_uSize << " " << int(nSamples) << " " << evt.trigID << endl;
       continue;
     }
@@ -444,10 +445,8 @@ int SignalProcessor::reco(){
       // Let's try the simple option 1 first
       evt.sigs[iCh] = signals[iCh]->at(0);
      }
-//     cout << "Done in checking trigger " << ii << endl;
    }
 
-//   cout << "Done in reco <<<<<<<" << endl;
   return 0;
 }
 /*
