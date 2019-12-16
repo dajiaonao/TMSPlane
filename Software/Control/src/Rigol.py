@@ -179,6 +179,11 @@ class Rigol:
         self.s3.send(":SOURce1:VOLTage 1\n")                 #set output amplitude
         self.s3.send(":PA:OFFSet:VALUe 1\n")                       #set output offset, default value 1V 
 
+    def tuneConfig(self,fq=1250, dV=0.2):
+        self.calibration(fq)
+        self.setPhaseDev(300)
+        self.setPulseV(dV)
+
 def test2():
     r1 = Rigol()
     r1.connect()
@@ -195,6 +200,13 @@ def optimization(fq=1250):
     r1.setPhaseDev(300)
 #     r1.setPulseV(0.2)
 
+def tuneTestRigo(fq=1250,dV=0.2):
+    r1 = Rigol()
+    r1.connect()
+    r1.calibration(fq)
+    r1.setPhaseDev(300)
+    r1.setPulseV(dV)
+
 def test1():
     freq = 50
     Rig_hostname = '192.168.2.5'                    #rigol dds ip address
@@ -210,5 +222,6 @@ def test1():
     s3.close()
 
 if __name__ == '__main__':
+#     tuneTest()
     test2()
     #optimization()

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 from PyDE import *
 import threading
 from queue import Queue
@@ -13,12 +12,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import array
 import json
-from ROOT import *
+from ROOT import gROOT, TTree, TFile
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from reco_config import apply_config
+from Rigol import tuneTestRigo
 import logging
-logging.basicConfig(filename='tune_test_C7_v2.log', level=logging.INFO)
+logging.basicConfig(filename='tune_test_C7_v0.log', level=logging.INFO)
 
 
 class tuner(threading.Thread):
@@ -35,10 +35,10 @@ class tuner(threading.Thread):
         ret = de.solve()
         self.tx_qs[self.idx] = None
         self.rx_qs[self.idx] = None
-        print("Done {0:d}\n".format(self.idx))
+        print(("Done {0:d}\n".format(self.idx)))
  
         time.sleep(self.idx*1+1)
-        print('-'*10, self.idx)
+        print(('-'*10, self.idx))
         print(ret)
        
     def auto_tune_fun1(self, x):
@@ -122,6 +122,7 @@ class Train(threading.Thread):
 
         for i in range(self.cd.nAdcCh):
             self.axs[i].cla()
+#             print("plotting")
 #             self.axs[i].plot(self.cd.adcData[i])
 #             self.axs[i].step(array.array('f', self.cd.adcData[i]), where='post')
 #             self.axs[i].plot(self.plot_x, array.array('f', self.cd.adcData[i]))
@@ -131,7 +132,7 @@ class Train(threading.Thread):
 
 
     def test_update_sensor(self, inputVs=None):
-        print('/'*40)
+        print(('/'*40))
         if inputVs is None:
             inputVs = [[1.379, 1.546, 1.626, 1.169, 1.357, 2.458],[1.379, 1.546, 1.626, 1.169, 1., 2.]]
         #### update sensor configurations
@@ -145,7 +146,7 @@ class Train(threading.Thread):
         print(ss)
         for isr in ss:
             self.sc.update_sensor(isr)
-        print('\\'*40)
+        print(('\\'*40))
 
     def take_data2(self, NEVT = 100):
         '''return an array of FOM'''
@@ -183,11 +184,11 @@ class Train(threading.Thread):
             for ich in range(self.cd.nAdcCh):
                 for ipeak in range(NV):
                     Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
-                print(ich,  [self.t_values[ich*NV+ipeak] for ipeak in range(NV)])
+                print((ich,  [self.t_values[ich*NV+ipeak] for ipeak in range(NV)]))
 
         for i in range(s1.nAdcCh):
             self.ret1[i] = -np.mean(Values[i])/np.std(Values[i])
-            print(i, self.ret1[i], np.mean(Values[i]), np.std(Values[i]))
+            print((i, self.ret1[i], np.mean(Values[i]), np.std(Values[i])))
 
 
 
@@ -302,11 +303,11 @@ class Train(threading.Thread):
 
                     ### save the values if it's the best so far
                     if ret[i]<self.retBest[i]:
-                        print("find better parameters for channel", i)
-                        print('old:',self.sensorVcodes[i], self.retBest[i])
+                        print(("find better parameters for channel", i))
+                        print(('old:',self.sensorVcodes[i], self.retBest[i]))
                         self.retBest[i] = ret[i]
                         self.sensorVcodes[i] = [a for a in self.cd.sensorVcodes[i]]
-                        print('new:',self.sensorVcodes[i], self.retBest[i])
+                        print(('new:',self.sensorVcodes[i], self.retBest[i]))
                         needUpdate = True
 #                     print("--- {0:d} {1:g}".format(i, self.meas[i]))
             if needUpdate:
@@ -444,6 +445,10 @@ class TestClass:
             vx = sorted([(v1[i],int(v2[i])) for i in range(n)], key=lambda x:x[0])
             cList[ich] = vx[:topN]
 
+        ### bad chans
+        ievt_b = 0
+        badChs = [1]
+
         ### loop over the parameters
         tr1 = self.prepare_train()
         tr1.setupOutput(oName)
@@ -462,9 +467,16 @@ class TestClass:
             for ich in range(self.nCh):
                 vals = cList[ich]
                 icnf = current_conf[ich]
-
                 xtemp = vals[icnf][0] if icnf >= 0 else vals[0][0]
-                if ret[ich] > xtemp+4 and ret[ich] > vals[icnf+1][0]:
+
+                if ich in badChs:
+                    ### change the inputVs here
+                    n1 = tree1.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt_b),'goff')
+                    v1 = tree1.GetV1()
+                    inputVs[ich] = [v1[j] for j in range(n1)]
+                    logging.info("Ch {0:d}. iTest={1:d}, Exp {2}, get {3}, next {4} / Next".format(ich, ievt_b, xtemp, ret[ich], -999.))
+                    ievt_b += 1
+                elif ret[ich] > xtemp+4 and ret[ich] > vals[icnf+1][0]:
                     ## move to next
                     allgood = False
                     logging.info("Ch {0:d}. itop={1:d}, Exp {2}, get {3}, next {4} / Update".format(ich, icnf, xtemp, ret[ich], vals[icnf+1][0]))
@@ -487,6 +499,7 @@ class TestClass:
                 nCheck = 0
                 ## update the configuration
                 tr1.test_update_sensor(inputVs)
+                tr1.plot_data()
                 time.sleep(dT_wait)
 
         #### take some data
@@ -668,19 +681,19 @@ def getListFromFile(fname):
         if r1 is not None:
             ch,itop = int(r1.group(1)),int(r1.group(2))
 
-            print(ch,itop)
+            print((ch,itop))
             while len(chan_stats)<ch+1: chan_stats.append([0])
             while len(chan_stats[ch]) < itop+2: chan_stats[ch].append(0)
 
             chan_stats[ch][itop+1] += 1
     for ch in range(len(chan_stats)):
-        print(ch, '-->', chan_stats[ch])
+        print((ch, '-->', chan_stats[ch]))
 
     ret = []
     for ch in range(len(chan_stats)):
         total = sum(chan_stats[ch])
         ax = sorted(enumerate(chan_stats[ch]), key=lambda x:x[1], reverse=True)
-        print(ch, ax[0][0]-1, ax[0][1]/float(total), total)
+        print((ch, ax[0][0]-1, ax[0][1]/float(total), total))
 
         idx = ax[0][0]-1 if ax[0][0]>0 else None
         ret.append(idx)
@@ -703,15 +716,29 @@ def test0():
 #     elist[15] = 2
 #     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
 def test7():
+    tuneTestRigo()
+
     tc1 = TestClass(config_file='config/C7.json')
     tc1.muteList = []
-    tuneTag = 'C7_tt2'
+    tuneTag = 'C7_tt3'
+
+    ### stepID: 0->tune; 1->recheck
+    stepID = 1
+
+    if stepID == 0:
+        tc1.prepare_train()
+        tc1.train.pltN = 1
+        tc1.train.bestConfigFile = 'C7_tt2.json'
+        tc1.test_tune(tuneTag+'.root')
+    elif stepID == 1:
+        tryID = '2'
+        tc1.recheck(tuneTag+'.root', tuneTag+'_valid'+tryID+'.root')
+    elif stepID == 2:
+        elist = getListFromFile('C7_tt3/tune_test_C7_v0.log')
+        tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt3.root')
     
 #     if True:
-#     tc1.prepare_train()
-#     tc1.train.bestConfigFile = 'C7_tt2.json'
-#     tc1.test_tune('C7_tt2.root')
-    tc1.recheck('C7_tt2.root', 'C7_tt2_valid2.root')
+#     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
 #     elist = getListFromFile('tune_test_C07a.log')
 #     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
 #     elist = [0]*tc1.nCh
@@ -761,7 +788,7 @@ def FOM_check():
     sp.measure_multipleX(data1, 4000, t_values)
 
     for i in range(s1.nAdcCh):
-        print(i, [t_values[i*NVAL+j] for j in range(NVAL)])
+        print((i, [t_values[i*NVAL+j] for j in range(NVAL)]))
 
 if __name__ == '__main__':
 #     test1()
