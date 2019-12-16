@@ -20,7 +20,7 @@ def useLHCbStyle0():
     pass
 
 try:
-    from rootUtil import waitRootCmdX, useLHCbStyle
+    from rootUtil3 import waitRootCmdX, useLHCbStyle
 except ImportError:
     waitRooCmdX = waitRootCmdY
     useLHCbStyle = useLHCbStyle0 
@@ -208,7 +208,7 @@ if __name__ == '__main__':
 #       take_data(sTag='Oct10b',n=1000, N=5, dirx='raw/Oct10b',nm=200)
 #       take_data(sTag='Nov04b',n=1000, N=20, dirx='raw/Nov04b',nm=200)
 #       take_data(sTag='Nov19b',n=1000, N=-1, dirx='raw/Nov19b',nm=1)
-      take_dataR(sTag='Dec05b',n=1000, N=-1, dirx='raw/Dec05b',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
+      take_dataR(sTag='Dec15b',n=1000, N=-1, dirx='raw2/Dec15b',nm=200, dVList=[0.1, 0.04, 0.2, 0.06, 0.4, 0.15, 0.3, 0.02, 0.25, 0.6, 0.35, 0.5])
 #       take_Run()
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
