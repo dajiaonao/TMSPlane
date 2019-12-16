@@ -27,6 +27,14 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
     ssize_t j, jk, jl, jkl;
     double vj, vjk, vjl, vjkl, dkl;
 
+    //// fix for very short lived signal, use k = 2*M, and the same width
+    //// comment out it now, will let the caller to control 
+//     if (k>2*M){
+//       l = int(2*M)+l-k;
+//       k = int(2*M);
+//      }
+//     //// end of the fix
+
     s = 0.0; pp = 0.0;
 
     for(size_t i=0; i<wavLen; i++) {
@@ -48,6 +56,15 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
     }
     return 0;
 }
+
+struct fltPars{
+  int BW; /// width for background estimation
+  int R; /// rising parameter
+  int W; /// width
+  float T; /// decay constant
+
+  void setV(int a, int b, int c, float d){BW = a; R = b; W = c; T = d;}
+};
 
 struct Sig{
   float Q;//!
@@ -84,6 +101,7 @@ class SignalProcessor{
   size_t nAdcCh;
   vector< double > fltParam{100,200,300,-1};
   vector< double > CF_decayC; /// decay constant of each channel
+  vector< fltPars > CF_fltParams;
   double* measParam{nullptr};
   size_t nMeasParam{2};
   vector< float > ch_thre;
@@ -100,7 +118,8 @@ class SignalProcessor{
 
   SignalProcessor(size_t _nSamples=16384, size_t _nAdcCh=20):nSamples(_nSamples),nAdcCh(_nAdcCh),
                                                              scrAry(nullptr),CF_decayC(_nAdcCh, -1),
-                                                             CF_chan_en(_nAdcCh, 1),IO_mAvg(_nAdcCh, 0){};
+                                                             CF_chan_en(_nAdcCh, 1),IO_mAvg(_nAdcCh, 0),
+                                                             CF_fltParams(_nAdcCh){};
   ~SignalProcessor(){
     /// FIXME: are these "free"s really needed?
     if(IO_adcData) free(IO_adcData);
@@ -110,6 +129,7 @@ class SignalProcessor{
 
 //  private:
   AWBT* scrAry{nullptr};
+  AWBT* scrAryp{nullptr};
   vector< AWBT* > scrArys{20, nullptr};
 
   int CF_trig_ch{19};
@@ -134,7 +154,9 @@ class SignalProcessor{
   float correction(size_t ich, float raw, int opt=0);
   int build_events();
   int filter_channels();
+  int filter_channel_0(size_t iCh, const AWBT* data);
   int filter_channel(size_t iCh, const AWBT* data);
+  int filter_channelx(size_t iCh, const AWBT* data);
   int find_sigs(int chan, int start=0, int end=-1);
   int reco();
 //   void testReco(TTree& treeIn, size_t ievt);
@@ -259,27 +281,39 @@ int SignalProcessor::build_events(const AWBT *adcData){
   return 0;
 }
 
-int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
+/// new basic function
+int SignalProcessor::filter_channel_0(size_t iCh, const AWBT* data){
   const AWBT* adcChData = data + nSamples * iCh;
   if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+  auto& p = CF_fltParams[iCh];
+  filters_trapezoidal(nSamples, adcChData, scrArys[iCh], p.R, p.W, p.T);
+
+  return 0;
+}
+
+/// the orignal version
+int SignalProcessor::filter_channel(size_t iCh, const AWBT* data){
+  filter_channel_0(iCh, data);
   if(!scrAry) scrAry=scrArys[iCh];
 
   return 0;
 }
 
+/// added to make it easier to call from python script to get scrAryp; 
+int SignalProcessor::filter_channelx(size_t iCh, const AWBT* data){
+  filter_channel_0(iCh, data);
+  scrAryp=scrArys[iCh];
 
+  return 0;
+}
 
+/// make it simple to process all channels
 int SignalProcessor::filter_channels(){
-//   cout << "in filter_channels" << endl;
   for(size_t iCh=0; iCh<nAdcCh; iCh++) {
     if (CF_chan_en[iCh] == 0) continue;
 
-    const AWBT* adcChData = IO_adcData + nSamples * iCh;
-    if(!scrArys[iCh]) scrArys[iCh] = (AWBT*)calloc(nSamples, sizeof(AWBT));
-    filters_trapezoidal(nSamples, adcChData, scrArys[iCh], (size_t)fltParam[1], (size_t)fltParam[2], CF_decayC[iCh]);
+    filter_channel_0(iCh, IO_adcData);
    }
-//   cout << "Done in filter_channels" << endl;
 
   return 0;
 }
@@ -300,6 +334,7 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
   auto t_scrAry = scrArys[chan];
   scrAry = t_scrAry;
   x_thre = ch_thre[chan];
+//   cout << "ch" << chan << " x_thre=" << x_thre << endl;
 
   /// start the search...
   int g_max_i = -999;
@@ -345,26 +380,29 @@ int SignalProcessor::find_sigs(int chan, int start, int end){
      }
 
    }
-  if(sigV->size()==0){
+
+  int nSigs = sigV->size();
+  if(nSigs==0){
+    /// if nothing found, still try to having something...
 //     if(g_max_i<0) g_max_i = l_max_i;
 //     cout << "g_max_i=" << g_max_i << " mx=" << g_max_x << endl;
 //     cout << "l_max_i=" << l_max_i << " mx=" << l_max_x << endl;
     check_signal(g_max_i, sigV);
    }
 //   cout << "Done in find_sigs for chan " << chan << endl;
-  return 0;
+  return nSigs;
 }
 
 int SignalProcessor::reco(){
 //   cout << "in reco" << endl;
   size_t trig_ch = CF_trig_ch;
-  filter_channels();
-  find_sigs(trig_ch);
-  IO_evts.clear();
 
-//   cout << signals[trig_ch]->size() << " trigger signal seen" << endl;
+  filter_channels(); /// this part could be updated to save time, at this moment only trigger channel need to be processed.
+  if(find_sigs(trig_ch) == 0) return 0;
+
+  /// start saving the interesting events found in trigger channel
+  IO_evts.clear();
   for(size_t ii=0; ii<signals[trig_ch]->size(); ii++){
-//     cout << "checking trigger " << ii << endl;
     auto&s = signals[trig_ch]->at(ii);
     IO_evts.emplace_back(ii);
     auto& evt = IO_evts.back();
@@ -375,16 +413,17 @@ int SignalProcessor::reco(){
 //     cout << "ii=" << ii << " w2=" << s.w2 << endl;
 //     if(s.w2>300) continue; /// irrelevent
 
-    if(s.w2>80){ /// pulse
-      CF_uSize = 800;
-      CF_dSize = 1200;
-    }else{ /// alpha signal
-      CF_uSize = -50;
-      CF_dSize = 200;
-    }
+//     if(s.w2>80){ /// pulse
+//       CF_uSize = 800;
+//       CF_dSize = 1200;
+//     }else{ /// alpha signal
+//       CF_uSize = -50;
+//       CF_dSize = 200;
+//     }
 
     /// keep the search window inside the sample
     if((s.im+CF_uSize)>=int(nSamples)){
+      /// should not happend.... the up er part bigger than sample size?
 //       cout << s.im << " " << s.im+CF_uSize << " " << int(nSamples) << " " << evt.trigID << endl;
       continue;
     }
@@ -406,10 +445,8 @@ int SignalProcessor::reco(){
       // Let's try the simple option 1 first
       evt.sigs[iCh] = signals[iCh]->at(0);
      }
-//     cout << "Done in checking trigger " << ii << endl;
    }
 
-//   cout << "Done in reco <<<<<<<" << endl;
   return 0;
 }
 /*
@@ -512,7 +549,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
     if(chan>=0 && chan != int(iCh)) continue;
 
     x_thre = ch_thre[iCh];
-//     std::cout << "chan " << iCh << std::endl;
+    std::cout << "chan " << iCh << " thre=" << x_thre << std::endl;
     /// create the vector if not exist yet
     if(signals[iCh]) {
       signals[iCh]->clear();
@@ -549,8 +586,8 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
     //// Start working on the filtered sample
     //// find the largest point, if it's bigger than the threshold, find other local maximum
-    int g_max_i = -999;
-    int l_max_i = -999;
+    int g_max_i = 0;
+    int l_max_i = 0;
     float g_max_x = -999.;
     float l_max_x = -1999.;
 
@@ -571,7 +608,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
 
         if(ismaller>nSmaller){
           if(ilarger>nLarger && l_max_x > x_thre){
-//             cout << "l_max_i " << l_max_i << endl;
+            cout << "l_max_i " << l_max_i << endl;
 //             cout << "l_max_x " << l_max_x << endl;
 //             cout << "ilarger " << ilarger << endl;
 //             cout << "ismaller " << ismaller << endl;
@@ -598,7 +635,7 @@ int SignalProcessor::measure_pulse2(const AWBT *adcData, int chan)
        }
      }
     if(sigV->size()==0){
-//       cout << "g_max_i=" << g_max_i << endl;
+      cout << "g_max_i=" << g_max_i << endl;
       check_signal(g_max_i, sigV);
     }
    }
@@ -683,7 +720,9 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
         measChParam[0] = bl;
         measChParam[1] = bln>0?sqrt(bln):-sqrt(-bln);
         /* peak location and height */
-        filters_trapezoidal(nSamples, adcChData, scrAry, (size_t)fltParam[1], (size_t)fltParam[2], (double)fltParam[3]);
+
+        auto& p = CF_fltParams[iCh];
+        filters_trapezoidal(nSamples, adcChData, scrAry, p.R, p.W, p.T);
 
         size_t t=2;
         for(auto& x: sRanges){
@@ -695,6 +734,12 @@ int SignalProcessor::measure_pulse(const AWBT *adcData, int chan)
                   j = i;
               }
           }
+
+          //// add a correction of those baseline is not 0
+          unsigned int w = p.W;
+          v -= ((j > w)?scrAry[j-w]:scrAry[j+w]);
+
+          //// save them
           measChParam[t] = j;
           measChParam[t+1] = v;
           t += 2;
@@ -925,8 +970,10 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
   //// set branch address for the input tree
   IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
   UInt_t dataT;
+  Int_t dataV;
   treeIn.SetBranchAddress("adc", IO_adcData);
   treeIn.SetBranchAddress("T",  &dataT);
+  treeIn.SetBranchAddress("V",  &dataV);
 
   //// create the output tree if it is nullptr, then we need to have a tfile
   /// create the outfile
@@ -941,6 +988,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
     treeOut = new TTree("reco","reco tree");
     treeOut->Branch("run", &run, "run/I");
     treeOut->Branch("evt", &event, "evt/I");
+    treeOut->Branch("V"  , &dataV, "V/I");
     treeOut->Branch("tID", &tID, "tID/I");
     treeOut->Branch("Q", &Q, "Q[20]/F");
     treeOut->Branch("im", &im, "im[20]/I");
@@ -948,6 +996,7 @@ TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfil
    }else{
     treeOut->SetBranchAddress("run", &run);
     treeOut->SetBranchAddress("evt", &event);
+    treeOut->SetBranchAddress("V", &dataV);
     treeOut->SetBranchAddress("tID", &tID);
     treeOut->SetBranchAddress("Q", &Q);
     treeOut->SetBranchAddress("im", &im);

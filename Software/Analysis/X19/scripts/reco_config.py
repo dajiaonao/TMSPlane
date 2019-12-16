@@ -210,6 +210,63 @@ def apply_config(sp1, config_code):
         
         ### we are done
         return "Li7/b" ### anything after slash is a development tag, frozen configurations does not have a slash
+    elif config_code == 'Lithium/c':
+        ## chip 7
+        ### search window
+        sp1.CF_uSize = -100
+        sp1.CF_dSize = 100
+
+        sp1.CF_trig_ch = 3
+        ## threshold
+        thre = [0.001]*sp1.nAdcCh
+        thre[4] = 0.002
+#         thre[19] = 0.02
+
+        sp1.ch_thre.clear()
+        for x in thre: sp1.ch_thre.push_back(x)
+
+        ### filter configuration
+#         fltParam = [100,300,350,80]
+        fltParam = [100,100,350,80]
+        sp1.fltParam.clear()
+        for p in fltParam: sp1.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+
+        ## channelwise configuration
+        sp1.CF_chan_en.clear()
+        sp1.IO_mAvg.clear()
+        for i in range(sp1.nAdcCh):
+            sp1.CF_chan_en.push_back(1)
+            sp1.IO_mAvg.push_back(0.)
+
+        ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
+        sp1.CF_decayC[0] = 450
+        sp1.CF_decayC[1] = 6000
+        sp1.CF_decayC[2] = 6000
+        sp1.CF_decayC[3] = 410
+        sp1.CF_decayC[4] = 2000
+        sp1.CF_decayC[5] = 410
+        sp1.CF_decayC[6] = 2300
+        sp1.CF_decayC[7] = 2200
+        sp1.CF_decayC[8] = 2200
+        sp1.CF_decayC[9] = 2200
+        sp1.CF_decayC[10] = 3900
+        sp1.CF_decayC[11] = 2000
+        sp1.CF_decayC[12] = 1800
+        sp1.CF_decayC[13] = 1400
+        sp1.CF_decayC[14] = 1400
+        sp1.CF_decayC[15] = 2000
+        sp1.CF_decayC[16] = 5
+        sp1.CF_decayC[17] = 1200
+        sp1.CF_decayC[18] = 3200
+        sp1.CF_decayC[19] = -1
+
+        for i in range(sp1.nAdcCh):
+            sp1.CF_fltParams[i].setV(100, 100,300,sp1.CF_decayC[i])
+        sp1.CF_fltParams[16].setV(100,10,210,sp1.CF_decayC[16])
+
+        ### we are done
+        return "Li7/c" ### anything after slash is a development tag, frozen configurations does not have a slash
+
 
     elif config_code == 'TEST1':
         ## enable channels
