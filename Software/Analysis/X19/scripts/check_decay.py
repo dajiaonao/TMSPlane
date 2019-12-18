@@ -5,7 +5,7 @@ from ROOT import TChain, TF1, gStyle, gPad
 from rootUtil3 import waitRootCmdX
 import json
 from array import array
-import sys
+import sys, re, glob
 # from os
 from ROOT import gROOT
 gROOT.LoadMacro("sp.C+")
@@ -131,6 +131,24 @@ def process_C1():
 #         waitRootCmdX()
     fc1.save()
 
+def get_file(fname1, data1, showI):
+    tree1 = TChain('tree1')
+    tree1.Add(fname1)
+    if showI>=0: tree1.Show(showI)
+    tree1.SetBranchAddress('adc',data1)
+
+    print("Using file",fname1)
+    return tree1
+
+def get_pattern(fname1):
+    pattern, fID = None, None
+    m = re.match('(.*_data_)(\d+).root*', fname1)
+    if m:
+        pattern = m.group(1)+'{0}.root'
+        fID = m.group(2)
+    return pattern,fID
+
+
 def testFit():
     '''A test of a new method, fitting the calibration pulse wavefroms to find the proper parameter'''
 
@@ -147,16 +165,15 @@ def testFit():
 #     fname1 = '/media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_0.root.1.1'
 #     fname1 = '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5b_data_1.root'
-    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_105.root'
-    tree1 = TChain('tree1')
-    tree1.Add(fname1)
-    tree1.Show(0)
+    fname1 = '/data/Samples/TMSPlane/fpgaLin/Dec05b/Dec05b_data_105.root' if len(sys.argv)<2 else sys.argv[1]
+    pattern, fID = get_pattern(fname1)
 
     waveLen = 16384
     data1 = array('f',[0]*(waveLen*20))
     data2 = array('f',[0]*waveLen)
     #Get one entry 
-    tree1.SetBranchAddress('adc',data1)
+
+    tree1 = get_file(fname1, data1, 0)
 
     plt.ion()
 #     plt.figsize=(13, 12.5)
@@ -166,6 +183,7 @@ def testFit():
 
     nAdcCh = 20
     ievt = -1
+
     ich = 5
     par1 = 300
     par2 = 400
@@ -227,6 +245,28 @@ def testFit():
                 except ValueError:
                     print('ValueError in fp:', fp_temp)
                     continue
+            ### switch to another file
+            elif len(x)>2 and x[:2] == 'fl':
+                fname_t = x.split(' ')[1]
+
+                ### if it's a number, just use the pattern
+                try:
+                    fID_t = int(fname_t)
+                    if pattern is None:
+                        print("no pattern....")
+                        raise ValueError
+                    fname_t = pattern.format(fID_t)+'*'
+                except ValueError:
+                    pass
+
+                fls = glob.glob(fname_t)
+                if fls:
+                    fname1 = fls[0]
+                    tree1 = get_file(fname1, data1, 0)
+                    nevt = 0
+                    pattern, fID = get_pattern(fname1)
+                break
+
             else:
                 try:
                     nevt = int(x)
