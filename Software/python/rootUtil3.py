@@ -316,9 +316,15 @@ def useAtlasStyle():
     gStyle.SetNdivisions(506, 'XYZ')
 
 def useNxStyle():
-    gROOT.LoadMacro("NvDExStyle.C")
-    from ROOT import SetNvDExStyle
-    SetNvDExStyle()
+    try:
+        gROOT.LoadMacro("NvDExStyle.C")
+        from ROOT import SetNvDExStyle
+        SetNvDExStyle()
+    except ImportError as e:
+        print(e)
+        gStyle.SetPadLeftMargin(0.16)
+        gStyle.SetOptStat(0)
+        pass
 
 def savehistory(dir1=os.environ["HOME"]):
     import rlcompleter, readline

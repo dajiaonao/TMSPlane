@@ -1,4 +1,4 @@
-#!/usr/bin/env python36
+#!/usr/bin/env python3
 from rootUtil3 import waitRootCmdX, useNxStyle
 from ROOT import gROOT, gStyle, TFile, TChain, Double, TH3F, TH2F, TCanvas, kGray, TH2Poly
 gROOT.LoadMacro('HoneycombS.C+')
@@ -63,8 +63,8 @@ def draw_status(sT=None):
 
 
 if __name__ == '__main__':
-#     draw_normal()
-    draw_status([10,10,2,8,1,9,
-        1,0,2,9,0,
-        10,10,0,6,8,
-        0,3,2])
+    draw_normal()
+#     draw_status([10,10,2,8,1,9,
+#         1,0,2,9,0,
+#         10,10,0,6,8,
+#         0,3,2])
