@@ -2,15 +2,11 @@
 from check_decay import FilterConfig
 from math import sqrt
 
-def apply_config(sp1, config_code):
+def apply_config(sp1, config_code='default'):
 
     ## Put the common ones here
     sp1.nSamples = 16384 
     sp1.nAdcCh = 20
-
-
-
-
 
     ## now the variations
     if config_code == 'Hydrogen':
@@ -266,7 +262,8 @@ def apply_config(sp1, config_code):
 
         ### we are done
         return "Li7/c" ### anything after slash is a development tag, frozen configurations does not have a slash
-
+    elif config_code == 'default':
+        apply_config('Lithium/c')
 
     elif config_code == 'TEST1':
         ## enable channels
