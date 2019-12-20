@@ -5,11 +5,12 @@
 set xdata time
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
-if (!exists("projname")) projname='project_7/'
+if (!exists("projname")) projname='project_22/'
 #if (!exists("projname")) projname='./'
 #print projname
 #set terminal postscript eps enhanced colour dashed lw 1 "Helvetica" 14 
 #set output projname.'test.eps'
-plot projname."current.dat" using 1:2 with lines
+#plot projname."current.dat" using 1:2 with lines
+plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines
 pause 10
 reread
