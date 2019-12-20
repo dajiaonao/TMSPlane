@@ -246,12 +246,12 @@ class Picoammeter:
         
         ### setup the zero correction
         self.send('SYST:ZCH ON')
-        self.send('RANG 2e-9')
-        self.send('INIT')
-        self.send('SYST:ZCOR:ACQ')
-        self.send('SYST:ZCOR ON')
+#         self.send('RANG 2e-9')
+#         self.send('INIT')
+#         self.send('SYST:ZCOR:ACQ')
+#         self.send('SYST:ZCOR ON')
 #         self.send('RANG:AUTO ON')
-        self.send('RANG: 20e-9')
+        self.send('RANG 20e-9')
         self.send('SYST:ZCH OFF')
 
         ### take data
