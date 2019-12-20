@@ -168,6 +168,75 @@ class Picoammeter:
         self.send('CALC3:FORM MEAN')
         print(self.query('CALC3:DATA?'))
 
+    def run_measure0(self):
+        ### setup the zero correction
+        self.send('SYST:ZCH ON')
+        self.send('RANG 2e-9')
+        self.send('INIT')
+        self.send('SYST:ZCOR:ACQ')
+        self.send('SYST:ZCOR ON')
+        self.send('RANG:AUTO ON')
+#         self.send('RANG: 200e-9')
+        self.send('SYST:ZCH OFF')
+
+        ### HV
+        self.send('SOUR:VOLT:RANG 10') #Select 10V source range.
+        self.send('SOUR:VOLT 10') #  Set voltage source output to 10V.
+        self.send('SOUR:VOLT:ILIM 2.5e-3') #  Set current limit to 2.5mA.
+        self.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
+
+        ### take data
+        self.send('FORM:ELEM READ,VSO,TIME')
+        self.send('TRIG:DEL 0')
+#         self.send('NPLC .01')
+        self.send('NPLC 1')
+        self.send('SYST:AZER:STAT OFF')
+#         self.send('DISP:ENAB OFF')
+#         self.send('*CLS')
+#         self.send('STAT:MEAS:ENAB 512')
+#         self.send('*SRE 1')
+#         q1 = self.query('*OPC?')
+#         print(q1)
+
+#         time.sleep(3)
+        sampleDir = './'
+        idir = 0
+        while os.path.exists('project_'+str(idir)): idir+=1
+        project_dir = sampleDir+'project_'+str(idir)+'/'
+        os.makedirs(project_dir)
+
+        with open(project_dir+'current.dat','w') as fout1:
+            isample = 0
+            while True:
+                isample += 1
+#              for t in range(3):
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                try:
+                    self.send('TRIG:COUN 100')
+                    self.send('TRAC:POIN 100')
+                    self.send('TRAC:CLE')
+                    self.send('TRAC:FEED:CONT NEXT')
+                    q1 = self.query('*OPC?')
+                    print(q1)
+                    self.send('INIT')
+
+                    q2 = self.query('TRAC:DATA?')
+
+                    data = list(zip(*[iter(q2.split(','))]*3))
+                    outx = ''
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
+
+#                     print(outx)
+                    fout1.write(outx)
+                    fout1.flush()
+
+                except KeyboardInterrupt:
+                    break
+                print(isample, 'done')
+        self.send('TRAC:CLE')
+        print('done')
+
+
     def run_measure(self):
         ### setup the zero correction
         self.send('SYST:ZCH ON')
@@ -188,19 +257,10 @@ class Picoammeter:
         ### take data
         self.send('FORM:ELEM READ,VSO,TIME')
         self.send('TRIG:DEL 0')
-        self.send('TRIG:COUN 10')
-#         self.send('NPLC .01')
         self.send('NPLC 1')
-        self.send('TRAC:POIN 10')
         self.send('SYST:AZER:STAT OFF')
-        self.send('DISP:ENAB OFF')
-#         self.send('*CLS')
-#         self.send('STAT:MEAS:ENAB 512')
-#         self.send('*SRE 1')
-#         q1 = self.query('*OPC?')
-#         print(q1)
 
-#         time.sleep(3)
+        ### location
         sampleDir = './'
         idir = 0
         while os.path.exists('project_'+str(idir)): idir+=1
@@ -208,26 +268,25 @@ class Picoammeter:
         os.makedirs(project_dir)
 
         with open(project_dir+'current.dat','w') as fout1:
+            isample = 0
             while True:
-#              for t in range(3):
+                isample += 1
                 t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
                 try:
-                    self.send('TRAC:CLE')
-                    self.send('TRAC:FEED:CONT NEXT')
+                    self.send('TRIG:COUN 100')
                     self.send('INIT')
-                    q2 = self.query('TRAC:DATA?')
+                    q2 = self.query('READ?')
 
                     data = list(zip(*[iter(q2.split(','))]*3))
                     outx = ''
                     for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
 
-#                     print(outx)
                     fout1.write(outx)
                     fout1.flush()
 
                 except KeyboardInterrupt:
                     break
-        self.send('TRAC:CLE')
+                print(isample, 'done')
         print('done')
 
     def run_measure_test(self):

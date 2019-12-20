@@ -5,8 +5,8 @@
 set xdata time
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
-#if (!exists("projname")) projname='project_0/'
-if (!exists("projname")) projname='./'
+if (!exists("projname")) projname='project_7/'
+#if (!exists("projname")) projname='./'
 #print projname
 #set terminal postscript eps enhanced colour dashed lw 1 "Helvetica" 14 
 #set output projname.'test.eps'
