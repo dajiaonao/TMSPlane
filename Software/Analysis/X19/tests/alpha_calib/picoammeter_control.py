@@ -239,8 +239,8 @@ class Picoammeter:
 
     def run_measure(self):
         ### HV
-        self.send('SOUR:VOLT:RANG 50') #Select 10V source range.
-        self.send('SOUR:VOLT -50') #  Set voltage source output to 10V.
+        self.send('SOUR:VOLT:RANG 500') #Select 10V source range.
+        self.send('SOUR:VOLT -100') #  Set voltage source output to 10V.
         self.send('SOUR:VOLT:ILIM 2.5e-3') #  Set current limit to 2.5mA.
         self.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
         
@@ -251,14 +251,14 @@ class Picoammeter:
 #         self.send('SYST:ZCOR:ACQ')
 #         self.send('SYST:ZCOR ON')
 #         self.send('RANG:AUTO ON')
-        self.send('RANG 20e-9')
+        self.send('RANG 2e-9')
         self.send('SYST:ZCH OFF')
 
         ### take data
         self.send('FORM:ELEM READ,VSO,TIME')
         self.send('TRIG:DEL 0')
         self.send('NPLC 1')
-        self.send('SYST:AZER:STAT OFF')
+#        self.send('SYST:AZER:STAT OFF')
 
         ### location
         sampleDir = './'

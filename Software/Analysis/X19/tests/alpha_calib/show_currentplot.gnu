@@ -5,7 +5,7 @@
 set xdata time
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
-if (!exists("projname")) projname='project_26/'
+if (!exists("projname")) projname='project_42/'
 #if (!exists("projname")) projname='./'
 #print projname
 set ylabel "I [pA]"
