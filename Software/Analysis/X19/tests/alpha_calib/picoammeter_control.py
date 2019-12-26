@@ -3,7 +3,10 @@
 import serial
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+import logging
+
+dSuffix = 'project_'
 
 def listPorts():
     import serial.tools.list_ports
@@ -15,6 +18,15 @@ def listPorts():
         for i in range(0,len(port_list)):
             print(port_list[i])
 
+
+def vGen(vList):
+    n = len(vList)
+    i = 0
+    while True:
+        yield vList[i]
+        i += 1
+        if i==n: i-=n
+
 class Picoammeter:
     def __init__(self):
         self.ser = None
@@ -23,7 +35,8 @@ class Picoammeter:
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
-    def send(self, msg):
+    def send(self, msg, log_cmd=True):
+        if log_cmd: logging.info(msg.rstrip())
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
 
@@ -133,7 +146,7 @@ class Picoammeter:
             print(values)
 
     def query(self, cmd, L=1024):
-        self.send(cmd)
+        self.send(cmd, False)
         return self.recv_all(L).decode();
 
     def recv_all(self, L=1024):
@@ -201,8 +214,8 @@ class Picoammeter:
 #         time.sleep(3)
         sampleDir = './'
         idir = 0
-        while os.path.exists('project_'+str(idir)): idir+=1
-        project_dir = sampleDir+'project_'+str(idir)+'/'
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
         os.makedirs(project_dir)
 
         with open(project_dir+'current.dat','w') as fout1:
@@ -236,8 +249,8 @@ class Picoammeter:
         self.send('TRAC:CLE')
         print('done')
 
-
-    def run_measure(self):
+    def run_measure1(self):
+        '''The function used in project 41-44, save before implimenting other functions'''
         ### HV
         self.send('SOUR:VOLT:RANG 500') #Select 10V source range.
         self.send('SOUR:VOLT -100') #  Set voltage source output to 10V.
@@ -263,9 +276,10 @@ class Picoammeter:
         ### location
         sampleDir = './'
         idir = 0
-        while os.path.exists('project_'+str(idir)): idir+=1
-        project_dir = sampleDir+'project_'+str(idir)+'/'
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
         os.makedirs(project_dir)
+        logging.basicConfig(filename=project_dir+'run.log',level=logging.DEBUG)
 
         with open(project_dir+'current.dat','w') as fout1:
             isample = 0
@@ -286,8 +300,96 @@ class Picoammeter:
 
                 except KeyboardInterrupt:
                     break
+
+#                 self.check_new_orders()
+
                 print(isample, 'done')
         print('done')
+
+
+    def run_measure(self):
+        ### HV
+        self.send('SOUR:VOLT:RANG 500') #Select 10V source range.
+#         self.send('SOUR:VOLT -100') #  Set voltage source output to 10V.
+        self.send('SOUR:VOLT:ILIM 2.5e-3') #  Set current limit to 2.5mA.
+        self.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
+        
+        ### setup the zero correction
+        self.send('SYST:ZCH ON')
+#         self.send('RANG 2e-9')
+#         self.send('INIT')
+#         self.send('SYST:ZCOR:ACQ')
+#         self.send('SYST:ZCOR ON')
+#         self.send('RANG:AUTO ON')
+        self.send('RANG 2e-9')
+        self.send('SYST:ZCH OFF')
+
+        ### take data
+        self.send('FORM:ELEM READ,VSO,TIME')
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 1')
+#        self.send('SYST:AZER:STAT OFF')
+
+        t2 = 0.
+        dT = 15*60 ## 15 min
+
+        ### location
+        sampleDir = './'
+        idir = 0
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
+        os.makedirs(project_dir)
+        logging.basicConfig(filename=project_dir+'run.log',level=logging.DEBUG)
+
+
+        ### list of V on the plane to be scaned
+        plateV = vGen([0,-120,0, -50,0, -100,0, -20,0, -70,0, -10,0, -80,0, -30,0, -90,0, -40,0, -110,0, -60])
+
+        ### start taking data
+        with open(project_dir+'current.dat','w') as fout1:
+            isample = 0
+            while True:
+                isample += 1
+                t = time.time()
+
+                ### check if time to switch to next voltage
+                if t>t2:
+                    ### time to change the voltage
+                    vs = next(plateV)
+                    self.send('SOUR:VOLT {0:d}'.format(vs)) #  Set voltage source output to 10V.
+                    t2 = t+dT
+
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(t))
+                try:
+                    self.send('TRIG:COUN 100', False)
+                    self.send('INIT', False)
+                    q2 = self.query('READ?')
+
+                    data = list(zip(*[iter(q2.split(','))]*3))
+                    outx = ''
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
+
+                    fout1.write(outx)
+                    fout1.flush()
+
+                except KeyboardInterrupt:
+                    break
+
+#                 self.check_new_orders()
+
+                print(isample, 'done')
+        print('done')
+
+    def check_new_orders(self):
+        order_file = 'picoam_control/cmd'
+        if not os.path.exist(orderfile): return
+
+        orders = []
+        with open(order_file) as f1:
+            orders = [line.rstrip() for line in f1.readlines()]
+
+        for order in orders:
+            self.send(order)
 
     def run_measure_test(self):
         self.send('ARM:SOUR IMM')
@@ -335,5 +437,20 @@ def test1():
     pm1 = Picoammeter()
     pm1.test()
 
+def test2():
+    p = vGen([50, 100, 20, 120, 70, 10, 80, 30, 90, 40, 110, 60])
+
+    for i in range(50):
+        print(i, next(p))
+
+    t = datetime.now()
+    t2 = time.time()
+    dT = timedelta(minutes=15)
+    tN = t+dT
+    print(t,t2,tN)
+
+    
+
 if __name__ == '__main__':
     test1()
+#     test2()
