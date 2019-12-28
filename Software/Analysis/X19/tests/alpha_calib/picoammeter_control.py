@@ -102,7 +102,8 @@ class Picoammeter:
         self.send("FUNC 'CURR'")
 #         self.speed_check()
 #         self.read_many()
-        self.run_measure()
+#         self.run_measure()
+        self.run_measure1()
 #         self.test_get_mean()
 #         self.multiple_reading()
 #         self.set_relative()
@@ -253,7 +254,7 @@ class Picoammeter:
         '''The function used in project 41-44, save before implimenting other functions'''
         ### HV
         self.send('SOUR:VOLT:RANG 500') #Select 10V source range.
-        self.send('SOUR:VOLT -100') #  Set voltage source output to 10V.
+        self.send('SOUR:VOLT -150') #  Set voltage source output to 10V.
         self.send('SOUR:VOLT:ILIM 2.5e-3') #  Set current limit to 2.5mA.
         self.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
         

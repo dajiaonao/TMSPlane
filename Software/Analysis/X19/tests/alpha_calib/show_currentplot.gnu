@@ -1,5 +1,6 @@
 set term x11 1 noraise
 #set xrange [0:20]
+set xrange [*:*]
 #set yrange [0:400]
 ##set size ratio -1
 #if (GPVAL_DATA_X_MAX > 100) set xrange[GPVAL_DATA_X_MAX-100:GPVAL_DATA_X_MAX]; 
@@ -9,7 +10,7 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 #show grid
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
-if (!exists("projname")) projname='project_48/'
+if (!exists("projname")) projname='project_49/'
 #if (!exists("projname")) projname='./'
 #print projname
 set ylabel "I [pA]"
