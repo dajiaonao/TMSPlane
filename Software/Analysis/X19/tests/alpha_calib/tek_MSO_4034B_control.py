@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-
+import time
 import socket
 import numpy as np
+from Rigol import Rigol
 
 class Oscilloscope:
     def __init__(self, name='Keysight MSO-x 4054', addr='192.168.2.5:5025'):
@@ -38,9 +39,11 @@ class Oscilloscope:
 
         self.ss.send((cmd+self.cmdSuffix).encode("UTF-8"))                           #read back device ID
 
-    def query(self,cmd):
+    def query(self,cmd, show=True):
         self.send(cmd)
-        print(cmd+"-> %s"%self.ss.recv(128))
+        ret = self.ss.recv(128).decode()
+        if show: print(f"{cmd}-> {ret}")
+        return ret.rstrip().split(' ')[1:]
 
     def test1(self):
         self.connect() 
@@ -88,6 +91,52 @@ class Oscilloscope:
         self.send("TIME?")
         print("Time2: %s"%ss.recv(128))
 
+    def use_setup0(self):
+        ### the range of x is 20us x 10
+
+        pass
+
+    def use_setup1(self):
+        pass
+
+    def getHistogramCounts(self, debug=False):
+        t0 = self.query("TIME?", show=debug)
+        n1 = self.query("MEASUREMENT:MEAS1:VALue?", show=debug)
+        t1 = self.query("TIME?", show=debug)
+
+        return t0[0], n1[0], t1[0]
+
+
+
+def check_countloss(freq=600, dT=360, N=10):
+    ### assume all other paramneters are setup
+    ### setup Rigo to produce the freqency
+#     r1 = Rigol()
+#     r1.connect()
+#     r1._instr.write(":SOURce1:FREQuency %s"%freq)
+
+    ### run the measurement
+    os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
+    os1.connect()
+    ### reset the histogram
+    os1.send("HIStogram:COUNt RESET")
+    time.sleep(5)
+
+    with open("test1.csv",'a') as f1:
+        f1.write(f"#freq={freq} Hz")
+        i = 0
+        while True:
+            m1 = os1.getHistogramCounts()
+            print(m1)
+            f1.write('\n'+', '.join(m1))
+            i += 1
+            if i<N: time.sleep(dT)
+            else: break
+        
+    ### wait for 10 min and check the counts, compare with the expected one, save the results to file
+
+    return
+
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
 
@@ -107,4 +156,5 @@ def test():
     os1.test1()
 
 if __name__ == '__main__':
-    test()
+#     test()
+    check_countloss()
