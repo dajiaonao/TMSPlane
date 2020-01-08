@@ -111,9 +111,9 @@ class Oscilloscope:
 def check_countloss(freq=600, dT=360, N=10):
     ### assume all other paramneters are setup
     ### setup Rigo to produce the freqency
-#     r1 = Rigol()
-#     r1.connect()
-#     r1._instr.write(":SOURce1:FREQuency %s"%freq)
+    r1 = Rigol()
+    r1.connect()
+    r1._instr.write(":SOURce2:FREQuency %s"%freq)
 
     ### run the measurement
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -123,19 +123,22 @@ def check_countloss(freq=600, dT=360, N=10):
     time.sleep(5)
 
     with open("test1.csv",'a') as f1:
-        f1.write(f"#freq={freq} Hz")
+        f1.write(f"\n#freq={freq} Hz")
         i = 0
         while True:
             m1 = os1.getHistogramCounts()
             print(m1)
             f1.write('\n'+', '.join(m1))
             i += 1
-            if i<N: time.sleep(dT)
-            else: break
+            if i>N: break
+            time.sleep(dT)
         
     ### wait for 10 min and check the counts, compare with the expected one, save the results to file
-
     return
+
+def check_multiple():
+    for f in [100,900,300,700,500,800,400,200,550,650,750,450]:
+        check_countloss(freq=f)
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -157,4 +160,5 @@ def test():
 
 if __name__ == '__main__':
 #     test()
-    check_countloss()
+    check_multiple()
+#     check_countloss()
