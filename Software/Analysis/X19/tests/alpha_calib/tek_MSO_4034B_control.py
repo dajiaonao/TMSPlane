@@ -38,9 +38,19 @@ class Oscilloscope:
 
         self.ss.send((cmd+self.cmdSuffix).encode("UTF-8"))                           #read back device ID
 
+    def query(self,cmd):
+        self.send(cmd)
+        print(cmd+"-> %s"%self.ss.recv(128))
+
     def test1(self):
         self.connect() 
         ss = self.ss
+
+        ### trigger
+#         self.query("TRIGger:A?")
+        self.query("TRIGger:A:EDGE?")
+        return
+
 
         ### setup histogram
         self.send("HISTOGRAM?")
