@@ -39,9 +39,9 @@ class Oscilloscope:
 
         self.ss.send((cmd+self.cmdSuffix).encode("UTF-8"))                           #read back device ID
 
-    def query(self,cmd, show=True):
+    def query(self,cmd, show=True, nByte=128):
         self.send(cmd)
-        ret = self.ss.recv(128).decode()
+        ret = self.ss.recv(nByte).decode()
         if show: print(f"{cmd}-> {ret}")
         return ret.rstrip().split(' ')[1:]
 
@@ -51,7 +51,10 @@ class Oscilloscope:
 
         ### trigger
 #         self.query("TRIGger:A?")
-        self.query("TRIGger:A:EDGE?")
+#         self.query("TRIGger:A:EDGE?")
+        self.query("HIStogram:DATa?", nByte=4096)
+        self.query("HIStogram:STARt?")
+        self.query("HIStogram:END?")
         return
 
 
@@ -107,6 +110,12 @@ class Oscilloscope:
         return t0[0], n1[0], t1[0]
 
 
+    def getHistogramData(self, debug=False):
+        a = self.query("HIStogram:STARt?")
+        b = self.query("HIStogram:END?")
+        c = self.query("HIStogram:DATa?", nByte=4096)
+
+        return a[0], b[0], c[0]
 
 def check_countloss(freq=600, dT=360, N=10):
     ### assume all other paramneters are setup
@@ -122,7 +131,7 @@ def check_countloss(freq=600, dT=360, N=10):
     os1.send("HIStogram:COUNt RESET")
     time.sleep(5)
 
-    with open("test1.csv",'a') as f1:
+    with open("test2.csv",'a') as f1:
         f1.write(f"\n#freq={freq} Hz")
         i = 0
         while True:
@@ -132,13 +141,18 @@ def check_countloss(freq=600, dT=360, N=10):
             i += 1
             if i>N: break
             time.sleep(dT)
-        
-    ### wait for 10 min and check the counts, compare with the expected one, save the results to file
+       
+        ### finally save the histogram
+        a,b,c = os1.getHistogramData()
+        f1.write('\n#HistData:'+':'.join([a, b, c]))
+
     return
 
 def check_multiple():
-    for f in [100,900,300,700,500,800,400,200,550,650,750,450]:
-        check_countloss(freq=f)
+#     for f in [1000, 1500, 1200, 1300, 1100, 490, 510, 980]:
+#     for f in [1000, 200]:
+    for f in [600,900,300,1500,700,1200,500,800,1000,400,200,550,650,750,450]:
+        check_countloss(freq=f, dT=360, N=10)
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
