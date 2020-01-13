@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time
+from datetime import datetime
 import socket
 import numpy as np
 from Rigol import Rigol
@@ -28,7 +29,8 @@ class Oscilloscope:
             return False 
 
         ### check the connection
-#         self.send("*RST;")                           #read back device ID
+#         self.send("DCL;")                           #read back device ID
+        time.sleep(5)
 #         self.send("*CLS;")                           #read back device ID
         self.query("*IDN?;")                           #read back device ID
 #         print("Instrument ID: %s"%self.ss.recv(128))
@@ -52,9 +54,56 @@ class Oscilloscope:
         if show: print(f"{cmd}-> {ret}")
         return ret.rstrip().split(' ')[1:]
 
+    def setup_default_mode(self):
+        ss = self.ss
+
+        ## acquire
+        self.send("ACQuire:MODe HIRes")
+        self.send("SELect:CH1 OFF; SELect:CH2 ON; SELect:CH3 OFF; SELect:CH4 OFF;")
+        self.send("CH2:COUPling; CH2:INVert OFF")
+        self.send("HORizontal:SCAle 1; HORizontal:RECOrdlength 20000000")
+#         self.send("DESE 1")
+#         self.send("DESE 1")
+
+    def test2(self, N=10):
+        self.connect() 
+        self.setup_default_mode()
+
+        self.ss.settimeout(2.)
+        for i in range(N):
+            print(datetime.now())
+            self.send("*CLS;")
+            self.send("ACQUIRE:STOPAFTER SEQUENCE")
+            self.send("ACQuire:STATE ON")
+            self.send('*WAI')
+
+            self.send('SAVE:WAVEFORM CH2, "E:/test2.isf";')
+#             self.send('*WAI')
+#             self.send("BUSY?")
+# 
+#             while True:
+#                 try:
+#                     ret = self.ss.recv(128).decode()
+#                 except socket.timeout:
+#                     time.sleep(1)
+#                     continue
+#                 if ret == '0': break
+            while True:
+                try:
+                    print("querying...")
+#                     self.query("*ESR?")
+                    self.query("BUSY?")
+                except socket.timeout:
+                    time.sleep(1)
+
     def test1(self):
         self.connect() 
         ss = self.ss
+
+#         self.send("*CLS;")
+#         self.query("*ESR?")
+#         self.setup_default_mode()
+#         return
 
 #         time.sleep(200)
         ### trigger
@@ -63,12 +112,50 @@ class Oscilloscope:
 #         self.send("DATa:STOP 1000")
 # #         self.query("ACQuire:MAXSamplerate?")
 #         self.query("DATa?")
-#         self.send("SAVE:WAVEFORM CH2")
+#         self.send("ACQuire:MODe HIRes")
+#         self.query("ACQuire:STATE?")
+#         self.query("ACQUIRE:STOPAFTER?")
+
+        print(datetime.now())
+        self.send("ACQUIRE:STOPAFTER SEQUENCE")
+        self.send("ACQuire:STATE ON")
+        time.sleep(9)
+
+#         print('A',self.query("ACQuire:STATE?"),"t")
+        ss.settimeout(None)
+        while True:
+            if self.query("ACQuire:STATE?")[0] == '0': break
+            time.sleep(1)
+        
+        self.send('SAVE:WAVEFORM CH2, "E:/test2.isf";')
+        self.send('*WAI')
+        self.query("BUSY?")
+#         self.query("*ESR?")
+        self.send("*CLS;")
+        return
+#         self.query("ACQuire:STATE?")
 #         self.send("DATa:ENCdg RPBinary")
 #         self.query("SET?")
 #         self.query("*LRN?")
-        self.query("DATa?")
-        self.query("WFMOutpre?")
+#         self.query("DATa?")
+#         self.query("WFMOutpre?")
+#         time.sleep(2)
+#         self.query("*esr?")
+#         self.query("*OP?")
+        print("here....")
+        self.send("ACQUIRE:STOPAFTER RUNSTop")
+#         self.send("ACQuire:STATE ON")
+        ss.settimeout(2.0)
+        while True:
+            try:
+                print('wait A')
+                self.send("ACQuire:STATE ON")
+                print(self.query("ACQuire:STATE?"))
+#                 print('A',self.query("ACQuire:STATE?"),"t")
+            except socket.timeout:
+                continue
+            break
+        print(datetime.now())
         return
 
         self.send("HORizontal:RECOrdlength 10000000")
@@ -221,8 +308,12 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
+    os1.test2()
+    return
 
-    os1.test1()
+    for i in range(10):
+        os1.test1()
+        os1.disconnect()
 
 if __name__ == '__main__':
     test()
