@@ -26,6 +26,13 @@ class Oscilloscope:
         except ConnectionRefusedError as e:
             print(e)
             return False 
+
+        ### check the connection
+#         self.send("*RST;")                           #read back device ID
+#         self.send("*CLS;")                           #read back device ID
+        self.query("*IDN?;")                           #read back device ID
+#         print("Instrument ID: %s"%self.ss.recv(128))
+
         self.connected = True
         return True
 
@@ -49,12 +56,59 @@ class Oscilloscope:
         self.connect() 
         ss = self.ss
 
+#         time.sleep(200)
         ### trigger
+#         self.send("DATa:SOUrce CH2")
+#         self.query("DATa:STARt?")
+#         self.send("DATa:STOP 1000")
+# #         self.query("ACQuire:MAXSamplerate?")
+#         self.query("DATa?")
+#         self.send("SAVE:WAVEFORM CH2")
+#         self.send("DATa:ENCdg RPBinary")
+#         self.query("SET?")
+#         self.query("*LRN?")
+        self.query("DATa?")
+        self.query("WFMOutpre?")
+        return
+
+        self.send("HORizontal:RECOrdlength 10000000")
+        self.send("DATa:STOP 10000000")
+        self.query("WFMOutpre?")
+        self.query("CH2:OFFSet?")
+        self.query("CH2:PRObe:UNIts?")
+        self.query("CH2:YUNIts?")
+        self.query("CH2:POSition?")
+        self.query("CH2:SCAle?")
+#         self.query("CURVe?",nByte=16384)
+
+
+#         self.send("DATa:ENCdg RIBinary")
+        self.send("DATa:ENCdg RPBinary")
+        self.query("DATa?")
+        ###get data
+        self.send("CURVe?")
+        lenx = 10000000+13
+        a = self.ss.recv(128)
+        while len(a)<lenx:
+            a += self.ss.recv(128)
+#         a += self.ss.recv(128).decode()
+#         a += self.ss.recv(128).decode()
+#         a += self.ss.recv(128).decode()
+#         a += self.ss.recv(128).decode()
+#         a += self.ss.recv(128).decode()
+        b = a[:13]
+        c = a[13:]
+        print(len(c))
+#         print(a)
+#         print(b)
+#         print(c)
+#         print([int.from_bytes(x, byteorder='big', signed=True) for x in c])
+#         print([(int(x)-128)*0.005 for x in c])
 #         self.query("TRIGger:A?")
 #         self.query("TRIGger:A:EDGE?")
-        self.query("HIStogram:DATa?", nByte=4096)
-        self.query("HIStogram:STARt?")
-        self.query("HIStogram:END?")
+#         self.query("HIStogram:DATa?", nByte=4096)
+#         self.query("HIStogram:STARt?")
+#         self.query("HIStogram:END?")
         return
 
 
@@ -77,9 +131,6 @@ class Oscilloscope:
     def test(self, step=0):
         self.connect() 
         ss = self.ss
-
-        self.send("*IDN?;")                           #read back device ID
-        print("Instrument ID: %s"%ss.recv(128))
 
 #         self.send("SETUP1:TIME?")
         self.send("MEASUrement:IMMed:TYPe WAVEFORMS")
@@ -151,8 +202,9 @@ def check_countloss(freq=600, dT=360, N=10):
 def check_multiple():
 #     for f in [1000, 1500, 1200, 1300, 1100, 490, 510, 980]:
 #     for f in [1000, 200]:
-    for f in [600,900,300,1500,700,1200,500,800,1000,400,200,550,650,750,450]:
-        check_countloss(freq=f, dT=360, N=10)
+#     for f in [600,900,300,1500,700,1200,500,800,1000,400,200,550,650,750,450]:
+    for f in [1510]:
+        check_countloss(freq=f, dT=360, N=3)
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -173,6 +225,6 @@ def test():
     os1.test1()
 
 if __name__ == '__main__':
-#     test()
-    check_multiple()
+    test()
+#     check_multiple()
 #     check_countloss()
