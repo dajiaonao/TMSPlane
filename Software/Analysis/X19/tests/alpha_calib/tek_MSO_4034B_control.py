@@ -61,6 +61,7 @@ class Oscilloscope:
 
     def query(self,cmd, show=True, nByte=128):
         self.send(cmd)
+        time.sleep(0.1) ### let's try to wait a bit here
         ret = self.ss.recv(nByte).decode()
 
         while cmd[0]!='*' and (len(ret)<len(cmd) or cmd[:len(ret)]!=cmd):
@@ -141,12 +142,13 @@ class Oscilloscope:
 
         lenA = int(a[pre+8:pre+9].decode())
         lenM = int(a[pre+9:pre+9+lenA].decode()) ### length of the meta data
-        lenx = pre + lenM + 9 + lenA
+        lenx = pre + lenM + 9 + lenA + 1 ## suppose there is a END sign
 #         print(lenA, lenM, lenx)
 
         ### get bulk data
         if mode>0:
-            print(f"Recieving {lenM} data...")
+            lenOther = pre + 9 + lenA + 1
+            print(f"Recieving {lenM} + {lenOther} data...")
         while len(a)<lenx:
             a += self.ss.recv(2**17)
         if mode>0:
@@ -161,7 +163,7 @@ class Oscilloscope:
 
 
     def checkESR(self):
-        x = self.query("*ESR?")
+        x = self.query("*ESR?", show=False)
         while x!='0':
             self.query("ALLEv?")
             time.sleep(0.2)
@@ -196,6 +198,7 @@ class Oscilloscope:
 
         self.ss.settimeout(None)
         for ifdx in range(200):
+            print('='*20,ifdx,'='*20)
             print(datetime.now())
             self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan14a/sweep{ifdx}.isf")
             print(datetime.now())
