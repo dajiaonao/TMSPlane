@@ -53,18 +53,18 @@ class Oscilloscope:
         self.send(cmd)
         ret = self.ss.recv(nByte).decode()
         if show: print(f"{cmd}-> {ret}")
-        return ret.rstrip().split(' ')[1:]
+        return ret.rstrip().split(' ')[1:] if cmd[0]!='*' else ret.strip()
 
     def setup_default_mode(self):
         ss = self.ss
+        len0 = 20000000
 
         ## acquire
         self.send("ACQuire:MODe HIRes")
         self.send("SELect:CH1 OFF; SELect:CH2 ON; SELect:CH3 OFF; SELect:CH4 OFF;")
         self.send("CH2:COUPling; CH2:INVert OFF")
-        self.send("HORizontal:SCAle 1; HORizontal:RECOrdlength 20000000")
-#         self.send("DESE 1")
-#         self.send("DESE 1")
+        self.send(f"HORizontal:SCAle 1; HORizontal:RECOrdlength {len0}; DATa:STOP {len0}")
+        self.send("DATa:ENCdg RPBinary")
 
     def test2(self, N=10):
         self.connect() 
@@ -97,52 +97,46 @@ class Oscilloscope:
                 except socket.timeout:
                     time.sleep(1)
 
-    def take_data(self):
-        len0 = 20000000
-        self.send(f"HORizontal:RECOrdlength {len0}")
-        self.send(f"DATa:STOP {len0}")
-
+    def take_data(self, mode=0):
         self.send("ACQUIRE:STOPAFTER SEQUENCE")
         self.send("ACQuire:STATE ON")
         time.sleep(9)
 
-#         self.ss.settimeout(None)
         while True:
-            if self.query("ACQuire:STATE?")[0] == '0': break
+            if self.query("ACQuire:STATE?", show=False)[0] == '0': break
             time.sleep(1)
 
-        self.send("DATa:ENCdg RPBinary")
-#         self.query("DATa?")
-        ###get data
+        ###request data
         self.send("CURVe?")
-        a = self.ss.recv(2048)
 
+        ### get meta data
+        a = self.ss.recv(1024)
         a1 = a[:50].decode()
-        print(a[:20],a1)
         lenA = int(a1[8])
         lenM = int(a1[9:9+lenA]) ### length of the meta data
         lenx = lenM + 9+lenA
-        print(lenA, lenM, lenx)
 
+        ### get bulk data
+        if mode>0:
+            print(f"Recieving {lenM} data...")
         while len(a)<lenx:
-            print(len(a))
-#             a += self.ss.recv(4096)
-#             a += self.ss.recv(8192)
-#             a += self.ss.recv(16384)
-#             a += self.ss.recv(32668)
-#             a += self.ss.recv(2**16)
             a += self.ss.recv(2**17)
-        b = a[:lenM]
-        c = a[lenM:]
-#         print(len(c),b)
-        self.query("*ESR?")
+        if mode>0:
+            print("total recieved data:{}".format(len(a)))
+
+        ### check and cleaning
+        x = self.query("*ESR?", show=(mode>0))
+        if x!='32':
+            print(f"Abnormal ESR return value: {x}")
 
     def test3(self):
         '''DAQ from ethernet, so we can analysis as soon as it's done.'''
         self.connect()
         self.setup_default_mode()
+
+        self.ss.settimeout(None)
         print(datetime.now())
-        self.take_data()
+        self.take_data(mode=1)
         print(datetime.now())
 
         ### done
