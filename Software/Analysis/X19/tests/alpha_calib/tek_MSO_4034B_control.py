@@ -14,6 +14,15 @@ class Oscilloscope:
         self.connected = False
         self.cmdSuffix = '\n'
 
+
+    def checkCmd(self):
+        with open('.hiden_cmd') as f1:
+            lines = f1.readlines()
+            cmd0 = lines[-1].rstrip()
+#             print('-->',cmd0,'||')
+            if len(cmd0)==0 or cmd0[0]=='#': return None
+            else: return cmd0
+
     def connect(self, force=False):
         if self.connected and (not force): return
 
@@ -29,7 +38,8 @@ class Oscilloscope:
             return False 
 
         ### check the connection
-        self.query("*ESR?")
+        self.checkESR()
+#         self.query("*ESR?")
 #         self.send("DCL;")                           #read back device ID
 #         time.sleep(5)
 #         self.send("*CLS;")                           #read back device ID
@@ -110,14 +120,7 @@ class Oscilloscope:
                     time.sleep(1)
 
     def take_data(self, mode=0, saveName=None):
-#         x = None
         self.checkESR()
-#         x = self.query("*ESR?", show=(mode>0))
-#         print(x, x=='0')
-#         while x!='0':
-#             time.sleep(0.2)
-#             x = self.query("*ESR?", show=(mode>0))
-#             print(f"Abnormal ESR return value: {x}")
 
         self.send("ACQUIRE:STOPAFTER SEQUENCE;")
         self.send("ACQuire:STATE ON;")
@@ -128,8 +131,6 @@ class Oscilloscope:
             time.sleep(1)
 
         ###request data
-#         self.send("CURVe?")
-#         self.send("WAVFrm?")
         self.send("DATE?;:TIME?;:WAVFrm?")
 
         ### get meta data
@@ -137,15 +138,11 @@ class Oscilloscope:
         while len(a)<512:
             a += self.ss.recv(2**9)
         pre = a.find(b":CURVE")
-#         print(a, pre)
 
-#         return
-#         a1 = a[pre:pre+].decode()
-#         print('--------------->', pre, a1)
         lenA = int(a[pre+8:pre+9].decode())
         lenM = int(a[pre+9:pre+9+lenA].decode()) ### length of the meta data
         lenx = pre + lenM + 9 + lenA
-        print(lenA, lenM, lenx)
+#         print(lenA, lenM, lenx)
 
         ### get bulk data
         if mode>0:
@@ -155,15 +152,13 @@ class Oscilloscope:
         if mode>0:
             print("total recieved data:{}".format(len(a)))
 
-        ### check and cleaning
-        self.checkESR()
-#         x = self.query("*ESR?", show=(mode>0))
-#         if x!='32':
-#             print(f"Abnormal ESR return value: {x}")
-
         if saveName:
             with open(saveName,'wb') as f1:
                 f1.write(a)
+
+        ### check and cleaning -- leave this to the last to allow the oscilloscope to have more time to recover
+        self.checkESR()
+
 
     def checkESR(self):
         x = self.query("*ESR?")
@@ -171,6 +166,13 @@ class Oscilloscope:
             self.query("ALLEv?")
             time.sleep(0.2)
             x = self.query("*ESR?")
+
+    def test4(self):
+        while True:
+            print("here")
+            time.sleep(2)
+            cmd = self.checkCmd()
+            if cmd == 'q': return
 
     def test0(self):
         self.connect()
@@ -193,10 +195,12 @@ class Oscilloscope:
         self.setup_default_mode()
 
         self.ss.settimeout(None)
-        for ifdx in range(2):
+        for ifdx in range(200):
             print(datetime.now())
             self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan14a/sweep{ifdx}.isf")
             print(datetime.now())
+
+            if self.checkCmd() == 'q': break
 
         ### done
         self.disconnect()
@@ -415,6 +419,7 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
+#     os1.test4()
     os1.test3()
 #     os1.test0()
     return
