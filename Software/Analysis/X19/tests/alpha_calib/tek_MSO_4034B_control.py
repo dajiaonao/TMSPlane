@@ -52,19 +52,31 @@ class Oscilloscope:
     def query(self,cmd, show=True, nByte=128):
         self.send(cmd)
         ret = self.ss.recv(nByte).decode()
+
+        while cmd[0]!='*' and (len(ret)<len(cmd) or cmd[:len(ret)]!=cmd):
+            print(f"{cmd}-> {ret} // retrying...")
+            time.sleep(0.5)
+            ret = self.ss.recv(nByte).decode()
+
         if show: print(f"{cmd}-> {ret}")
         return ret.rstrip().split(' ')[1:] if cmd[0]!='*' else ret.strip()
+
+    def recvX(self, nByte=128):
+        ret = self.ss.recv(nByte).decode()
+        print(ret)
+        return ret.strip().split(' ')[1:]
 
     def setup_default_mode(self):
         ss = self.ss
         len0 = 20000000
 
         ## acquire
-        self.send("ACQuire:MODe HIRes")
-        self.send("SELect:CH1 OFF; SELect:CH2 ON; SELect:CH3 OFF; SELect:CH4 OFF;")
-        self.send("CH2:COUPling; CH2:INVert OFF")
-        self.send(f"HORizontal:SCAle 1; HORizontal:RECOrdlength {len0}; DATa:STOP {len0}")
-        self.send("DATa:ENCdg RPBinary")
+        self.send("ACQuire:MODe HIRes;")
+        self.send("SELect:CH1 OFF; CH2 ON; CH3 OFF; CH4 OFF;")
+        self.send("CH2:COUPling AC; INVert OFF;")
+        self.send(f"HORizontal:SCAle 1; RECOrdlength {len0}; :DATa:STOP {len0};")
+        self.send("DATa:ENCdg RPBinary;")
+#         self.send("DATa:ENCdg RIBinary")
 
     def test2(self, N=10):
         self.connect() 
@@ -78,7 +90,7 @@ class Oscilloscope:
             self.send("ACQuire:STATE ON")
             self.send('*WAI')
 
-            self.send('SAVE:WAVEFORM CH2, "E:/test2.isf";')
+            self.send('SAVE:WAVEFORM CH2, "E:/test3.isf";')
 #             self.send('*WAI')
 #             self.send("BUSY?")
 # 
@@ -97,9 +109,18 @@ class Oscilloscope:
                 except socket.timeout:
                     time.sleep(1)
 
-    def take_data(self, mode=0):
-        self.send("ACQUIRE:STOPAFTER SEQUENCE")
-        self.send("ACQuire:STATE ON")
+    def take_data(self, mode=0, saveName=None):
+#         x = None
+        self.checkESR()
+#         x = self.query("*ESR?", show=(mode>0))
+#         print(x, x=='0')
+#         while x!='0':
+#             time.sleep(0.2)
+#             x = self.query("*ESR?", show=(mode>0))
+#             print(f"Abnormal ESR return value: {x}")
+
+        self.send("ACQUIRE:STOPAFTER SEQUENCE;")
+        self.send("ACQuire:STATE ON;")
         time.sleep(9)
 
         while True:
@@ -107,14 +128,24 @@ class Oscilloscope:
             time.sleep(1)
 
         ###request data
-        self.send("CURVe?")
+#         self.send("CURVe?")
+#         self.send("WAVFrm?")
+        self.send("DATE?;:TIME?;:WAVFrm?")
 
         ### get meta data
-        a = self.ss.recv(1024)
-        a1 = a[:50].decode()
-        lenA = int(a1[8])
-        lenM = int(a1[9:9+lenA]) ### length of the meta data
-        lenx = lenM + 9+lenA
+        a = self.ss.recv(512)
+        while len(a)<512:
+            a += self.ss.recv(2**9)
+        pre = a.find(b":CURVE")
+#         print(a, pre)
+
+#         return
+#         a1 = a[pre:pre+].decode()
+#         print('--------------->', pre, a1)
+        lenA = int(a[pre+8:pre+9].decode())
+        lenM = int(a[pre+9:pre+9+lenA].decode()) ### length of the meta data
+        lenx = pre + lenM + 9 + lenA
+        print(lenA, lenM, lenx)
 
         ### get bulk data
         if mode>0:
@@ -125,19 +156,47 @@ class Oscilloscope:
             print("total recieved data:{}".format(len(a)))
 
         ### check and cleaning
-        x = self.query("*ESR?", show=(mode>0))
-        if x!='32':
-            print(f"Abnormal ESR return value: {x}")
+        self.checkESR()
+#         x = self.query("*ESR?", show=(mode>0))
+#         if x!='32':
+#             print(f"Abnormal ESR return value: {x}")
 
+        if saveName:
+            with open(saveName,'wb') as f1:
+                f1.write(a)
+
+    def checkESR(self):
+        x = self.query("*ESR?")
+        while x!='0':
+            self.query("ALLEv?")
+            time.sleep(0.2)
+            x = self.query("*ESR?")
+
+    def test0(self):
+        self.connect()
+#         self.send("*RSR?")
+#         self.send("*ALLEv?")
+#         self.query("ALLEv?")
+        self.query("DATE?;:TIME?")
+#         self.query("EVENT?")
+        self.query("EVMsg?")
+
+        x = self.query("*ESR?")
+        while x!='0':
+            self.query("ALLEv?")
+            time.sleep(0.2)
+            x = self.query("*ESR?")
+#
     def test3(self):
         '''DAQ from ethernet, so we can analysis as soon as it's done.'''
         self.connect()
         self.setup_default_mode()
 
         self.ss.settimeout(None)
-        print(datetime.now())
-        self.take_data(mode=1)
-        print(datetime.now())
+        for ifdx in range(2):
+            print(datetime.now())
+            self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan14a/sweep{ifdx}.isf")
+            print(datetime.now())
 
         ### done
         self.disconnect()
@@ -357,6 +416,7 @@ def test():
 # #             print(i)
 #             continue
     os1.test3()
+#     os1.test0()
     return
 
     for i in range(10):
