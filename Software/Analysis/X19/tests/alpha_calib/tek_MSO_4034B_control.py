@@ -29,8 +29,9 @@ class Oscilloscope:
             return False 
 
         ### check the connection
+        self.query("*ESR?")
 #         self.send("DCL;")                           #read back device ID
-        time.sleep(5)
+#         time.sleep(5)
 #         self.send("*CLS;")                           #read back device ID
         self.query("*IDN?;")                           #read back device ID
 #         print("Instrument ID: %s"%self.ss.recv(128))
@@ -96,6 +97,57 @@ class Oscilloscope:
                 except socket.timeout:
                     time.sleep(1)
 
+    def take_data(self):
+        len0 = 20000000
+        self.send(f"HORizontal:RECOrdlength {len0}")
+        self.send(f"DATa:STOP {len0}")
+
+        self.send("ACQUIRE:STOPAFTER SEQUENCE")
+        self.send("ACQuire:STATE ON")
+        time.sleep(9)
+
+#         self.ss.settimeout(None)
+        while True:
+            if self.query("ACQuire:STATE?")[0] == '0': break
+            time.sleep(1)
+
+        self.send("DATa:ENCdg RPBinary")
+#         self.query("DATa?")
+        ###get data
+        self.send("CURVe?")
+        a = self.ss.recv(2048)
+
+        a1 = a[:50].decode()
+        print(a[:20],a1)
+        lenA = int(a1[8])
+        lenM = int(a1[9:9+lenA]) ### length of the meta data
+        lenx = lenM + 9+lenA
+        print(lenA, lenM, lenx)
+
+        while len(a)<lenx:
+            print(len(a))
+#             a += self.ss.recv(4096)
+#             a += self.ss.recv(8192)
+#             a += self.ss.recv(16384)
+#             a += self.ss.recv(32668)
+#             a += self.ss.recv(2**16)
+            a += self.ss.recv(2**17)
+        b = a[:lenM]
+        c = a[lenM:]
+#         print(len(c),b)
+        self.query("*ESR?")
+
+    def test3(self):
+        '''DAQ from ethernet, so we can analysis as soon as it's done.'''
+        self.connect()
+        self.setup_default_mode()
+        print(datetime.now())
+        self.take_data()
+        print(datetime.now())
+
+        ### done
+        self.disconnect()
+
     def test1(self):
         self.connect() 
         ss = self.ss
@@ -158,8 +210,9 @@ class Oscilloscope:
         print(datetime.now())
         return
 
-        self.send("HORizontal:RECOrdlength 10000000")
-        self.send("DATa:STOP 10000000")
+        len0 = 20000000
+        self.send(f"HORizontal:RECOrdlength {len0}")
+        self.send(f"DATa:STOP {len0}")
         self.query("WFMOutpre?")
         self.query("CH2:OFFSet?")
         self.query("CH2:PRObe:UNIts?")
@@ -174,17 +227,18 @@ class Oscilloscope:
         self.query("DATa?")
         ###get data
         self.send("CURVe?")
-        lenx = 10000000+13
-        a = self.ss.recv(128)
+        lenM = 13 ### length of the meta data
+        lenx = len0+lenM
+        a = self.ss.recv(512)
         while len(a)<lenx:
-            a += self.ss.recv(128)
+            a += self.ss.recv(512)
 #         a += self.ss.recv(128).decode()
 #         a += self.ss.recv(128).decode()
 #         a += self.ss.recv(128).decode()
 #         a += self.ss.recv(128).decode()
 #         a += self.ss.recv(128).decode()
-        b = a[:13]
-        c = a[13:]
+        b = a[:lenM]
+        c = a[lenM:]
         print(len(c))
 #         print(a)
 #         print(b)
@@ -308,7 +362,7 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
-    os1.test2()
+    os1.test3()
     return
 
     for i in range(10):
