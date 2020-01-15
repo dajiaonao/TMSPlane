@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import time
+import os
 from datetime import datetime
 import socket
 import numpy as np
@@ -13,6 +14,7 @@ class Oscilloscope:
         self.fileSuffix = '.1'
         self.connected = False
         self.cmdSuffix = '\n'
+        self.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/'
 
 
     def checkCmd(self):
@@ -195,22 +197,38 @@ class Oscilloscope:
             time.sleep(0.2)
             x = self.query("*ESR?")
 #
-    def test3(self):
+    def run_project(self, N=1, dirx='temp', tag='test_'):
         '''DAQ from ethernet, so we can analysis as soon as it's done.'''
         self.connect()
         self.setup_default_mode()
-
         self.ss.settimeout(None)
-        for ifdx in range(200):
-            print('='*20,ifdx,'='*20)
-            print(datetime.now())
-            self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan15a/ch1_F_1kHz_{ifdx}.isf")
-            print(datetime.now())
 
+        ### check the output directory
+        dirx = dirx.strip()
+        if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
+        if not os.path.exists(dirx): os.makedirs(dirx)
+        if dirx[-1]!='/': dirx += '/'
+
+        ### start taking data
+        ifdx = 0
+        while True:
+            print('='*20,ifdx,'='*20)
+            t0 = datetime.now()
+            self.take_data(mode=1, saveName=f"{dirx}{tag}_{ifdx}.isf")
+            t1 = datetime.now()
+            print(t0, t1-t0)
+
+            ifdx += 1
+            if ifdx == N: break
+
+            ### allow hidden command break
             if self.checkCmd() == 'q': break
 
         ### done
         self.disconnect()
+
+    def test3(self):
+        self.run_project(N=10, dirx='Jan15a', tag='test3_')
 
     def test1(self):
         self.connect() 
