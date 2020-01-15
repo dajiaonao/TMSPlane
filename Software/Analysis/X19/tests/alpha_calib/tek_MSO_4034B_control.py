@@ -83,10 +83,13 @@ class Oscilloscope:
 
         ## acquire
         self.send("ACQuire:MODe HIRes;")
-        self.send("SELect:CH1 OFF; CH2 ON; CH3 OFF; CH4 OFF;")
-        self.send("CH2:COUPling AC; INVert OFF;")
-        self.send(f"HORizontal:SCAle 1; RECOrdlength {len0}; :DATa:STOP {len0};")
-        self.send("DATa:ENCdg RPBinary;")
+#         self.send("SELect:CH1 OFF; CH2 ON; CH3 OFF; CH4 OFF;")
+        self.send("SELect:CH1 ON; CH2 OFF; CH3 OFF; CH4 OFF;")
+#         self.send("CH2:COUPling AC; INVert OFF;")
+        self.send("CH1:COUPling AC; INVert OFF;")
+        self.send(f"HORizontal:SCAle 1; RECOrdlength {len0};")
+        self.send(f"DATa:SOUrce CH1; ENCdg RPBinary; STOP {len0};")
+#         self.send("DATa:SOUrce CH2")
 #         self.send("DATa:ENCdg RIBinary")
 
     def test2(self, N=10):
@@ -133,7 +136,8 @@ class Oscilloscope:
 
         ###request data
         self.send("DATE?;:TIME?;:WAVFrm?")
-
+#         self.send('*WAI')
+#         time.sleep(50)
         ### get meta data
         a = self.ss.recv(512)
         while len(a)<512:
@@ -200,7 +204,7 @@ class Oscilloscope:
         for ifdx in range(200):
             print('='*20,ifdx,'='*20)
             print(datetime.now())
-            self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan14a/sweep{ifdx}.isf")
+            self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan15a/ch1_F_1kHz_{ifdx}.isf")
             print(datetime.now())
 
             if self.checkCmd() == 'q': break
