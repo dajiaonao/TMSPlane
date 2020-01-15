@@ -93,9 +93,7 @@ class Picoammeter:
 
     def test(self):
         self.connect()
-        self.send('*IDN?')
-        result = self.ser.read(1000)
-        print(len(result),'->',result.decode())
+        print(self.query('*IDN?'))
 
         self.send('*RST')
 #         self.test1()
@@ -103,7 +101,8 @@ class Picoammeter:
 #         self.speed_check()
 #         self.read_many()
 #         self.run_measure()
-        self.run_measure1()
+        self.take_data()
+#         self.run_measure1()
 #         self.test_get_mean()
 #         self.multiple_reading()
 #         self.set_relative()
@@ -307,6 +306,55 @@ class Picoammeter:
                 print(isample, 'done')
         print('done')
 
+    def take_data(self):
+        ### HV
+        self.send('SOUR:VOLT:RANG 500') #Select 10V source range.
+        self.send('SOUR:VOLT -500') #  Set voltage source output to 10V.
+        self.send('SOUR:VOLT:ILIM 2.5e-3') #  Set current limit to 2.5mA.
+        self.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
+
+        self.send('SYST:ZCH ON')
+        self.send('RANG 2e-9')
+        self.send('SYST:ZCH OFF')
+
+         ### take data
+        self.send('FORM:ELEM READ,VSO,TIME')
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 1')
+
+        ### location
+        sampleDir = './'
+        idir = 0
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
+        os.makedirs(project_dir)
+        logging.basicConfig(filename=project_dir+'run.log',level=logging.DEBUG)
+
+        ### start taking data
+        with open(project_dir+'current.dat','w') as fout1:
+            isample = 0
+            while True:
+                isample += 1
+                t = time.time()
+
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(t))
+                try:
+                    self.send('TRIG:COUN 100', False)
+                    self.send('INIT', False)
+                    q2 = self.query('READ?')
+
+                    data = list(zip(*[iter(q2.split(','))]*3))
+                    outx = ''
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
+
+                    fout1.write(outx)
+                    fout1.flush()
+
+                except KeyboardInterrupt:
+                    break
+
+                print(isample, 'done')
+        print('done')
 
     def run_measure(self):
         ### HV

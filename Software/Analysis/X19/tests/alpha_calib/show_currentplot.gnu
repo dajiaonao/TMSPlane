@@ -14,21 +14,33 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 set timefmt "%Y-%m-%d_%H:%M:%S"
 #if (!exists("projname")) projname='project_48/'
 #if (!exists("projname")) projname='project_48/'
-if (!exists("projname")) projname='project_51/'
+if (!exists("projname")) projname='project_67/'
 #if (!exists("projname")) projname='./'
 #print projname
 set ylabel "I [pA]"
 set xlabel "Time"
-set ytics nomirror
-set y2tics
-set y2label "Plane HV [V]"
+#set ytics nomirror
+#set y2tics
+#set y2label "Plane HV [V]"
 #set terminal postscript eps enhanced colour dashed lw 1 "Helvetica" 14 
 #set output projname.'test.eps'
 #plot projname."current.dat" using 1:2 with lines
+
+#set y2tics -150, 10
+#set ytics nomirror
+#plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines axis x1y1, projname."current.dat" using 1:4 axis x1y2
+plot projname."current.dat" using 1:($2<1?$2*1e12:1/0)
+#plot projname."current.dat" using 1:4
+
+#set y2tics -100, 10
+#set ytics nomirror
+#plot sin(1/x) axis x1y1,100*cos(x) axis x1y2
+
 #plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines
 #plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines , projname."current.dat" using 1:4 with boxes ls 3 axis x1y2
 #plot  projname."current.dat" using 1:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines axis x1y1
 plot  projname."current.dat" using 3:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 3:($2<1?$2*1e12:1/0) with lines lc 1 axis x1y1
-pause -1
+#plot  projname."current.dat" using 3:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 3:($2<1?$2*1e12:1/0) with lines axis x1y1
+#pause -1
 pause 10
 reread
