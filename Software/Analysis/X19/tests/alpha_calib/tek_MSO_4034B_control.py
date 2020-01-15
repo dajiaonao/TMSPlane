@@ -91,6 +91,7 @@ class Oscilloscope:
         self.send("CH1:COUPling AC; INVert OFF;")
         self.send(f"HORizontal:SCAle 1; RECOrdlength {len0};")
         self.send(f"DATa:SOUrce CH1; ENCdg RPBinary; STOP {len0};")
+        self.send("ACQUIRE:STOPAFTER SEQUENCE;")
 #         self.send("DATa:SOUrce CH2")
 #         self.send("DATa:ENCdg RIBinary")
 
@@ -126,33 +127,35 @@ class Oscilloscope:
                     time.sleep(1)
 
     def take_data(self, mode=0, saveName=None):
+        ### check status
         self.checkESR()
 
-        self.send("ACQUIRE:STOPAFTER SEQUENCE;")
+        ### start the DAQ
         self.send("ACQuire:STATE ON;")
         time.sleep(9)
 
+        ### wait for DAQ complete
         while True:
             if self.query("ACQuire:STATE?", show=False)[0] == '0': break
             time.sleep(1)
 
         ###request data
         self.send("DATE?;:TIME?;:WAVFrm?")
-#         self.send('*WAI')
-#         time.sleep(50)
+
         ### get meta data
         a = self.ss.recv(512)
         while len(a)<512:
             a += self.ss.recv(2**9)
         pre = a.find(b":CURVE")
 
+        ### get the data size
         lenA = int(a[pre+8:pre+9].decode())
         lenM = int(a[pre+9:pre+9+lenA].decode()) ### length of the meta data
         lenx = pre + lenM + 9 + lenA + 1 ## suppose there is a END sign
 #         print(lenA, lenM, lenx)
 
         ### get bulk data
-        if mode>0:
+        if mode>1:
             lenOther = pre + 9 + lenA + 1
             print(f"Recieving {lenM} + {lenOther} data...")
         while len(a)<lenx:
@@ -160,13 +163,13 @@ class Oscilloscope:
         if mode>0:
             print("total recieved data:{}".format(len(a)))
 
+        ### save data
         if saveName:
             with open(saveName,'wb') as f1:
                 f1.write(a)
 
         ### check and cleaning -- leave this to the last to allow the oscilloscope to have more time to recover
         self.checkESR()
-
 
     def checkESR(self):
         x = self.query("*ESR?", show=False)
