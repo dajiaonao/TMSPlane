@@ -161,7 +161,7 @@ class Oscilloscope:
         while len(a)<lenx:
             a += self.ss.recv(2**17)
         if mode>0:
-            print("total recieved data:{}".format(len(a)))
+            print("total recieved data: {}".format(len(a)))
 
         ### save data
         if saveName:
@@ -211,13 +211,14 @@ class Oscilloscope:
         if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
         if not os.path.exists(dirx): os.makedirs(dirx)
         if dirx[-1]!='/': dirx += '/'
+        print(f"Data directory: {dirx}, tag:{tag}")
 
         ### start taking data
         ifdx = 0
         while True:
             print('='*20,ifdx,'='*20)
             t0 = datetime.now()
-            self.take_data(mode=1, saveName=f"{dirx}{tag}_{ifdx}.isf")
+            self.take_data(mode=1, saveName=f"{dirx}{tag}{ifdx}.isf")
             t1 = datetime.now()
             print(t0, t1-t0)
 
@@ -448,8 +449,10 @@ def test():
 # #             print(i)
 #             continue
 #     os1.test4()
-    os1.test3()
+#     os1.test3()
 #     os1.test0()
+    os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
+    os1.run_project(N=-1, dirx='Jan15a', tag='TPCHV2kV_PHV0V_air4_')
     return
 
     for i in range(10):
