@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 import time
+import os
+import re
 from datetime import datetime
 import socket
 import numpy as np
 from Rigol import Rigol
+from glob import glob
+
+def getMaxIndex(files,pattern='.*_(\d+).isf'):
+    idx0 = None
+    for f in files:
+        m = re.match(pattern,f)
+        if m:
+            idx = int(m.group(1))
+            if idx0 is None or idx>idx0: idx0 = idx
+#     print(files)
+#     print(idx0)
+    return idx0
 
 class Oscilloscope:
     def __init__(self, name='Keysight MSO-x 4054', addr='192.168.2.5:5025'):
@@ -13,15 +27,22 @@ class Oscilloscope:
         self.fileSuffix = '.1'
         self.connected = False
         self.cmdSuffix = '\n'
-
+        self.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/'
+        self.dirx = 'test'
+        self.tag = 'test_'
 
     def checkCmd(self):
-        with open('.hiden_cmd') as f1:
-            lines = f1.readlines()
-            cmd0 = lines[-1].rstrip()
-#             print('-->',cmd0,'||')
-            if len(cmd0)==0 or cmd0[0]=='#': return None
-            else: return cmd0
+        '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
+        with open('.hidden_cmd') as f1:
+            lines = [l.strip() for l in f1.readlines() if len(l)>0 and l[0] not in ['\n','#'] ]
+            for line in lines:
+                if line.lower() in ['q','quit','exit','end']: return 'q'
+                else:
+                    try:
+                        exec(line)
+                    except NameError as e:
+                        print(f"Error running command:{line}--> {e}")
+        return None
 
     def connect(self, force=False):
         if self.connected and (not force): return
@@ -83,10 +104,14 @@ class Oscilloscope:
 
         ## acquire
         self.send("ACQuire:MODe HIRes;")
-        self.send("SELect:CH1 OFF; CH2 ON; CH3 OFF; CH4 OFF;")
-        self.send("CH2:COUPling AC; INVert OFF;")
-        self.send(f"HORizontal:SCAle 1; RECOrdlength {len0}; :DATa:STOP {len0};")
-        self.send("DATa:ENCdg RPBinary;")
+#         self.send("SELect:CH1 OFF; CH2 ON; CH3 OFF; CH4 OFF;")
+        self.send("SELect:CH1 ON; CH2 OFF; CH3 OFF; CH4 OFF;")
+#         self.send("CH2:COUPling AC; INVert OFF;")
+        self.send("CH1:COUPling AC; INVert OFF;")
+        self.send(f"HORizontal:SCAle 1; RECOrdlength {len0};")
+        self.send(f"DATa:SOUrce CH1; ENCdg RPBinary; STOP {len0};")
+        self.send("ACQUIRE:STOPAFTER SEQUENCE;")
+#         self.send("DATa:SOUrce CH2")
 #         self.send("DATa:ENCdg RIBinary")
 
     def test2(self, N=10):
@@ -121,12 +146,14 @@ class Oscilloscope:
                     time.sleep(1)
 
     def take_data(self, mode=0, saveName=None):
+        ### check status
         self.checkESR()
 
-        self.send("ACQUIRE:STOPAFTER SEQUENCE;")
+        ### start the DAQ
         self.send("ACQuire:STATE ON;")
         time.sleep(9)
 
+        ### wait for DAQ complete
         while True:
             if self.query("ACQuire:STATE?", show=False)[0] == '0': break
             time.sleep(1)
@@ -140,13 +167,14 @@ class Oscilloscope:
             a += self.ss.recv(2**9)
         pre = a.find(b":CURVE")
 
+        ### get the data size
         lenA = int(a[pre+8:pre+9].decode())
         lenM = int(a[pre+9:pre+9+lenA].decode()) ### length of the meta data
         lenx = pre + lenM + 9 + lenA + 1 ## suppose there is a END sign
 #         print(lenA, lenM, lenx)
 
         ### get bulk data
-        if mode>0:
+        if mode>1:
             lenOther = pre + 9 + lenA + 1
             print(f"Recieving {lenM} + {lenOther} data...")
         while len(a)<lenx:
@@ -154,13 +182,14 @@ class Oscilloscope:
         if mode>0:
             print("total recieved data:{}".format(len(a)))
 
+        ### save data
         if saveName:
+            while os.path.exists(saveName): saveName += self.fileSuffix
             with open(saveName,'wb') as f1:
                 f1.write(a)
 
         ### check and cleaning -- leave this to the last to allow the oscilloscope to have more time to recover
         self.checkESR()
-
 
     def checkESR(self):
         x = self.query("*ESR?", show=False)
@@ -173,7 +202,10 @@ class Oscilloscope:
         while True:
             print("here")
             time.sleep(2)
+            print(f"dirx={self.dirx},tag={self.tag}")
             cmd = self.checkCmd()
+            print(f"dirx={self.dirx},tag={self.tag}")
+
             if cmd == 'q': return
 
     def test0(self):
@@ -191,22 +223,42 @@ class Oscilloscope:
             time.sleep(0.2)
             x = self.query("*ESR?")
 #
-    def test3(self):
+    def run_project(self, N=1, dirx='temp', tag='test_'):
         '''DAQ from ethernet, so we can analysis as soon as it's done.'''
         self.connect()
         self.setup_default_mode()
-
         self.ss.settimeout(None)
-        for ifdx in range(200):
-            print('='*20,ifdx,'='*20)
-            print(datetime.now())
-            self.take_data(mode=1, saveName=f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/Jan14a/sweep{ifdx}.isf")
-            print(datetime.now())
 
+        ### check the output directory
+        dirx = dirx.strip()
+        if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
+        if not os.path.exists(dirx): os.makedirs(dirx)
+        if dirx[-1]!='/': dirx += '/'
+        self.dirx, self.tag = dirx, tag ### save these values to the class
+
+        ### find the start index
+        ifdx = getMaxIndex(glob(dirx+'*.isf'),'.*_(\d+).isf')
+        if ifdx is None: ifdx = 0
+
+        ### start taking data
+        while True:
+            print('='*20,ifdx,'='*20)
+            t0 = datetime.now()
+            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}_{ifdx}.isf")
+            t1 = datetime.now()
+            print(t0, t1-t0)
+
+            ifdx += 1
+            if ifdx == N: break
+
+            ### allow hidden command break
             if self.checkCmd() == 'q': break
 
         ### done
         self.disconnect()
+
+    def test3(self):
+        self.run_project(N=10, dirx='Jan15a', tag='test3_')
 
     def test1(self):
         self.connect() 
@@ -407,6 +459,10 @@ def check_multiple():
     for f in [1510]:
         check_countloss(freq=f, dT=360, N=3)
 
+def main():
+    os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
+    os1.run_project(N=10, dirx='Jan15a', tag='test3_')
+
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
 
@@ -422,8 +478,8 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
-#     os1.test4()
-    os1.test3()
+    os1.test4()
+#     os1.test3()
 #     os1.test0()
     return
 
@@ -432,6 +488,8 @@ def test():
         os1.disconnect()
 
 if __name__ == '__main__':
-    test()
+    main()
+#     test()
 #     check_multiple()
 #     check_countloss()
+#     getMaxIndex(glob("/data/Samples/TMSPlane/fpgaLin/*.root"),".*/Feb09b_data_(\d+).root")
