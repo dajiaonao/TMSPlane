@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 import time
 import os
+import re
 from datetime import datetime
 import socket
 import numpy as np
 from Rigol import Rigol
+from glob import glob
+
+def getMaxIndex(files,pattern='.*_(\d+).isf'):
+    idx0 = None
+    for f in files:
+        m = re.match(pattern,f)
+        if m:
+            idx = int(m.group(1))
+            if idx0 is None or idx>idx0: idx0 = idx
+#     print(files)
+#     print(idx0)
+    return idx0
 
 class Oscilloscope:
     def __init__(self, name='Keysight MSO-x 4054', addr='192.168.2.5:5025'):
@@ -15,15 +28,21 @@ class Oscilloscope:
         self.connected = False
         self.cmdSuffix = '\n'
         self.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/'
-
+        self.dirx = 'test'
+        self.tag = 'test_'
 
     def checkCmd(self):
-        with open('.hiden_cmd') as f1:
-            lines = f1.readlines()
-            cmd0 = lines[-1].rstrip()
-#             print('-->',cmd0,'||')
-            if len(cmd0)==0 or cmd0[0]=='#': return None
-            else: return cmd0
+        '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
+        with open('.hidden_cmd') as f1:
+            lines = [l.strip() for l in f1.readlines() if len(l)>0 and l[0] not in ['\n','#'] ]
+            for line in lines:
+                if line.lower() in ['q','quit','exit','end']: return 'q'
+                else:
+                    try:
+                        exec(line)
+                    except NameError as e:
+                        print(f"Error running command:{line}--> {e}")
+        return None
 
     def connect(self, force=False):
         if self.connected and (not force): return
@@ -165,6 +184,7 @@ class Oscilloscope:
 
         ### save data
         if saveName:
+            while os.path.exists(saveName): saveName += self.fileSuffix
             with open(saveName,'wb') as f1:
                 f1.write(a)
 
@@ -182,7 +202,10 @@ class Oscilloscope:
         while True:
             print("here")
             time.sleep(2)
+            print(f"dirx={self.dirx},tag={self.tag}")
             cmd = self.checkCmd()
+            print(f"dirx={self.dirx},tag={self.tag}")
+
             if cmd == 'q': return
 
     def test0(self):
@@ -211,13 +234,17 @@ class Oscilloscope:
         if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
         if not os.path.exists(dirx): os.makedirs(dirx)
         if dirx[-1]!='/': dirx += '/'
+        self.dirx, self.tag = dirx, tag ### save these values to the class
+
+        ### find the start index
+        ifdx = getMaxIndex(glob(dirx+'*.isf'),'.*_(\d+).isf')
+        if ifdx is None: ifdx = 0
 
         ### start taking data
-        ifdx = 0
         while True:
             print('='*20,ifdx,'='*20)
             t0 = datetime.now()
-            self.take_data(mode=1, saveName=f"{dirx}{tag}_{ifdx}.isf")
+            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}_{ifdx}.isf")
             t1 = datetime.now()
             print(t0, t1-t0)
 
@@ -432,6 +459,10 @@ def check_multiple():
     for f in [1510]:
         check_countloss(freq=f, dT=360, N=3)
 
+def main():
+    os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
+    os1.run_project(N=10, dirx='Jan15a', tag='test3_')
+
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
 
@@ -447,8 +478,8 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
-#     os1.test4()
-    os1.test3()
+    os1.test4()
+#     os1.test3()
 #     os1.test0()
     return
 
@@ -457,6 +488,8 @@ def test():
         os1.disconnect()
 
 if __name__ == '__main__':
-    test()
+    main()
+#     test()
 #     check_multiple()
 #     check_countloss()
+#     getMaxIndex(glob("/data/Samples/TMSPlane/fpgaLin/*.root"),".*/Feb09b_data_(\d+).root")
