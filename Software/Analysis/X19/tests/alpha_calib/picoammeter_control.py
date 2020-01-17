@@ -499,7 +499,26 @@ def test2():
     print(t,t2,tN)
 
     
+def HV_out_scan(vlist, dT):
+    pm1 = Picoammeter()
+    pm1.connect()
+    pm1.send('SOUR:VOLT:RANG 500') #Select 10V source range.
+    pm1.send('SOUR:VOLT 500') #  Set voltage source output to 500V.
+    pm1.send('SOUR:VOLT:ILIM 2.5e-4') #  Set current limit to 25uA.
+    pm1.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
+
+    vl = vGen(vlist)
+    while True:
+        ### time to change the voltage
+        try:
+            vs = next(vl)
+            pm1.send('SOUR:VOLT {0:d}'.format(vs)) #  Set voltage source output to 10V.
+            time.sleep(dT)
+            print(time.time(), vs)
+        except KeyboardInterrupt:
+            break
 
 if __name__ == '__main__':
-    test1()
+#     test1()
+    HV_out_scan([200,-200,0],dT=10*60)
 #     test2()

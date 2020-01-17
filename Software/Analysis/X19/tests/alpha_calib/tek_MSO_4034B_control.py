@@ -180,7 +180,7 @@ class Oscilloscope:
         while len(a)<lenx:
             a += self.ss.recv(2**17)
         if mode>0:
-            print("total recieved data:{}".format(len(a)))
+            print("total recieved data: {}".format(len(a)))
 
         ### save data
         if saveName:
@@ -234,6 +234,7 @@ class Oscilloscope:
         if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
         if not os.path.exists(dirx): os.makedirs(dirx)
         if dirx[-1]!='/': dirx += '/'
+        print(f"Data directory: {dirx}, tag:{tag}")
         self.dirx, self.tag = dirx, tag ### save these values to the class
 
         ### find the start index
@@ -478,9 +479,11 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
-    os1.test4()
+#     os1.test4()
 #     os1.test3()
 #     os1.test0()
+    os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
+    os1.run_project(N=-1, dirx='Jan15a', tag='TPCHV2kV_PHV0V_air4_')
     return
 
     for i in range(10):
@@ -488,8 +491,8 @@ def test():
         os1.disconnect()
 
 if __name__ == '__main__':
-    main()
-#     test()
+#     main()
+    test()
 #     check_multiple()
 #     check_countloss()
 #     getMaxIndex(glob("/data/Samples/TMSPlane/fpgaLin/*.root"),".*/Feb09b_data_(\d+).root")
