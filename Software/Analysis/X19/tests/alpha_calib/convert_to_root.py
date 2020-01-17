@@ -69,5 +69,6 @@ def to_root(filenames, outroot='temp.root'):
     f2.Close()
 
 # to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_{d}.isf" for d in range(20)])
-to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{d}.isf" for d in range(1000)], "TPCHV2kV_PHV0V_air.root")
+# to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{d}.isf" for d in range(1000)], "TPCHV2kV_PHV0V_air.root")
+to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_{d}.isf" for d in range(1000)], "TPCHV2kV_PHV0V_air2.root")
 # to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_640.isf"])
