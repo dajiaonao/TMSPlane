@@ -68,7 +68,7 @@ class findrate(object):
         self.inputarray = None
         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=50) 
 
-        print(len(peaks),peaks)
+        if self.isDebug: print(len(peaks),peaks)
         #wav3 = [wav2[ix] for ix in peaks]
 
         promsall = peak_prominences(arwav2, peaks, wlen=W)
@@ -146,6 +146,7 @@ class findrate(object):
         return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f}"
 
 def processor(inputName):
+    print(f"Processing {inputName}")
     myrate = findrate(inputName)
     myrate.getinput()
     myrate.processinput(-1)
@@ -168,7 +169,7 @@ def multi_run():
     myrates = p.map(processor, files)
    
     newfile = open(mydir+"/summary.txt","a")
-    print(myrate.header)
+    print(findrate.header)
     for i in range(len(myrates)):
         s = myrates[i].get_summary()
         print(s)
