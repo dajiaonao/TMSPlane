@@ -73,6 +73,24 @@ def test():
 # to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{d}.isf" for d in range(1000)], "TPCHV2kV_PHV0V_air.root")
 # to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_640.isf"])
 
+def process_files(inDir, outDir, tag):
+    ### check output dir
+    if not os.path.exists(outDir): os.makedirs(outDir)
+
+    ### start the merge
+    si = -1
+    while True:
+        si += 1
+        fout = f"{tag}s{si}.root"
+        if os.path.exists(fout): continue
+        
+        fin_last = inDir+f"{tag}{si*1000+999}.isf"
+        if not os.path.exists(fin_last): break
+
+        fs = [inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)]
+        print(f"will merge {fs[0]}...{fs[-1]} to {fout}")
+        to_root([inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)], fout)
+
 def process_air4():
     print("Hello, Hello")
     inDir = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/Jan15a/'
@@ -97,5 +115,6 @@ def process_air4():
         to_root([inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)], fout)
 
 if __name__ == '__main__':
-    process_air4()
+#     process_air4()
+    process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air3_')
 #     test()

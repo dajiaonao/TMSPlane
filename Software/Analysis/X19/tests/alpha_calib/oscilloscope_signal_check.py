@@ -9,6 +9,7 @@ from glob import glob
 import os, time, re
 import ROOT
 from root_numpy import root2array, array2root
+from array import array
 
 #signIt = lambda t: t if t<127 else t-256
 signIt = lambda t: t 
@@ -31,6 +32,17 @@ class findrate(object):
         self.bkg = 0
         self.isDebug = False
         self.showPlot = False
+
+    def getinput_from_root(self, fname=None, entry=None):
+        Nsample = 20000000
+        data1 = array('B',[0]*Nsample)
+ 
+        f1 = ROOT.TFile("TPCHV2kV_PHV0V_air2.root")
+        tree1 = f1.Get('tr1')
+        tree1.SetBranchAddress("data",data1)
+
+        tree1.GetEntry(0)
+        print(data1[:10], data1[-10:])
 
     def getinput(self):
         with open(self.filename,'rb') as f1:
@@ -57,7 +69,7 @@ class findrate(object):
             wav += f1.read()[:-1]
 #             wav1 = [signIt(int(x)) for x in wav[::2]] if pars[b'BIT_NR'] == b'16' else [signIt(int(x)) for x in wav]
             wav1 = [signIt(int(x)) for x in wav[::2]] if pars[b'BIT_NR'] == b'16' else [int(x) for x in wav]
-            if self.isDebug: print(len(wav1), wav1[:10])
+            if self.isDebug: print(len(wav1), wav1[:10], wav1[-10:])
 
             self.inputarray = np.asarray(wav1)
 
@@ -199,11 +211,18 @@ def test():
     except KeyboardInterrupt:
         plt.close("all")
 
+def test0():
+    fr1 = findrate('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_0.isf')
+    fr1.isDebug = True
+    fr1.getinput()
+    fr1.getinput_from_root()
+
 def main():
     if len(argv)>3: multi_run()
     else: test()
 
 if __name__ == '__main__':
-    main()
+    test0()
+#     main()
 #     test()
     #multi_run()
