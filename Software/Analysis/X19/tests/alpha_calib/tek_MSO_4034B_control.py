@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-import os
+import os,sys
 import re
 from datetime import datetime
 import socket
@@ -180,7 +180,7 @@ class Oscilloscope:
         while len(a)<lenx:
             a += self.ss.recv(2**17)
         if mode>0:
-            print("total recieved data:{}".format(len(a)))
+            print("total recieved data: {}".format(len(a)))
 
         ### save data
         if saveName:
@@ -234,25 +234,29 @@ class Oscilloscope:
         if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
         if not os.path.exists(dirx): os.makedirs(dirx)
         if dirx[-1]!='/': dirx += '/'
+        print(f"Data directory: {dirx}, tag:{tag}")
         self.dirx, self.tag = dirx, tag ### save these values to the class
 
         ### find the start index
         ifdx = getMaxIndex(glob(dirx+'*.isf'),'.*_(\d+).isf')
         if ifdx is None: ifdx = 0
+        else: ifdx += 1
 
         ### start taking data
+        n = 0
         while True:
             print('='*20,ifdx,'='*20)
             t0 = datetime.now()
-            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}_{ifdx}.isf")
+            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}{ifdx}.isf")
             t1 = datetime.now()
             print(t0, t1-t0)
 
             ifdx += 1
-            if ifdx == N: break
+            n += 1
+            if n == N: break
 
             ### allow hidden command break
-            if self.checkCmd() == 'q': break
+            if self.checkCmd() == 'q': sys.exit()
 
         ### done
         self.disconnect()
@@ -459,9 +463,20 @@ def check_multiple():
     for f in [1510]:
         check_countloss(freq=f, dT=360, N=3)
 
+def check_pulse():
+    os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
+    for dv in range(5,90,10):
+        print(dv)
+        rg1 = Rigol()
+        rg1.connect()
+        rg1.setPulseV(dv*0.001)
+
+        os1.run_project(N=30, dirx='Jan15d', tag=f'TPCHVoff_gasOff_Pulse_{dv}mV_')
+
+
 def main():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
-    os1.run_project(N=10, dirx='Jan15a', tag='test3_')
+    os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -478,9 +493,11 @@ def test():
 #         except (ConnectionRefusedError,OSError,BrokenPipeError) as e:
 # #             print(i)
 #             continue
-    os1.test4()
+#     os1.test4()
 #     os1.test3()
 #     os1.test0()
+    os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
+    os1.run_project(N=-1, dirx='Jan15a', tag='TPCHV2kV_PHV0V_air4_')
     return
 
     for i in range(10):
@@ -488,7 +505,8 @@ def test():
         os1.disconnect()
 
 if __name__ == '__main__':
-    main()
+#     main()
+    check_pulse()
 #     test()
 #     check_multiple()
 #     check_countloss()

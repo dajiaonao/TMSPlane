@@ -66,7 +66,8 @@ class Rigol:
 #         print a
 
         string = ':DATA:DAC VOLATILE,'
-        string += ','.join(['0' for i in range(100)]+['{0:d}'.format(int(x*16384/120)) for x in range(120)]+['16384']*20)
+#         string += ','.join(['0' for i in range(100)]+['{0:d}'.format(int(x*16384/120)) for x in range(120)]+['16384']*20)
+        string += ','.join(['0' for i in range(100)]+['{0:d}'.format(int(x*16384/140)) for x in range(140)]+['16384']*40)
         print(string)
         self._instr.write(string)
 
@@ -104,6 +105,7 @@ class Rigol:
     def setPulseV(self, dV=0.1, lV=0.2):
         if len(sys.argv)>1: dV = float(sys.argv[1])
         self._instr.write(":SOURce2:VOLTage:HIGH {0:g}".format(dV+lV))
+        self._instr.write(":SOURce2:VOLTage:LOW {0:g}".format(lV))
 
     def tune(self):
 #         self._instr.write(":COUPling:PHASe:DEViation 340")
