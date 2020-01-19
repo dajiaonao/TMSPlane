@@ -33,16 +33,23 @@ class findrate(object):
         self.isDebug = False
         self.showPlot = False
 
-    def getinput_from_root(self, fname=None, entry=None):
+    def getinput_from_root(self, fname=None, entry=0):
         Nsample = 20000000
         data1 = array('B',[0]*Nsample)
- 
-        f1 = ROOT.TFile("TPCHV2kV_PHV0V_air2.root")
+        T0 = ROOT.TDatime()
+
+        if fname is None: fname = self.filename
+        f1 = ROOT.TFile(fname)
         tree1 = f1.Get('tr1')
         tree1.SetBranchAddress("data",data1)
+        tree1.SetBranchAddress("T",ROOT.AddressOf(T0))
 
-        tree1.GetEntry(0)
+        tree1.GetEntry(entry)
         print(data1[:10], data1[-10:])
+        print(T0)
+        self.inputarray = np.asarray(data1)
+        plt.plot(self.inputarray)
+        plt.show()
 
     def getinput(self):
         with open(self.filename,'rb') as f1:
@@ -215,7 +222,7 @@ def test0():
     fr1 = findrate('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_0.isf')
     fr1.isDebug = True
     fr1.getinput()
-    fr1.getinput_from_root()
+    fr1.getinput_from_root('/data/Samples/TMSPlane/merged/Jan15a/TPCHV2kV_PHV0V_air2.root')
 
 def main():
     if len(argv)>3: multi_run()
