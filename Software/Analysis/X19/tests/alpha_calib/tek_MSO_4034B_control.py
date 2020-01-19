@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-import os
+import os,sys
 import re
 from datetime import datetime
 import socket
@@ -240,20 +240,23 @@ class Oscilloscope:
         ### find the start index
         ifdx = getMaxIndex(glob(dirx+'*.isf'),'.*_(\d+).isf')
         if ifdx is None: ifdx = 0
+        else: ifdx += 1
 
         ### start taking data
+        n = 0
         while True:
             print('='*20,ifdx,'='*20)
             t0 = datetime.now()
-            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}_{ifdx}.isf")
+            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}{ifdx}.isf")
             t1 = datetime.now()
             print(t0, t1-t0)
 
             ifdx += 1
-            if ifdx == N: break
+            n += 1
+            if n == N: break
 
             ### allow hidden command break
-            if self.checkCmd() == 'q': break
+            if self.checkCmd() == 'q': sys.exit()
 
         ### done
         self.disconnect()
@@ -460,9 +463,20 @@ def check_multiple():
     for f in [1510]:
         check_countloss(freq=f, dT=360, N=3)
 
+def check_pulse():
+    os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
+    for dv in range(5,90,10):
+        print(dv)
+        rg1 = Rigol()
+        rg1.connect()
+        rg1.setPulseV(dv*0.001)
+
+        os1.run_project(N=30, dirx='Jan15d', tag=f'TPCHVoff_gasOff_Pulse_{dv}mV_')
+
+
 def main():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
-    os1.run_project(N=10, dirx='Jan15a', tag='test3_')
+    os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -492,7 +506,8 @@ def test():
 
 if __name__ == '__main__':
 #     main()
-    test()
+    check_pulse()
+#     test()
 #     check_multiple()
 #     check_countloss()
 #     getMaxIndex(glob("/data/Samples/TMSPlane/fpgaLin/*.root"),".*/Feb09b_data_(\d+).root")
