@@ -1,29 +1,35 @@
 #!/usr/bin/env python3
 import os
-from ROOT import TFile, TTree, TDatime
+from ROOT import TFile, TTree, TDatime, TObjString
 from array import array
+from multiprocessing import Process
+from glob import glob
+import re
 
 def to_root(filenames, outroot='temp.root'):
     Nsample = 20000000
     data1 = array('B',[0]*Nsample)
-    xIncr = array('f',[0])
-    xZero = array('f',[0])
-    yMult = array('f',[0])
-    yOff = array('f',[0])
-    yZero = array('f',[0])
+#     xIncr = array('f',[0])
+#     xZero = array('f',[0])
+#     yMult = array('f',[0])
+#     yOff = array('f',[0])
+#     yZero = array('f',[0])
     idx = array('i',[0])
     T = TDatime()
 
     f2 = TFile(outroot,"recreate")
     t1 = TTree("tr1",'a simple tree')
     t1.Branch('data', data1, 'data[20000000]/b')
-    t1.Branch("xInc", xIncr,'xInc/F')
-    t1.Branch("xZero", xZero,'xZero/F')
-    t1.Branch("yMult", yMult,'yMult/F')
-    t1.Branch("yOff", yOff,'yOff/F')
-    t1.Branch("yZero", yZero,'yZero/F')
+#     t1.Branch("xInc", xIncr,'xInc/F')
+#     t1.Branch("xZero", xZero,'xZero/F')
+#     t1.Branch("yMult", yMult,'yMult/F')
+#     t1.Branch("yOff", yOff,'yOff/F')
+#     t1.Branch("yZero", yZero,'yZero/F')
     t1.Branch("idx", idx,'idx/I')
     t1.Branch("T", T)
+
+
+    meta = None
 
     for filename in filenames:
         if not os.path.exists(filename): continue
@@ -37,12 +43,19 @@ def to_root(filenames, outroot='temp.root'):
 
         with open(filename,'rb') as f1:
             b0 = f1.read(1024)
+            a1i = b0.find(b":WFMOUTPRE")
             b1i = b0.find(b':CURVE')
-            b = b0[:b1i]
+            a = b0[a1i:b1i] # :WFMOUTPRE info
+            b = b0[:a1i] # DATA, TIME
             c = b.split(b';')
 
             b2 = b0[b1i:]
             c += [b2]
+
+            if meta != a:
+                metaT = TObjString(os.path.basename(filename)+a.decode())
+                metaT.Write(f"meta_{t1.GetEntries()}")
+                meta = a
 
             pars = {}
             for v in c:
@@ -54,11 +67,11 @@ def to_root(filenames, outroot='temp.root'):
             wav += f1.read()[:-1]
 
             for i in range(Nsample): data1[i] = wav[i]
-            xIncr[0] = float(pars[b'XINCR'])
-            xZero[0] = float(pars[b'XZERO'])
-            yMult[0] = float(pars[b'YMULT'])
-            yOff[0] = float(pars[b'YOFF'])
-            yZero[0] = float(pars[b'YZERO'])
+#             xIncr[0] = float(pars[b'XINCR'])
+#             xZero[0] = float(pars[b'XZERO'])
+#             yMult[0] = float(pars[b'YMULT'])
+#             yOff[0] = float(pars[b'YOFF'])
+#             yZero[0] = float(pars[b'YZERO'])
 
             T.Set("{} {}".format(pars[b":DATE"].decode().strip('"'), pars[b":TIME"].decode().strip('"')))
 #             print(T)
@@ -69,11 +82,12 @@ def to_root(filenames, outroot='temp.root'):
     f2.Close()
 
 def test():
-    to_root([f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/Jan15a/TPCHV2kV_PHV0V_air4_10.isf"])
+#     to_root([f"/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/Jan15a/TPCHV2kV_PHV0V_air4_10.isf"])
 # to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{d}.isf" for d in range(1000)], "TPCHV2kV_PHV0V_air.root")
-# to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_640.isf"])
+#     to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_640.isf"])
+    to_root([f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{640+d}.isf" for d in range(10)]+[f"/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air_{d}.isf" for d in range(10)])
 
-def process_files(inDir, outDir, tag):
+def process_files(inDir, outDir, tag, doAll=False, oTag='s'):
     ### check output dir
     if not os.path.exists(outDir): os.makedirs(outDir)
 
@@ -81,15 +95,18 @@ def process_files(inDir, outDir, tag):
     si = -1
     while True:
         si += 1
-        fout = f"{tag}s{si}.root"
+        fout = f"{outDir}{tag}{oTag}{si}.root"
         if os.path.exists(fout): continue
         
         fin_last = inDir+f"{tag}{si*1000+999}.isf"
-        if not os.path.exists(fin_last): break
+        if not os.path.exists(inDir+f"{tag}{si*1000}.isf"):
+            if si==0:print(inDir+f"{tag}{si*1000}.isf not found...")
+            break
 
-        fs = [inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)]
-        print(f"will merge {fs[0]}...{fs[-1]} to {fout}")
-        to_root([inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)], fout)
+        if os.path.exists(fin_last) or doAll:
+            fs = [inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000) if os.path.exists(inDir+f"{tag}{d}.isf")]
+            print(f"will merge {fs[0]}...{fs[-1]} to {fout}")
+            to_root(fs, fout)
 
 def process_air4():
     print("Hello, Hello")
@@ -114,7 +131,61 @@ def process_air4():
         print(f"will merge {fs[0]}...{fs[-1]} to {fout}")
         to_root([inDir+f"{tag}{d}.isf" for d in range(si*1000, (si+1)*1000)], fout)
 
+def multiprocess(inDir, outDir, tag, doAll=False, oTag='s'):
+    p=Process(target=process_files, args=(inDir, outDir, tag, doAll, oTag))
+    p.start()
+
+    return p
+def processJan19():
+#     process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air4_', doAll=True, oTag='t')
+#     process_files('/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHVoff_PHVvary_gasoff0_', doAll=True, oTag='t')
+    process_files('/run/media/dzhang/Backup\ Plus/TMS_data/Jan15b/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHVoff_PHVvary_gasoff0_', doAll=True, oTag='t')
+    process_files('/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15d/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHVoff_gasOff_Pulse_5mV', doAll=True, oTag='t')
+#     a = []
+#     a.append(multiprocess('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air4_', doAll=True, oTag='t'))
+#     a.append(multiprocess('/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHVoff_PHVvary_gasoff0_', doAll=True, oTag='t'))
+#     a.append(multiprocess('/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15d/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHVoff_gasOff_Pulse_', doAll=True, oTag='t'))
+# 
+#     for p in a: p.join()
+
+def sortDir(pattern,outDir, tag='s'):
+    dic1 = {}
+    for f in glob(pattern):
+        f0 = os.path.basename(f)
+#         print(f0)
+        m = re.match("(.*)_(\d+).isf", f0)
+        if m is None:
+            print(f"problem with {f0}")
+            continue
+        try:
+            dic1[m.group(1)].append((f, int(m.group(2))))
+        except KeyError:
+            dic1[m.group(1)] = [(f, int(m.group(2)))]
+    for k in dic1:
+#         print(k, len(dic1[k]), sorted(dic1[k], key=lambda x: x[1]))
+        print('merging', k, len(dic1[k]))
+        fs = [x[0] for x in sorted(dic1[k], key=lambda x: x[1])]
+        
+        nStart = 0
+        nFs = len(fs)
+        while nStart<nFs:
+            nEnd = nStart + 1000
+            if nEnd>nFs:nEnd = nFs
+            fs1 = fs[nStart:nEnd]
+            nStartx = dic1[k][nStart][1]
+            nEndx = dic1[k][nEnd-1][1]
+            fout = outDir+f'{k}_{tag}{nStartx}_{nEndx}.root'
+            print(f"outfile: {fout}")
+            to_root(fs1, fout)
+            nStart = nEnd
+      
+
 if __name__ == '__main__':
 #     process_air4()
-    process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air3_')
+#     process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air3_', doAll=True, oTag='t') # t is the letter after s
+#     process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air_', doAll=True, oTag='t') # t is the letter after s
+#     process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air2_', doAll=True, oTag='t') # t is the letter after s
 #     test()
+#     processJan19()
+#     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15d/*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
+    sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/TPCHVoff_PHVvary_*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')

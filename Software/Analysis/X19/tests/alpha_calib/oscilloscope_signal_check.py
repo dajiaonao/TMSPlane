@@ -17,7 +17,7 @@ signIt = lambda t: t
 myOutPutDir = './'
 
 class findrate(object):
-    header = ' '.join(["filename", "date", "time", "npeaks", "duration", "rates", "heightmean", "prominencemean", "widthmean", "bkg"])
+    header = ' '.join(["filename", "date", "time", "npeaks", "duration", "rates", "heightmean", "prominencemean", "widthmean", "bkg", "prominencemean"])
     def __init__(self, filename="tek0001CH2.isf"):
         self.filename = filename
         self.timelap = 10. #second
@@ -29,20 +29,43 @@ class findrate(object):
         self.heightmean = 0
         self.widthmean = 0
         self.prominencemean = 0
+        self.prominence2mean = 0
         self.bkg = 0
         self.isDebug = False
         self.showPlot = False
 
-    def getinput_from_root(self, fname=None, entry=None):
+    def getinput_from_root(self, fname=None, entry=0):
         Nsample = 20000000
         data1 = array('B',[0]*Nsample)
- 
-        f1 = ROOT.TFile("TPCHV2kV_PHV0V_air2.root")
+        T0 = ROOT.TDatime()
+
+        if fname is None: fname = self.filename
+        f1 = ROOT.TFile(fname)
         tree1 = f1.Get('tr1')
         tree1.SetBranchAddress("data",data1)
+        tree1.SetBranchAddress("T",ROOT.AddressOf(T0))
 
-        tree1.GetEntry(0)
+        tree1.GetEntry(entry)
         print(data1[:10], data1[-10:])
+        print(T0)
+        self.inputarray = np.asarray(data1)
+        plt.plot(self.inputarray)
+        plt.show()
+
+
+    def corrected_proms(self, peaks):
+        npeaks = len(peaks)
+        prom2 = np.array([0]*npeaks)
+
+        for i in range(npeaks):
+            istart = 5 if i==0 else peaks[i-1]
+            for y in range(peaks[i], istart, -1):
+                if self.inputarray[y] > self.inputarray[peaks[i]]-4: continue
+                if self.inputarray[y-1]<=self.inputarray[y]: continue;
+                prom2[i] = self.inputarray[peaks[i]]-self.inputarray[y-4]
+#                 print(f"{i}:{peaks[i]} -> {prom2[i]} -- {prom1[i]}")
+                break
+        return prom2
 
     def getinput(self):
         with open(self.filename,'rb') as f1:
@@ -74,11 +97,12 @@ class findrate(object):
             self.inputarray = np.asarray(wav1)
 
     def processinput(self, N):
-        W = 1200
+        W = 500
         basename = os.path.basename(self.filename)
-        arwav2 = self.inputarray[:N] if N>0 else self.inputarray
-        self.inputarray = None
-        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=50) 
+        if N>0: self.inputarray = self.inputarray[:N]
+        arwav2 = self.inputarray
+#         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=50) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=30) 
 
         if self.isDebug: print(len(peaks),peaks)
         #wav3 = [wav2[ix] for ix in peaks]
@@ -94,6 +118,7 @@ class findrate(object):
             else:
                 lpromscallow.append(arwav2[peaks[i]] - arwav2[promxmaxs[i]])
         promscallow = np.asarray(lpromscallow)
+
         if self.isDebug:
             print(proms[:10])
             print(promscallow[:10])
@@ -114,7 +139,6 @@ class findrate(object):
             num_bins = 50
             # the histogram of the data
             n, bins, patches = ax0.hist(np.diff(peaks), num_bins)
-            
 
             fig1, ax1 = plt.subplots(num="peakheight_"+basename)
             #n, bins, patches = ax.hist([arwav1[ix] for ix in peaks], num_bins)
@@ -130,11 +154,13 @@ class findrate(object):
         pks = arwav2[peaks]
         df_pks = np.diff(peaks)
         widths = properties['widths']
+        proms2 = self.corrected_proms(peaks)
 
         ### calculate means
         self.heightmean = np.mean(pks)
         self.diffpeakmean = np.mean(df_pks)
         self.prominencemean = np.mean(proms)
+        self.prominence2mean = np.mean(proms2)
         self.widthmean = np.mean(widths)
 
 #         mdx = np.array([])
@@ -145,17 +171,18 @@ class findrate(object):
 #             mdx = np.append(mdx,arwav2[a:b])
 #         self.bkg = np.std(mdx)
 
-
         midds = [int(0.5*(peaks[i]+peaks[i+1])) for i in range(self.npeaks-1) if peaks[i+1]-peaks[i]>1000]
         self.bkg = np.std(arwav2[midds])
 
         ### save to root
         df_pks = np.append(np.array([-1]),df_pks)
-        bigx = np.array([(df_pks[i],pks[i],proms[i],widths[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32)])
-        rootfile = array2root( bigx, myOutPutDir+"/"+basename[:-4] + '.root',  mode="recreate")
+        bigx = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32)])
+        rootfile = array2root(bigx, myOutPutDir+"/"+basename[:-4] + '.root',  mode="recreate")
+
+        self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
 
     def get_summary(self):
-        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f}"
+        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f}"
 
 def processor(inputName):
     print(f"Processing {inputName}")
@@ -215,14 +242,14 @@ def test0():
     fr1 = findrate('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_0.isf')
     fr1.isDebug = True
     fr1.getinput()
-    fr1.getinput_from_root()
+    fr1.getinput_from_root('/data/Samples/TMSPlane/merged/Jan15a/TPCHV2kV_PHV0V_air2.root')
 
 def main():
     if len(argv)>3: multi_run()
     else: test()
 
 if __name__ == '__main__':
-    test0()
-#     main()
+#     test0()
+    main()
 #     test()
     #multi_run()
