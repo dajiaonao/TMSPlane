@@ -2,7 +2,7 @@
 import os
 from ROOT import TFile, TTree, TDatime, TObjString
 from array import array
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 from glob import glob
 import re
 
@@ -148,7 +148,11 @@ def processJan19():
 # 
 #     for p in a: p.join()
 
-def sortDir(pattern,outDir, tag='s'):
+
+def to_root_single_arg(argx):
+    to_root(argx[1], argx[0])
+
+def sortDir(pattern,outDir, tag='s', prallel=True):
     dic1 = {}
     for f in glob(pattern):
         f0 = os.path.basename(f)
@@ -161,10 +165,13 @@ def sortDir(pattern,outDir, tag='s'):
             dic1[m.group(1)].append((f, int(m.group(2))))
         except KeyError:
             dic1[m.group(1)] = [(f, int(m.group(2)))]
+
+    jobList = []
     for k in dic1:
 #         print(k, len(dic1[k]), sorted(dic1[k], key=lambda x: x[1]))
         print('merging', k, len(dic1[k]))
-        fs = [x[0] for x in sorted(dic1[k], key=lambda x: x[1])]
+        fs2 = sorted(dic1[k], key=lambda x: x[1])
+        fs = [x[0] for x in fs2]
         
         nStart = 0
         nFs = len(fs)
@@ -172,14 +179,22 @@ def sortDir(pattern,outDir, tag='s'):
             nEnd = nStart + 1000
             if nEnd>nFs:nEnd = nFs
             fs1 = fs[nStart:nEnd]
-            nStartx = dic1[k][nStart][1]
-            nEndx = dic1[k][nEnd-1][1]
+            nStartx = fs2[nStart][1]
+            nEndx = fs2[nEnd-1][1]
             fout = outDir+f'{k}_{tag}{nStartx}_{nEndx}.root'
-            print(f"outfile: {fout}")
-            to_root(fs1, fout)
-            nStart = nEnd
-      
 
+            print(f"outfile: {fout}")
+#             print(fs1)
+            if prallel: jobList.append((fout, fs1))
+            else: to_root(fs1, fout)
+
+            nStart = nEnd
+
+    ### submit jobs 
+    if jobList:
+        p = Pool(6)
+        ret = p.map(to_root_single_arg, jobList)
+ 
 if __name__ == '__main__':
 #     process_air4()
 #     process_files('/data/Samples/TMSPlane/Jan15a/','/data/Samples/TMSPlane/merged/Jan15a/','TPCHV2kV_PHV0V_air3_', doAll=True, oTag='t') # t is the letter after s
@@ -188,4 +203,5 @@ if __name__ == '__main__':
 #     test()
 #     processJan19()
 #     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15d/*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
-    sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/TPCHVoff_PHVvary_*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
+#     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/TPCHVoff_PHVvary_*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
+    sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15a/TPC*_air*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 'n')
