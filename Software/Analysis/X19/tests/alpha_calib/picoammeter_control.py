@@ -18,7 +18,6 @@ def listPorts():
         for i in range(0,len(port_list)):
             print(port_list[i])
 
-
 def vGen(vList):
     n = len(vList)
     i = 0
@@ -515,6 +514,7 @@ def measureI_interactively():
 
     pm1 = Picoammeter()
     pm1.connect()
+    print(pm1.query('*IDN?'))
     pm1.send('*RST')
     pm1.send('FORM:ELEM READ,TIME,VSO')
     pm1.send("FUNC 'CURR'")
@@ -563,6 +563,7 @@ def measureI_interactively():
             t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
             pm1.send('INIT', False)
             q2 = pm1.query('READ?')
+            print("waiting for data")
 
             data = list(zip(*[iter(q2.split(','))]*3))
             outx = ''
