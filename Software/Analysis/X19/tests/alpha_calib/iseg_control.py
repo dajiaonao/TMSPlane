@@ -31,8 +31,8 @@ class isegHV:
     def __init__(self):
         self.ser = None
     def connect(self):
-        portx="/dev/ttyUSB1"
-#         portx="/dev/ttyUSB0"
+#         portx="/dev/ttyUSB1"
+        portx="/dev/ttyUSB0"
         bps=9600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -44,7 +44,8 @@ class isegHV:
 
     def query(self, cmd, L=1024):
         self.send(cmd, False)
-        return self.recv_all(L).decode();
+        return self.recv_all(L);
+#         return self.recv_all(L).decode();
 
     def recv_all(self, L=1024):
         ret1 = self.ser.read(L)
@@ -57,23 +58,19 @@ class isegHV:
 
     def test1(self):
         self.connect()
+        print(self.query(':READ:IDNT?'))
+#         print(self.query(':READ:VOLTage STATus?'))
+        print(self.query(':READ:STATus?'))
+#         print(self.send(':VOLTage 1.0kV'))
         print(self.query(':READ:VOLTage?'))
+#         print(self.send(':VOLTage ON'))
+        print(self.send(':VOLTage OFF'))
+        print(self.query(':READ:STATus?'))
 
     def test(self):
         self.connect()
         print(self.query('*IDN?'))
 
-#         self.send('*RST')
-#         self.test1()
-#         self.send("FUNC 'CURR'")
-#         self.speed_check()
-#         self.read_many()
-#         self.run_measure()
-#         self.take_data()
-#         self.run_measure1()
-#         self.test_get_mean()
-#         self.multiple_reading()
-#         self.set_relative()
         self.ser.close()
 
 def test1():
