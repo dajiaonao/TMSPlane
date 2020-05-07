@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 ### Draw various plots
-from ROOT import TH1F, TChain, gStyle, gPad
+from ROOT import TH1F, TChain, gStyle, gPad, TLegend
 from rootUtil3 import waitRootCmdX, useNxStyle
 
-def getHist(fname,var,h0,tag,cut='',style=None):
+def getHist(fname,var,h0,tag,cut='',style=None,opt=''):
     t1 = TChain("tree")
-    t1.Add(fname)
+    if isinstance(fname, list):
+        for fn in fname: t1.Add(fn)
+    else: t1.Add(fname)
 
     h1 = h0.Clone(tag)
     h1.SetTitle(tag)
     print(h1.GetName())
-    t1.Draw(var+">>"+h1.GetName(),cut)
+    t1.Draw(var+">>"+h1.GetName(),cut,opt)
 
     return h1
 
@@ -43,6 +45,38 @@ def compare_dt2():
     h2.Draw("E PLC PMC sames")
     waitRootCmdX()
 
+
+def compare_HV():
+    dir1 = 'Jan19_prom2/'
+    N = 150
+    h0 = TH1F("h0","Proms;Proms [count];Entries",N,0,N)
+    var = "proms2"
+
+    ds_list = {}
+    patt=dir1+'TPCHV2kV_PHV0V_air3_{0:d}.root'
+    ds_list[1000] = [patt.format(idx) for idx in range(130,136)]
+    ds_list[1001] = [patt.format(idx) for idx in range(194,209)]
+    ds_list[800] = [patt.format(idx) for idx in range(138,146)]
+    ds_list[600] = [patt.format(idx) for idx in range(148,156)]
+    ds_list[400] = [patt.format(idx) for idx in range(158,169)]
+    ds_list[200] = [patt.format(idx) for idx in range(171,181)]
+    ds_list[100] = [patt.format(idx) for idx in range(183,192)]
+    ds_list[500] = [patt.format(idx) for idx in range(211,220)]
+    ds_list[300] = [patt.format(idx) for idx in range(222,229)]
+    print(ds_list[1000])
+
+    hlist = []
+    lg = TLegend(0.2,0.5,0.4,0.88)
+    for v in sorted(ds_list,reverse=True):
+        hx = getHist(ds_list[v],var,h0,f'HV{v}V',opt='norm')
+        hlist.append(hx)
+        lg.AddEntry(hx,hx.GetName(),'l')
+    
+    hlist[0].Draw('PLC hist')
+    for h in hlist[1:]: h.Draw('PLC hist same')
+    lg.Draw()
+
+    waitRootCmdX()
 
 def compare_dt():
     xEnd = 20000
@@ -129,3 +163,6 @@ if __name__ == '__main__':
 #     compare_Proms2()
     compare_Proms2b()
 #     compare_dt2()
+#     compare_HV()
+#     compare_Proms2()
+#     compare_dt()

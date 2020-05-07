@@ -2,7 +2,7 @@
 # from __future__ import print_function
 import serial
 import time
-import os
+import os,sys
 from datetime import datetime, timedelta
 import logging
 
@@ -18,7 +18,6 @@ def listPorts():
         for i in range(0,len(port_list)):
             print(port_list[i])
 
-
 def vGen(vList):
     n = len(vList)
     i = 0
@@ -32,6 +31,7 @@ class Picoammeter:
         self.ser = None
     def connect(self):
         portx="/dev/ttyUSB0"
+#         portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -95,7 +95,9 @@ class Picoammeter:
         self.connect()
         print(self.query('*IDN?'))
 
+        self.send('*CLS')
         self.send('*RST')
+        return
 #         self.test1()
         self.send("FUNC 'CURR'")
 #         self.speed_check()
@@ -482,6 +484,143 @@ def test_measure():
         print("Somthing wrong",e)
 
 
+def measureR():
+    '''Standard Ohms measurement in the manual'''
+    pm1 = Picoammeter()
+    pm1.connect()
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,UNIT')
+    pm1.send('SYST:ZCH ON')
+    pm1.send('RANG 2e-9')
+    pm1.send('INIT')
+
+    pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('SOUR:VOLT:RANG 10')
+    pm1.send('SOUR:VOLT 10')
+    pm1.send('SOUR:VOLT:ILIM 2.5e-3')
+    pm1.send('SENS:OHMS ON')
+    pm1.send('SOUR:VOLT:STAT ON')
+    pm1.send('SYST:ZCH OFF')
+
+    r = pm1.query('READ?')
+
+    print(r)
+
+
+def measureI_interactively():
+    '''Make a measurement of current interactively, save the given voltage as well'''
+    ## give the file name
+    fname = sys.argv[1] if len(sys.argv)>1 else input('Input the file name to be saved to:')
+    while os.path.exists(fname): fname = input('Already exist, try anohter one:')
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+    pm1.send("FUNC 'CURR'")
+    pm1.send('SYST:ZCH ON')
+    pm1.send('RANG 2e-9')
+    pm1.send('INIT')
+
+    pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    pm1.send('SOUR:VOLT:RANG 500')
+    pm1.send('SOUR:VOLT 10')
+    pm1.send('SOUR:VOLT:ILIM 2.5e-3')
+    pm1.send('SOUR:VOLT:STAT ON')
+
+    pm1.send('SYST:ZCH OFF')
+#     pm1.send('DISP:ENAB ON')
+    pm1.send('SYSTem:LOCal')
+    pm1.ser.close()
+
+    ## Start taking data
+    with open(fname,'w') as fout1:
+        while True:
+            ### get the input voltage first
+            try:
+                vs = input('Voltage value:')
+                vsx = vs.rstrip()
+                pm1.connect()
+                print(vsx, vsx[-1])
+                if vsx[-1]=='L':
+                    vs = vsx[:-1]
+                    print("Setting voltage to {0}".format(vs))
+                    pm1.send('SYSTem:REMote')
+                    pm1.send('SOUR:VOLT {0}'.format(vs))
+                    pm1.send('SYSTem:LOCal')
+                    temp = input('Start:')
+#                 pm1.send('SYSTem:REMote')
+            except KeyboardInterrupt:
+                break
+
+            pm1.send('TRIG:COUN 100', False)
+            
+            t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+            pm1.send('INIT', False)
+            q2 = pm1.query('READ?')
+            print("waiting for data")
+
+            data = list(zip(*[iter(q2.split(','))]*3))
+            outx = ''
+            for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+vs+'\n'
+            fout1.write(outx)
+            fout1.flush()
+#             print(outx)
+
+            pm1.send('SYSTem:LOCal')
+            pm1.ser.close()
+
+
+def measureR1():
+    '''Based on measureR, added: 1) more info in output; 2) multiple reading'''
+    pm1 = Picoammeter()
+    pm1.connect()
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,UNIT,TIME,VSO,TIME')
+    pm1.send('SYST:ZCH ON')
+    pm1.send('RANG 2e-9')
+    pm1.send('INIT')
+
+    pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('SOUR:VOLT:RANG 10')
+    pm1.send('SOUR:VOLT 10')
+    pm1.send('SOUR:VOLT:ILIM 2.5e-6')
+    pm1.send('SENS:OHMS ON')
+    pm1.send('SOUR:VOLT:STAT ON')
+#     pm1.send('SYST:ZCH OFF')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+    pm1.send('TRIG:COUN 100', False)
+    pm1.send('TRAC:POIN 100')
+    pm1.send('TRAC:CLE')
+    pm1.send('TRAC:FEED SENS')
+    pm1.send('TRAC:FEED:CONT NEXT')
+    pm1.send('SYST:ZCH OFF')
+    
+    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+    pm1.send('INIT', False)
+
+#     r = pm1.query('READ?')
+#     print(r)
+#     q2 = pm1.query('READ?')
+    q2 = pm1.query('TRAC:DATA?')
+
+    data = list(zip(*[iter(q2.split(','))]*3))
+    outx = ''
+    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
+    print(outx)
+
 def test1():
     pm1 = Picoammeter()
     pm1.test()
@@ -519,6 +658,10 @@ def HV_out_scan(vlist, dT):
             break
 
 if __name__ == '__main__':
-#     test1()
-    HV_out_scan([200,-200,0],dT=10*60)
+    listPorts()
+    test1()
+#     HV_out_scan([200,-200,0],dT=10*60)
 #     test2()
+#     measureR()
+#     measureR1()
+#     measureI_interactively()
