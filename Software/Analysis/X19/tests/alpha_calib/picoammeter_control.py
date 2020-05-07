@@ -31,6 +31,7 @@ class Picoammeter:
         self.ser = None
     def connect(self):
         portx="/dev/ttyUSB0"
+#         portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -94,7 +95,9 @@ class Picoammeter:
         self.connect()
         print(self.query('*IDN?'))
 
+        self.send('*CLS')
         self.send('*RST')
+        return
 #         self.test1()
         self.send("FUNC 'CURR'")
 #         self.speed_check()
@@ -655,10 +658,10 @@ def HV_out_scan(vlist, dT):
             break
 
 if __name__ == '__main__':
-#     listPorts()
-#     test1()
+    listPorts()
+    test1()
 #     HV_out_scan([200,-200,0],dT=10*60)
 #     test2()
 #     measureR()
 #     measureR1()
-    measureI_interactively()
+#     measureI_interactively()
