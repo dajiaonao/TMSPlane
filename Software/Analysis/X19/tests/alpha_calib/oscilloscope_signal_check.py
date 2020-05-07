@@ -34,7 +34,7 @@ class findrate(object):
         self.isDebug = False
         self.showPlot = False
 
-    def getinput_from_root(self, fname=None, entry=0):
+    def getinput_from_root_v0(self, fname=None, entry=0):
         Nsample = 20000000
         data1 = array('B',[0]*Nsample)
         T0 = ROOT.TDatime()
@@ -52,6 +52,42 @@ class findrate(object):
         plt.plot(self.inputarray)
         plt.show()
 
+
+    def getinput_from_root(self, fname=None, entry=0, idx0=None):
+        Nsample = 20000000
+        data1 = array('B',[0]*Nsample)
+        idx = array('i',[0])
+        T0 = ROOT.TDatime()
+
+        if fname is None: fname = self.filename
+        f1 = ROOT.TFile(fname)
+        tree1 = f1.Get('tr1')
+        tree1.SetBranchAddress("data",data1)
+        tree1.SetBranchAddress("idx",idx)
+        tree1.SetBranchAddress("T",ROOT.AddressOf(T0))
+
+        if idx0 is not None:
+            ### find the entry for idx0
+            nSel = tree1.Draw("Entry$",f"idx=={idx0}","goff")
+            if nSel == 0:
+                print(f"No entry found with idx={idx0}")
+                return None
+            elif nSel > 1:
+                print(f"{nSel} entries found with idx={idx0}.")
+            v1 = tree1.GetV1()
+            entry = int(v1[0])
+
+        if self.isDebug: print(f"getting entry {entry}")
+        tree1.GetEntry(entry)
+        if self.isDebug:
+            print(data1[:10], data1[-10:])
+            print(idx[0])
+            print(T0)
+        self.inputarray = np.asarray(data1)
+        plt.plot(self.inputarray)
+        plt.show()
+
+        return entry
 
     def corrected_proms(self, peaks):
         npeaks = len(peaks)
@@ -102,12 +138,15 @@ class findrate(object):
         if N>0: self.inputarray = self.inputarray[:N]
         arwav2 = self.inputarray
 #         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=50) 
-        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=30) 
+#         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=30) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+#         peaks, properties = find_peaks(arwav2, height=None, wlen=W, prominence=2, width=(150,500), distance=30) 
 
         if self.isDebug: print(len(peaks),peaks)
         #wav3 = [wav2[ix] for ix in peaks]
 
-        promsall = peak_prominences(arwav2, peaks, wlen=W)
+#         promsall = peak_prominences(arwav2, peaks, wlen=W)
+        promsall = peak_prominences(arwav2, peaks, wlen=200)
         proms = promsall[0]
         promxmins = promsall[1]
         promxmaxs = promsall[2]
@@ -123,6 +162,20 @@ class findrate(object):
             print(proms[:10])
             print(promscallow[:10])
 
+        ### get the values
+        self.npeaks = len(peaks)
+        pks = arwav2[peaks]
+        df_pks = np.diff(peaks)
+        widths = properties['widths']
+        proms2 = self.corrected_proms(peaks)
+        proms3 = pks - arwav2[promxmins]
+        rtime = peaks - promxmins
+
+        for i in range(self.npeaks):
+            if abs(proms3[i]-proms2[i])>5:
+                print(peaks[i], proms3[i], proms2[i])
+
+        ### plots if requested
         if self.showPlot:
             contour_heights = arwav2[peaks] - proms
             plt.plot(arwav2)
@@ -132,6 +185,12 @@ class findrate(object):
             plt.vlines(promxmaxs, ymin=contour_heights, ymax=arwav2[peaks], color = "C2", linestyles = "dotted")
             plt.hlines(y=arwav2[peaks], xmin=promxmins, xmax=promxmaxs, color = "C2", linestyles = "dashdot")
             plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color = "C1")
+
+            plt.plot(peaks, proms2, "+")
+            plt.plot(peaks, proms3, "o")
+
+            proms_diff = proms3 - proms2
+            plt.plot(peaks, proms_diff)
 
             #x2 = [peaks[i+1]-peaks[i] for i in range(len(peaks)-1)]
             fig0, ax0 = plt.subplots(num="diffpeak_"+basename)
@@ -147,14 +206,7 @@ class findrate(object):
             fig2, ax2 = plt.subplots(num="peakprom_"+basename)
             #plt.plot(proms)
             ax2.hist(proms, num_bins)
-#             plt.show()
-
-        ### get the values
-        self.npeaks = len(peaks)
-        pks = arwav2[peaks]
-        df_pks = np.diff(peaks)
-        widths = properties['widths']
-        proms2 = self.corrected_proms(peaks)
+            plt.show()
 
         ### calculate means
         self.heightmean = np.mean(pks)
@@ -176,7 +228,7 @@ class findrate(object):
 
         ### save to root
         df_pks = np.append(np.array([-1]),df_pks)
-        bigx = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32)])
+        bigx = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
         rootfile = array2root(bigx, myOutPutDir+"/"+basename[:-4] + '.root',  mode="recreate")
 
         self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
@@ -239,17 +291,25 @@ def test():
         plt.close("all")
 
 def test0():
+    dir1 = '/data/Samples/TMSPlane/data/merged/Jan15a/'
     fr1 = findrate('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air2_0.isf')
     fr1.isDebug = True
-    fr1.getinput()
-    fr1.getinput_from_root('/data/Samples/TMSPlane/merged/Jan15a/TPCHV2kV_PHV0V_air2.root')
+#     fr1.getinput()
+#     fr1.getinput_from_root('/data/Samples/TMSPlane/merged/Jan15a/TPCHV2kV_PHV0V_air2.root')
+    ret = fr1.getinput_from_root(dir1+'TPCHV2kV_PHV0V_air4_t0.root',idx0=352)
+#     ret = fr1.getinput_from_root(dir1+'TPCHVoff_gasOff_Pulse_25mV_t0_29.root')
+    if ret is None: return None
+
+    fr1.showPlot = True
+    fr1.processinput(-1)
+    print(fr1.get_summary())
 
 def main():
     if len(argv)>3: multi_run()
     else: test()
 
 if __name__ == '__main__':
-#     test0()
-    main()
+    test0()
+#     main()
 #     test()
     #multi_run()

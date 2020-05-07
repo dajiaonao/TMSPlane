@@ -12,9 +12,9 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 #show grid
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
+if (!exists("projname")) projname='project_48/'
 #if (!exists("projname")) projname='project_48/'
-#if (!exists("projname")) projname='project_48/'
-if (!exists("projname")) projname='project_67/'
+#if (!exists("projname")) projname='project_67/'
 #if (!exists("projname")) projname='./'
 #print projname
 set ylabel "I [pA]"
@@ -41,6 +41,6 @@ plot projname."current.dat" using 1:($2<1?$2*1e12:1/0)
 #plot  projname."current.dat" using 1:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines axis x1y1
 plot  projname."current.dat" using 3:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 3:($2<1?$2*1e12:1/0) with lines lc 1 axis x1y1
 #plot  projname."current.dat" using 3:4 with boxes lc rgb "#bbbbbb" axis x1y2, projname."current.dat" using 3:($2<1?$2*1e12:1/0) with lines axis x1y1
-#pause -1
+pause -1
 pause 10
 reread
