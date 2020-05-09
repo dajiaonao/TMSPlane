@@ -508,6 +508,14 @@ def measureR():
 
     print(r)
 
+def isGoodData(data):
+    values = [float(d[0]) for d in data]
+    mean = np.mean(values)
+    std = np.std(values)
+
+    print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]))
+
+    return mean-std < np.mean(values[:3]) < mean+std and mean-std < np.mean(values[-3:]) < mean+std
 
 def measureI_interactively():
     '''Make a measurement of current interactively, save the given voltage as well'''
@@ -561,16 +569,22 @@ def measureI_interactively():
             except KeyboardInterrupt:
                 break
 
-            pm1.send('TRIG:COUN 100', False)
-            
-            t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
-            pm1.send('INIT', False)
-            q2 = pm1.query('READ?')
-            print("waiting for data")
-
-            data = list(zip(*[iter(q2.split(','))]*3))
             outx = ''
-            for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+vs+'\n'
+            while outx=='':
+                pm1.send('TRIG:COUN 100', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                pm1.send('INIT', False)
+                q2 = pm1.query('READ?')
+                print("waiting for data")
+
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                if not isGoodData(data):
+                    time.sleep(10)
+                    continue
+
+                for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+vs+'\n'
             fout1.write(outx)
             fout1.flush()
 #             print(outx)
