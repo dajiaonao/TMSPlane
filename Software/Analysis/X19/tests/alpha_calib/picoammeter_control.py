@@ -5,6 +5,7 @@ import time
 import os,sys
 from datetime import datetime, timedelta
 import logging
+import numpy as np
 
 dSuffix = 'project_'
 
@@ -26,12 +27,21 @@ def vGen(vList):
         i += 1
         if i==n: i-=n
 
+def setIsegV(v):
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.conect()
+    is1.setV(v)
+
+    ### when finish
+#     is1.turnHVOff()
+
 class Picoammeter:
     def __init__(self):
         self.ser = None
     def connect(self):
-        portx="/dev/ttyUSB0"
-#         portx="/dev/ttyUSB1"
+#         portx="/dev/ttyUSB0"
+        portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -39,6 +49,10 @@ class Picoammeter:
         if log_cmd: logging.info(msg.rstrip())
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
+
+    def test0(self):
+        self.connect()
+        print(self.query('*IDN?'))
 
     def test1(self):
         self.send("FUNC 'CURR'")
@@ -517,6 +531,79 @@ def isGoodData(data):
 
     return mean-std < np.mean(values[:3]) < mean+std and mean-std < np.mean(values[-3:]) < mean+std
 
+def measureI_autoScan():
+    '''Make a measurement of current interactively, save the given voltage as well'''
+    ## give the file name
+    fname = sys.argv[1] if len(sys.argv)>1 else input('Input the file name to be saved to:')
+    while os.path.exists(fname): fname = input('Already exist, try anohter one:')
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+    pm1.send("FUNC 'CURR'")
+    pm1.send('SYST:ZCH ON')
+    pm1.send('RANG 2e-9')
+    pm1.send('INIT')
+
+    pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    pm1.send('SOUR:VOLT:RANG 500')
+    pm1.send('SOUR:VOLT 10')
+    pm1.send('SOUR:VOLT:ILIM 2.5e-3')
+#     pm1.send('SOUR:VOLT:STAT ON')
+
+    pm1.send('SYST:ZCH OFF')
+#     pm1.send('DISP:ENAB ON')
+#     pm1.send('SYSTem:LOCal')
+#     pm1.ser.close()
+
+    ## Start taking data
+    with open(fname,'w') as fout1:
+        for vs in [-500,-400,-300,-200,-100,0,100,200,300,400,500]:
+            try:
+                ### set voltage
+                print("Setting voltage to {0}".format(vs))
+                pm1.send('SOUR:VOLT {0}'.format(vs))
+                pm1.send('SOUR:VOLT:STAT ON')
+
+                ### measure current
+                outx = ''
+                while outx == '':
+                    ## perform a measurement
+                    pm1.send('TRIG:COUN 100', False)
+                    
+                    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                    pm1.send('INIT', False)
+                    q2 = pm1.query('READ?')
+                    data = list(zip(*[iter(q2.split(','))]*3))
+
+                    ## check the stablitly. If not good: wait and continue
+                    if not isGoodData(data):
+                        print("bad data, will try again")
+                        time.sleep(10)
+                        continue
+                    
+                    pm1.send('SOUR:VOLT:STAT OFF')
+                    ## pass the values to outx 
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        pm1.send('SOUR:VOLT:STAT OFF')
+        pm1.send('SYSTem:LOCal')
+#         pm1.ser.close()
+
 def measureI_interactively():
     '''Make a measurement of current interactively, save the given voltage as well'''
     ## give the file name
@@ -635,9 +722,10 @@ def measureR1():
     for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
     print(outx)
 
-def test1():
+def test0():
     pm1 = Picoammeter()
-    pm1.test()
+    pm1.test0()
+
 
 def test2():
     p = vGen([50, 100, 20, 120, 70, 10, 80, 30, 90, 40, 110, 60])
@@ -673,9 +761,10 @@ def HV_out_scan(vlist, dT):
 
 if __name__ == '__main__':
     listPorts()
-    test1()
+#     test0()
 #     HV_out_scan([200,-200,0],dT=10*60)
 #     test2()
 #     measureR()
 #     measureR1()
 #     measureI_interactively()
+    measureI_autoScan()

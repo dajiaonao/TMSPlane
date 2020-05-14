@@ -56,6 +56,13 @@ class isegHV:
         self.connect()
         print(self.query('*IDN?'))
 
+    def setV(self, v):
+        self.send(':VOLTage {0}kV'.format(v))
+        self.send(':VOLTage ON')
+
+    def turnHVOff(self):
+        self.send(':VOLTage OFF')
+
     def test1(self):
         self.connect()
         print(self.query(':READ:IDNT?'))
