@@ -64,10 +64,15 @@ def get_graph(fname,rf=1,dv=5):
 
     return gr1
 
-def test():
-    get_dv('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat','Dongwen')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R_iseg.dat','Iseg')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R_picometer.dat','picometer')
+def show_dv():
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','picometer2')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','picometer2')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','picometer2')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico1.dat','picometer1')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico8.dat','picometer8')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat','Dongwen')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R_iseg.dat','Iseg')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R_picometer.dat','picometer')
 
 def get_grs():
     gr0 = get_graph('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat')
@@ -91,17 +96,18 @@ def get_grs():
     gr2.Write('gr2')
     fout1.Close()
 
-def check_graph():
+def check_graph(fname='/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat', info1='Dongwen', fitfun='pol3'):
     lines = None
     rf = 1
     dv = 5
+    rf = -1
+    dv = 0.05
+
 #     info1 = 'Iseg'
-    info1 = 'Dongwen'
-    with open('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat','r') as fin1:
+#     info1 = 'Dongwen'
+    with open(fname,'r') as fin1:
 #     with open('/data/Samples/TMSPlane/HVCheck/R_iseg.dat','r') as fin1:
-#     rf = -1
-#     dv = 0.05
-#     with open('/data/Samples/TMSPlane/HVCheck/R_picometer.dat','r') as fin1:
+    #     with open('/data/Samples/TMSPlane/HVCheck/R_picometer.dat','r') as fin1:
         lines = fin1.readlines()
     if lines is None:
         print("Error")
@@ -134,8 +140,8 @@ def check_graph():
         i += 1
 
 #     gr1.Fit('pol1',"","S")
-    gr1.Fit('pol3',"","S")
-    gr1.Draw()
+    gr1.Fit(fitfun,"","S")
+    gr1.Draw('AP')
     h1 = gr1.GetHistogram()
     h1.GetXaxis().SetTitle('U [kV]')
     h1.GetYaxis().SetTitle('I [#muA]')
@@ -149,11 +155,14 @@ def check_graph():
     gPad.Update()
     waitRootCmdX()
 
-
-
-
 if __name__ == '__main__':
     savehistory('./')
     useNxStyle()
     gStyle.SetFuncColor(2)
-    test()
+#     check_graph('/data/Samples/TMSPlane/HVCheck/R1_pico1.dat','pico1',fitfun='pol1')
+#     check_graph('/data/Samples/TMSPlane/HVCheck/R1_pico8.dat','pico8',fitfun='pol1')
+#     check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0',fitfun='pol1')
+#     check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1',fitfun='pol1')
+    check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','pico2',fitfun='pol1')
+#     show_dv()
+#     test()
