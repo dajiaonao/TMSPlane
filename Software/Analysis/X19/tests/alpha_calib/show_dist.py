@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
 import numpy as np
-from ROOT import TGraphErrors, gStyle, gPad, TLatex, TFile
+from ROOT import TGraphErrors, gStyle, gPad, TLatex, TFile, TCanvas
 from rootUtil3 import waitRootCmdX, useNxStyle, savehistory
 uA = 1000000.
 
@@ -65,9 +65,10 @@ def get_graph(fname,rf=1,dv=5):
     return gr1
 
 def show_dv():
-#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','picometer2')
-#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','picometer2')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','picometer2')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','pico2')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico3.dat','pico3')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico1.dat','picometer1')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico8.dat','picometer8')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat','Dongwen')
@@ -95,6 +96,71 @@ def get_grs():
     gr1.Write('gr1')
     gr2.Write('gr2')
     fout1.Close()
+
+def check_graph2(fname='/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat', info1='Dongwen', fitfun='pol3'):
+    lines = None
+    rf = 1
+    dv = 5
+    print(info1[:4])
+    if info1[:4]=='pico':
+        rf = -1
+        dv = 0.05
+
+    with open(fname,'r') as fin1:
+        lines = fin1.readlines()
+    if lines is None:
+        print("Error")
+        return
+
+    dictx = {}
+    values = []
+    for line in lines:
+        line = line.rstrip().split()
+        v = int(line[4])
+        try:
+            dictx[v].append(float(line[1]))
+        except KeyError:
+            dictx[v] = [float(line[1])]
+
+    gr1 = TGraphErrors()
+    i = 0
+    for k in dictx.keys():
+        print(k, np.mean(dictx[k]), np.std(dictx[k]))
+        gr1.SetPoint(i,rf*k/1000.,-np.mean(dictx[k])*1000000.)
+        gr1.SetPointError(i, dv/1000., np.std(dictx[k])*1000000.)
+        i += 1
+
+    gr1.Fit(fitfun,"","S")
+
+    c1 = TCanvas("c1","c1",1400,900)
+    c1.Divide(2,1)
+    c1.cd(1)
+    gr1.Draw('AP')
+    h1 = gr1.GetHistogram()
+    h1.GetXaxis().SetTitle('U [kV]')
+    h1.GetYaxis().SetTitle('I [#muA]')
+
+    lt = TLatex()
+    lt.DrawLatexNDC(0.2,0.92,info1)
+
+
+    c1.cd(2)
+    gr2 = TGraphErrors()
+    fun1 = gr1.GetFunction(fitfun)
+    for i in range(gr1.GetN()):
+        x = gr1.GetPointX(i)
+        y = gr1.GetPointY(i)
+        gr2.SetPoint(i,x,y-fun1.Eval(x))
+        gr2.SetPointError(i,gr1.GetErrorX(i),gr1.GetErrorY(i))
+    gr2.Draw()
+    h2 = gr2.GetHistogram()
+    h2.GetXaxis().SetTitle('U [kV]')
+    h2.GetYaxis().SetTitle('#DeltaI [#muA]')
+
+    c1.cd()
+    gPad.Update()
+    waitRootCmdX()
+
 
 def check_graph(fname='/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat', info1='Dongwen', fitfun='pol3'):
     lines = None
@@ -163,6 +229,8 @@ if __name__ == '__main__':
 #     check_graph('/data/Samples/TMSPlane/HVCheck/R1_pico8.dat','pico8',fitfun='pol1')
 #     check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0',fitfun='pol1')
 #     check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1',fitfun='pol1')
-    check_graph('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','pico2',fitfun='pol1')
-#     show_dv()
+#     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0',fitfun='pol1')
+#     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1',fitfun='pol1')
+#     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico3.dat','pico3',fitfun='pol1')
+    show_dv()
 #     test()
