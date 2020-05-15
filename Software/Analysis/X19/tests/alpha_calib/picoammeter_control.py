@@ -30,18 +30,32 @@ def vGen(vList):
 def setIsegV(v):
     from iseg_control import isegHV
     is1 = isegHV()
-    is1.conect()
+    is1.connect()
     is1.setV(v)
+    is1.ser.close()
+
+def getIsegV():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    r = is1.getV()
+    is1.ser.close()
+    return r
 
     ### when finish
-#     is1.turnHVOff()
+def turnOffIsegV():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    is1.turnHVOff()
+    is1.ser.close()
 
 class Picoammeter:
     def __init__(self):
         self.ser = None
     def connect(self):
-#         portx="/dev/ttyUSB0"
-        portx="/dev/ttyUSB1"
+        portx="/dev/ttyUSB0"
+#         portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -527,9 +541,96 @@ def isGoodData(data):
     mean = np.mean(values)
     std = np.std(values)
 
-    print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]))
+#     print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]))
+    print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]), (np.mean(values[:3])-mean)/std, (np.mean(values[-3:])-mean)/std)
 
     return mean-std < np.mean(values[:3]) < mean+std and mean-std < np.mean(values[-3:]) < mean+std
+
+def measureI_autoScanIseg():
+    '''Make a measurement of current interactively, save the given voltage as well'''
+    ## give the file name
+    fname = sys.argv[1] if len(sys.argv)>1 else input('Input the file name to be saved to:')
+    while os.path.exists(fname): fname = input('Already exist, try anohter one:')
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+    pm1.send("FUNC 'CURR'")
+#     pm1.send('SYST:ZCH ON')
+#     pm1.send('RANG 2e-9')
+#     pm1.send('INIT')
+
+#     pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    pm1.send('SYST:ZCH OFF')
+#     pm1.send('DISP:ENAB ON')
+#     pm1.send('SYSTem:LOCal')
+#     pm1.ser.close()
+
+    ### also start the Iseg control
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    ## Start taking data
+    with open(fname,'w') as fout1:
+#         for vs in [100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,0,4500,5000,5500,6000,6500,7000,7500,8000]:
+        for vs in [5000,100,6000,300,2500,700,5500,1000,3000,7000,3500,400,4000,0,4500,200,6500,1500,7500,2000,500,8000]:
+#         for vs in [5000,5500,6000,6500,7000,7500,8000]:
+#         for vs in [300,500]:
+            try:
+                ### set voltage
+                print("Setting voltage to {0}".format(vs))
+                is1.send('*CLS')
+                time.sleep(2)
+                is1.send('EVENT:CLEAR')
+                time.sleep(2)
+                is1.setV(vs)
+                time.sleep(10)
+
+                ### measure current
+                outx = ''
+                while outx == '':
+                    ## perform a measurement
+                    pm1.send('TRIG:COUN 100', False)
+                    
+                    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                    pm1.send('INIT', False)
+                    q2 = pm1.query('READ?')
+                    data = list(zip(*[iter(q2.split(','))]*3))
+
+                    ## check the stablitly. If not good: wait and continue
+                    if not isGoodData(data):
+                        print("bad data, will try again")
+                        time.sleep(10)
+                        continue
+                   
+                    time.sleep(2)
+                    vs1 = is1.getV()
+                    print(f"measured V {vs1}")
+                    time.sleep(2)
+#                     is1.turnHVOff()
+#                     time.sleep(10)
+                    ## pass the values to outx 
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+' '+str(vs1)+'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        is1.turnHVOff()
+        pm1.send('SYSTem:LOCal')
+        pm1.ser.close()
 
 def measureI_autoScan():
     '''Make a measurement of current interactively, save the given voltage as well'''
@@ -600,7 +701,6 @@ def measureI_autoScan():
                 break
 
         ## finish gracefully
-        pm1.send('SOUR:VOLT:STAT OFF')
         pm1.send('SYSTem:LOCal')
 #         pm1.ser.close()
 
@@ -739,7 +839,56 @@ def test2():
     tN = t+dT
     print(t,t2,tN)
 
-    
+
+def IsegHVOperationDrill0():
+    while True: ### to lazy to indent following lines
+        for vs in [0,100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000,7500,8000]:
+            try:
+                print("Setting voltage to {0}".format(vs))
+                setIsegV(vs*0.001)
+                time.sleep(20)
+
+                if True:
+                    vs1 = getIsegV()
+                    print(f"get to {vs1}")
+                    time.sleep(5)
+                    turnOffIsegV()
+ 
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        turnOffIsegV()
+
+        break
+
+def IsegHVOperationDrill():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    while True: ### to lazy to indent following lines
+        for vs in [800,100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000,7500,8000]:
+            try:
+                print("Setting voltage to {0}".format(vs))
+                is1.setV(vs)
+                time.sleep(10)
+
+                if True:
+                    vs1 = is1.getV()
+                    print(f"get to {vs1}")
+                    time.sleep(5)
+                    is1.turnHVOff()
+                    time.sleep(1)
+ 
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        is1.turnHVOff()
+        break
+
 def HV_out_scan(vlist, dT):
     pm1 = Picoammeter()
     pm1.connect()
@@ -761,10 +910,19 @@ def HV_out_scan(vlist, dT):
 
 if __name__ == '__main__':
     listPorts()
+#     setIsegV(0.2)
+#     time.sleep(10)
+#     vx = getIsegV()
+#     print(vx)
+#     turnOffIsegV()
+#     IsegHVOperationDrill0()
+#     IsegHVOperationDrill()
+
 #     test0()
 #     HV_out_scan([200,-200,0],dT=10*60)
 #     test2()
 #     measureR()
 #     measureR1()
 #     measureI_interactively()
-    measureI_autoScan()
+#     measureI_autoScan()
+    measureI_autoScanIseg()

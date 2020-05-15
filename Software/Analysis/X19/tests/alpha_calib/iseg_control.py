@@ -57,8 +57,28 @@ class isegHV:
         print(self.query('*IDN?'))
 
     def setV(self, v):
-        self.send(':VOLTage {0}kV'.format(v))
+#         print(':VOLTage {0}'.format(v))
+        self.send(':VOLTage {0}'.format(v))
+        time.sleep(1)
         self.send(':VOLTage ON')
+        time.sleep(10)
+#         print("turned on")
+
+        ### wait until the ramp is done
+        while True:
+#             print('getting info')
+            tx = self.query(':READ:MODule:STATus?')
+#             print('getting status')
+            res = int(tx)&(0x7700)
+#             print('compare:', tx, int(tx)&(0x7700)) ### see the document for the meaning of this code.
+            if res == 0x7700: break
+            print('RAMPing...')
+            time.sleep(5)
+
+    def getV(self):
+        rx = self.query(':READ:VOLTage?')
+        print(rx)
+        return float(rx[:-1])
 
     def turnHVOff(self):
         self.send(':VOLTage OFF')
@@ -66,13 +86,39 @@ class isegHV:
     def test1(self):
         self.connect()
         print(self.query(':READ:IDNT?'))
+        print(self.query(':READ:CHANnel:EVent:STATus?'))
+#         print(self.query('IDN?'))
+#         print(self.send('EVENT:CLEAR'))
+#         print(self.query(':READ:CHANnel:EVent:STATus?'))
+        print(self.send('*CLS'))
+        time.sleep(1)
 #         print(self.query(':READ:VOLTage STATus?'))
-        print(self.query(':READ:STATus?'))
-#         print(self.send(':VOLTage 1.0kV'))
+#         print(self.query(':READ:STATus?'))
+        print(self.send(':VOLTage 1.0kV'))
+        time.sleep(1)
         print(self.query(':READ:VOLTage?'))
-#         print(self.send(':VOLTage ON'))
+        print(self.send(':VOLTage ON'))
+        time.sleep(10)
+#         print(self.query(':READ:LAM?'))
+        while True:
+            tx = self.query(':READ:MODule:STATus?')
+            res = int(tx)&(0x7700)
+            print('compare:', tx, int(tx)&(0x7700))
+            if res == 0x7700: break
+            time.sleep(5)
+
+        print(self.query(':MEASURE:VOLTage?'))
+        time.sleep(1)
         print(self.send(':VOLTage OFF'))
-        print(self.query(':READ:STATus?'))
+        time.sleep(1)
+
+#         tx = self.query(':READ:CHANnel:STATus?')
+        print(self.query(':READ:CHANnel:EVent:STATus?'))
+#         print(self.query(':READ:MODule:STATus?'))
+#         print(self.query(':READ:MODule:EVent:STATus?'))
+        print(self.query(':MEASURE:VOLTage?'))
+#         print(self.query(':READ:EVent:STATus?'))
+#         print(self.query(':READ:STATus?'))
 
     def test(self):
         self.connect()
@@ -101,6 +147,6 @@ def test2():
     
 
 if __name__ == '__main__':
-#     listPorts()
+    listPorts()
     test1()
 #     test2()
