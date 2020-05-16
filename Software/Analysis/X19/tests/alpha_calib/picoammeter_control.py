@@ -53,16 +53,40 @@ def turnOffIsegV():
 class Picoammeter:
     def __init__(self):
         self.ser = None
-    def connect(self):
-        portx="/dev/ttyUSB0"
+    def connect(self, portx="/dev/ttyUSB1"):
+#         portx="/dev/ttyUSB0"
 #         portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
+
+    def disconnect(self):
+        self.send('SYSTem:LOCal')
+        self.ser.close()
+
     def send(self, msg, log_cmd=True):
         if log_cmd: logging.info(msg.rstrip())
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
+
+    def zero_check(self, doZeroCorr=True):
+        '''Perform zero check: 
+            Make sure you DUT is not connected!!!!
+            The current range should be with in 2.5 nA.
+            when making a real measurement, turn off the Zero check first.
+            '''
+        self.connect()
+        self.send('*RST')
+        self.send("FUNC 'CURR'")
+        self.send('SYST:ZCH ON')
+
+        if doZeroCorr:
+            self.send('RANG 2e-9')
+            self.send('INIT')
+            self.send('SYST:ZCOR:ACQ')
+            self.send('SYST:ZCOR ON')
+
+        self.disconnect()
 
     def test0(self):
         self.connect()
@@ -81,6 +105,86 @@ class Picoammeter:
 
         result = self.ser.read(200)
         print(result.decode())
+
+    def test_simple_measureI(self):
+        '''Preform a simple measurement'''
+        self.connect()
+        print(self.query('*IDN?'))
+        self.send('RANG:AUTO ON')
+        self.send('SYST:ZCH OFF')
+
+        self.send("FUNC 'CURR'")
+        self.send('FORM:ELEM READ,TIME,VSO')
+        ### start the measurement with selecting range and turn off the zero check
+#         self.send('RANG:AUTO ON')
+#         self.send('SYST:ZCH OFF')
+
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 1')
+
+        self.send('TRIG:COUN 100', False)
+        
+        t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+        self.send('INIT', False)
+        q2 = self.query('READ?')
+        data = list(zip(*[iter(q2.split(','))]*3))
+        print(data)
+
+        vs = 0
+        ## pass the values to outx 
+        outx = ''
+        for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+'\n'
+
+        print(outx)
+        self.disconnect()
+        return
+
+    def multiple_measureI(self):
+        '''Preform a simple measurement'''
+        self.connect()
+        print(self.query('*IDN?'))
+
+        ### start the measurement with selecting range and turn off the zero check
+        self.send('RANG:AUTO ON')
+        self.send('SYST:ZCH OFF')
+
+        ### confiugration
+        self.send("FUNC 'CURR'")
+        self.send('FORM:ELEM READ,TIME,VSO')
+
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 1')
+
+        sampleDir = './'
+        dSuffix = 'HV1kV'
+        idir = 0
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
+        os.makedirs(project_dir)
+
+        with open(project_dir+'current.dat','w') as fout1:
+
+            try:
+                self.send('TRIG:COUN 100', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                self.send('INIT', False)
+                q2 = self.query('READ?')
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                vs = 0
+                ## pass the values to outx 
+                outx = ''
+                for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+            except KeyboardInterrupt:
+                break
+        ### finish
+        self.disconnect()
+        return
 
     def speed_check(self):
         self.send('FORM:ELEM READ,TIME')
@@ -822,9 +926,11 @@ def measureR1():
     for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
     print(outx)
 
-def test0():
+def run_tests():
     pm1 = Picoammeter()
-    pm1.test0()
+#     pm1.test0()
+#     pm1.zero_check()
+    pm1.test_simple_measureI()
 
 
 def test2():
@@ -918,11 +1024,11 @@ if __name__ == '__main__':
 #     IsegHVOperationDrill0()
 #     IsegHVOperationDrill()
 
-#     test0()
+    run_tests()
 #     HV_out_scan([200,-200,0],dT=10*60)
 #     test2()
 #     measureR()
 #     measureR1()
 #     measureI_interactively()
 #     measureI_autoScan()
-    measureI_autoScanIseg()
+#     measureI_autoScanIseg()
