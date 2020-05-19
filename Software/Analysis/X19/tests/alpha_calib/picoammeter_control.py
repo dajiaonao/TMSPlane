@@ -1119,8 +1119,9 @@ def HV_checkI(HVvalue, nGood=3, tLast=30):
     return rCode
 
 def run_HV_checkI():
-    for i in range(2): 
-        if HV_checkI(1000): break
+    for i in range(5): 
+        if HV_checkI(8000): break
+        time.sleep(10)
 
 if __name__ == '__main__':
     listPorts()
