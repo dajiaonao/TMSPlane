@@ -36,6 +36,9 @@ class isegHV:
         bps=9600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
+    def disconnect(self):
+        self.send('*GTL') ## Go To Local
+        self.ser.close()
 
     def send(self, msg, log_cmd=True):
         if log_cmd: logging.info(msg.rstrip())
