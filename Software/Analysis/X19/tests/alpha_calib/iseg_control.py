@@ -31,8 +31,8 @@ class isegHV:
     def __init__(self):
         self.ser = None
     def connect(self):
-        portx="/dev/ttyUSB1"
-#         portx="/dev/ttyUSB0"
+#         portx="/dev/ttyUSB1"
+        portx="/dev/ttyUSB0"
         bps=9600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -147,9 +147,28 @@ def test2():
     tN = t+dT
     print(t,t2,tN)
 
-    
+def simpleSetHV(vs):
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    print("Setting voltage to {0}".format(vs))
+    is1.send('*CLS')
+    time.sleep(2)
+    is1.send('EVENT:CLEAR')
+    time.sleep(2)
+    is1.setV(vs)
+    time.sleep(10)
+
+    vs1 = is1.getV()
+    print(f"measured V {vs1}")
+
+    is1.disconnect()
 
 if __name__ == '__main__':
     listPorts()
-    test1()
+#     test1()
+    simpleSetHV(300)
+#     simpleSetHV(1000)
+#     simpleSetHV(5000)
 #     test2()
