@@ -33,6 +33,7 @@ class findrate(object):
         self.bkg = 0
         self.isDebug = False
         self.showPlot = False
+        self.outputDir = None
 
     def getinput_from_root_v0(self, fname=None, entry=0):
         Nsample = 20000000
@@ -229,14 +230,16 @@ class findrate(object):
         ### save to root
         df_pks = np.append(np.array([-1]),df_pks)
         bigx = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
-        rootfile = array2root(bigx, myOutPutDir+"/"+basename[:-4] + '.root',  mode="recreate")
+
+        oDir = self.outputDir if self.outputDir is not None else myOutPutDir
+        rootfile = array2root(bigx, oDir+"/"+basename[:-4] + '.root',  mode="recreate")
 
         self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
 
     def get_summary(self):
         return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f}"
 
-def processor(inputName):
+def process_file(inputName):
     print(f"Processing {inputName}")
     myrate = findrate(inputName)
     myrate.getinput()
@@ -257,7 +260,7 @@ def multi_run():
     print(len(files))
 
     p = Pool(6)
-    myrates = p.map(processor, files)
+    myrates = p.map(process_file, files)
    
     newfile = open(mydir+"/summary.txt","a")
     print(findrate.header)
@@ -304,12 +307,51 @@ def test0():
     fr1.processinput(-1)
     print(fr1.get_summary())
 
+def monitor(indir, outdir):
+    '''In this mode, it will check the files in `indir` and process any files that is not included in the summary file, and the output histograms are put in `outdir`'''
+
+    flist = []
+    if outdir[-1] != '/': outdir = outdir.rstrip()+'/'
+    summary_file = outdir+'summary.txt'
+
+    with open(summary_file,'rw') as fin1:
+
+        ### load the db first
+        lines = fin1.readlines()
+        flist = [line.split()[0] for line in lines if len(line.split())>1]
+
+        while True:
+            ### for exception capture
+            try:
+                ### get the list of the files in indir
+                new_files = [f for f in glob.glob(indir+'*.isf') if f not in flist]
+
+                print(len(files), 'to be processed')
+                for fx in new_files:
+                    print(f"------processing {fx}")
+                    myrate = findrate(fx)
+                    myrate.outputDir = outdir
+                    myrate.showPlot = True
+                    myrate.getinput()
+                    myrate.processinput(-1)
+
+                    fin1.write(myrate.get_summary()+'\n')   
+                    flist.append(fx)
+
+                fin1.flush()
+            except KeyboardInterrupt:
+                break
+
+            ### wait for the next loop
+            time.sleep(10) ### just means maximum 10s delay if the processing speed is higher than the data recording speed
+
 def main():
     if len(argv)>3: multi_run()
     else: test()
 
 if __name__ == '__main__':
-    test0()
-#     main()
+#     test0()
+#     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
+    main()
 #     test()
     #multi_run()

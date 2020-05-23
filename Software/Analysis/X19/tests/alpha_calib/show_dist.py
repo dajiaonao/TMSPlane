@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import matplotlib.pyplot as plt
 import numpy as np
-from ROOT import TGraphErrors, gStyle, gPad, TLatex, TFile, TCanvas
+from ROOT import TGraphErrors, gStyle, gPad, TLatex, TFile, TCanvas, TH2F, TLegend
 from rootUtil3 import waitRootCmdX, useNxStyle, savehistory
 uA = 1000000.
 
@@ -55,7 +55,7 @@ def get_graph(fname,rf=1,dv=5):
 
     gr1 = TGraphErrors()
     i = 0
-    for k in dictx.keys():
+    for k in sorted(dictx.keys()):
         if len(dictx[k])<10: continue
         print(k, np.mean(dictx[k]), np.std(dictx[k]))
         gr1.SetPoint(i,rf*k/1000.,-np.mean(dictx[k])*1000000.)
@@ -65,10 +65,11 @@ def get_graph(fname,rf=1,dv=5):
     return gr1
 
 def show_dv():
-    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','pico2')
-    get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico3.dat','pico3')
+    get_dv('/data/Samples/TMSPlane/HVCheck/R2_Iseg0.dat','Iseg0')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico2.dat','pico2')
+#     get_dv('/data/Samples/TMSPlane/HVCheck/R2_pico3.dat','pico3')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico1.dat','picometer1')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R1_pico8.dat','picometer8')
 #     get_dv('/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat','Dongwen')
@@ -161,6 +162,110 @@ def check_graph2(fname='/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat', info1='Do
     gPad.Update()
     waitRootCmdX()
 
+def get_R_graphs(fname,rf,dv):
+    gr0 = get_graph(fname, rf, dv)
+
+    scale = 1000. # from GOhm to ROhm
+    ### calculate R
+    gr_R0 = TGraphErrors()
+    gr_R1 = TGraphErrors()
+    for i in range(gr0.GetN()):
+        x = gr0.GetPointX(i)
+        y = gr0.GetPointY(i)
+        if abs(x)>0.001:
+            gr_R0.SetPoint(i,x,x/y*scale)
+#             gr_R0.SetPointError(i,gr0.GetErrorX(i),0.05/y*scale)
+            gr_R0.SetPointError(i,gr0.GetErrorX(i),0.*scale)
+
+        if i==0: continue
+        xP = gr0.GetPointX(i-1)
+        yP = gr0.GetPointY(i-1)
+        print(x-xP)
+        gr_R1.SetPoint(i-1,0.5*(x+xP),scale*(x-xP)/(y-yP))
+        gr_R1.SetPointError(i-1,0.5*abs(x-xP),0*scale)
+
+    return gr_R0, gr_R1
+
+def show_R_graph():
+    p0_R0,p0_R1 = get_R_graphs('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat', -1, 0.05)
+    I0_R0,I0_R1 = get_R_graphs('/data/Samples/TMSPlane/HVCheck/R2_Iseg0.dat', 1, 5)
+    R_shift = 9.08 # MOhm
+
+    h1 = TH2F('h1','h2;U [kV];R [M#Omega]',100,-0.6,8.4,100,36,62)
+    h1.Draw()
+
+    I0_R0.Draw("P same")
+    p0_R0.SetLineColor(2)
+    p0_R0.SetMarkerColor(2)
+    p0_R0.Draw("P same")
+
+    p0_R1.SetLineColor(3)
+    p0_R1.SetMarkerColor(3)
+    p0_R1.Draw("P same")
+
+    I0_R1.SetLineColor(4)
+    I0_R1.SetMarkerColor(4)
+    I0_R1.Draw("P same")
+
+    grC = TGraphErrors()
+    j = 0
+    gr0 = I0_R1
+    for i in range(gr0.GetN()):
+        x = gr0.GetPointX(i)
+        y = gr0.GetPointY(i)
+        if abs(x)>0.05 and x<2.5: ## kV
+            grC.SetPoint(j,x,y-R_shift)
+            grC.SetPointError(j,gr0.GetErrorX(i),gr0.GetErrorY(i))
+            j += 1
+
+    grC.SetLineColor(6)
+    grC.SetMarkerColor(6)
+    grC.Draw("Psame")
+
+    lg = TLegend(0.8,0.8,0.95,0.96)
+    lg.AddEntry(p0_R0, "pico U/I")
+    lg.AddEntry(p0_R1, "pico #DeltaU/#DeltaI")
+    lg.AddEntry(I0_R0, "Iseg U/I")
+    lg.AddEntry(I0_R1, "Iseg #DeltaU/#DeltaI")
+    lg.AddEntry(grC, f"Iseg #DeltaU/#DeltaI - {R_shift} M#Omega ([50,2500]V)")
+    lg.Draw()
+
+
+
+    waitRootCmdX()
+
+def R_graph():
+#     gr0 = get_graph('/data/Samples/TMSPlane/HVCheck/R2_Iseg0.dat')
+    gr0 = get_graph('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat', rf=-1, dv=0.05)
+    gr0.Draw()
+
+    scale = 1000. # from GOhm to ROhm
+    ### calculate R
+    gr_R0 = TGraphErrors()
+    gr_R1 = TGraphErrors()
+    for i in range(gr0.GetN()):
+        x = gr0.GetPointX(i)
+        y = gr0.GetPointY(i)
+        if abs(x)>0.001:
+            gr_R0.SetPoint(i,x,x/y*scale)
+#             gr_R0.SetPointError(i,gr0.GetErrorX(i),0.05/y*scale)
+            gr_R0.SetPointError(i,gr0.GetErrorX(i),0.*scale)
+
+        if i==0: continue
+        xP = gr0.GetPointX(i-1)
+        yP = gr0.GetPointY(i-1)
+        print(x-xP)
+        gr_R1.SetPoint(i-1,0.5*(x+xP),scale*(x-xP)/(y-yP))
+        gr_R1.SetPointError(i-1,0.5*abs(x-xP),0*scale)
+
+    gr_R0.Draw('AP')
+    h1 = gr_R0.GetHistogram()
+    h1.GetXaxis().SetTitle("U [kV]")
+    h1.GetYaxis().SetTitle("R [M#Omega]")
+    gr_R1.SetMarkerColor(2)
+    gr_R1.SetLineColor(2)
+    gr_R1.Draw('P same')
+    waitRootCmdX()
 
 def check_graph(fname='/data/Samples/TMSPlane/HVCheck/R_Dongwen.dat', info1='Dongwen', fitfun='pol3'):
     lines = None
@@ -232,5 +337,7 @@ if __name__ == '__main__':
 #     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico0.dat','pico0',fitfun='pol1')
 #     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico1.dat','pico1',fitfun='pol1')
 #     check_graph2('/data/Samples/TMSPlane/HVCheck/R2_pico3.dat','pico3',fitfun='pol1')
-    show_dv()
+#     R_graph()
+    show_R_graph()
+#     show_dv()
 #     test()
