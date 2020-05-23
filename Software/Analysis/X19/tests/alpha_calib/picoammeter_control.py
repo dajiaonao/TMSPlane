@@ -30,31 +30,82 @@ def vGen(vList):
 def setIsegV(v):
     from iseg_control import isegHV
     is1 = isegHV()
-    is1.conect()
+    is1.connect()
     is1.setV(v)
+    is1.ser.close()
+
+def getIsegV():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    r = is1.getV()
+    is1.ser.close()
+    return r
 
     ### when finish
-#     is1.turnHVOff()
+def turnOffIsegV():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    is1.turnHVOff()
+    is1.ser.close()
 
 class Picoammeter:
     def __init__(self):
         self.ser = None
-    def connect(self):
-#         portx="/dev/ttyUSB0"
-        portx="/dev/ttyUSB1"
+    def connect(self, portx="/dev/ttyUSB1"): #USB Serial Converter
+#         portx="/dev/ttyUSB0" ##
+#         portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
+
+    def disconnect(self):
+        self.send('SYSTem:LOCal')
+        self.ser.close()
+
     def send(self, msg, log_cmd=True):
+        print(msg)
         if log_cmd: logging.info(msg.rstrip())
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
 
+    def zero_check(self, doZeroCorr=True):
+        '''Perform zero check: 
+            Make sure you DUT is not connected!!!!
+            The current range should be with in 2.5 nA.
+            when making a real measurement, turn off the Zero check first.
+            '''
+        self.connect()
+        self.send('*RST')
+        self.send("FUNC 'CURR'")
+        self.send('SYST:ZCH ON')
+
+        if doZeroCorr:
+            self.send('RANG 2e-9')
+            self.send('INIT')
+            self.send('SYST:ZCOR:ACQ')
+            self.send('SYST:ZCOR ON')
+
+        self.send('RANGE:AUTO ON')
+        self.send('SYST:ZCH OFF')
+        self.send('INIT')
+#         print(self.query('READ?'))
+        result = self.ser.read(200)
+        print(result.decode())
+
+        self.disconnect()
+
     def test0(self):
+        '''Check if the connection is sucessful'''
         self.connect()
         print(self.query('*IDN?'))
+        self.disconnect()
 
     def test1(self):
+        '''Perform a simple current measurement. Taken from the manual'''
+        self.connect()
+        self.send('*RST')
         self.send("FUNC 'CURR'")
         self.send('SYST:ZCH ON')
         self.send('RANG 2e-9')
@@ -66,7 +117,92 @@ class Picoammeter:
         self.send('READ?')
 
         result = self.ser.read(200)
+        print(result)
         print(result.decode())
+
+        self.disconnect()
+
+    def test_simple_measureI(self):
+        '''Preform a simple measurement'''
+        self.connect()
+        print(self.query('*IDN?'))
+        self.send('RANG:AUTO ON')
+#         self.send('SYST:ZCH OFF')
+
+        self.send("FUNC 'CURR'")
+        self.send('FORM:ELEM READ,TIME,VSO')
+        ### start the measurement with selecting range and turn off the zero check
+#         self.send('RANG:AUTO ON') ### we do not need to set this evry time
+#         self.send('SYST:ZCH OFF') ### do not need turn if off if it's already off
+
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 0.01') ### 1 PLC means 1 reading per power line cycle
+
+        self.send('TRIG:COUN 100', False)
+        
+        t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+#         self.send('INIT', False)
+#         time.sleep(1)
+        q2 = self.query('READ?')
+        data = list(zip(*[iter(q2.split(','))]*3))
+        print(data)
+
+        vs = 0
+        ## pass the values to outx 
+        outx = ''
+        for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+'\n'
+
+        print(outx)
+        self.disconnect()
+        return
+
+
+    def multiple_measureI(self):
+        '''Preform a simple measurement'''
+        self.connect()
+        print(self.query('*IDN?'))
+
+        ### start the measurement with selecting range and turn off the zero check
+#         self.send('RANG:AUTO ON')
+#         self.send('SYST:ZCH OFF')
+
+        ### confiugration
+        self.send("FUNC 'CURR'")
+        self.send('FORM:ELEM READ,TIME,VSO')
+
+        self.send('TRIG:DEL 0')
+        self.send('NPLC 1')
+
+        sampleDir = './'
+        dSuffix = 'HV1kV'
+        idir = 0
+        while os.path.exists(dSuffix+str(idir)): idir+=1
+        project_dir = sampleDir+dSuffix+str(idir)+'/'
+        os.makedirs(project_dir)
+
+        with open(project_dir+'current.dat','w') as fout1:
+            while True:
+                try:
+                    self.send('TRIG:COUN 100', False)
+                    
+                    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                    self.send('INIT', False)
+                    q2 = self.query('READ?')
+                    data = list(zip(*[iter(q2.split(','))]*3))
+
+                    vs = 0
+                    ## pass the values to outx 
+                    outx = ''
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+'\n'
+
+                    ## write out outx
+                    fout1.write(outx)
+                    fout1.flush()
+                except KeyboardInterrupt:
+                    break
+        ### finish
+        self.disconnect()
+        return
 
     def speed_check(self):
         self.send('FORM:ELEM READ,TIME')
@@ -167,6 +303,7 @@ class Picoammeter:
 
     def recv_all(self, L=1024):
         ret1 = self.ser.read(L)
+#         print(ret1,'||||') ### for debug
         while ret1[-2:] != b'\r\n': ret1 += self.ser.read(L)
         return ret1.rstrip()
 
@@ -522,14 +659,101 @@ def measureR():
 
     print(r)
 
-def isGoodData(data):
+def isGoodData(data, debug=False):
     values = [float(d[0]) for d in data]
     mean = np.mean(values)
     std = np.std(values)
 
-    print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]))
+#     print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]))
+    if debug: print(mean, std, mean-std, mean+std, np.mean(values[:3]), np.mean(values[-3:]), (np.mean(values[:3])-mean)/std, (np.mean(values[-3:])-mean)/std)
 
     return mean-std < np.mean(values[:3]) < mean+std and mean-std < np.mean(values[-3:]) < mean+std
+
+def measureI_autoScanIseg():
+    '''Make a measurement of current interactively, save the given voltage as well'''
+    ## give the file name
+    fname = sys.argv[1] if len(sys.argv)>1 else input('Input the file name to be saved to:')
+    while os.path.exists(fname): fname = input('Already exist, try anohter one:')
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+    pm1.send('*RST')
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+    pm1.send("FUNC 'CURR'")
+#     pm1.send('SYST:ZCH ON')
+#     pm1.send('RANG 2e-9')
+#     pm1.send('INIT')
+
+#     pm1.send('SYST:ZCOR:ACQ')
+    pm1.send('SYST:ZCOR ON')
+    pm1.send('RANG:AUTO ON')
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    pm1.send('SYST:ZCH OFF')
+#     pm1.send('DISP:ENAB ON')
+#     pm1.send('SYSTem:LOCal')
+#     pm1.ser.close()
+
+    ### also start the Iseg control
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    ## Start taking data
+    with open(fname,'w') as fout1:
+#         for vs in [100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,0,4500,5000,5500,6000,6500,7000,7500,8000]:
+        for vs in [5000,100,6000,300,2500,700,5500,1000,3000,7000,3500,400,4000,0,4500,200,6500,1500,7500,2000,500,8000]:
+#         for vs in [5000,5500,6000,6500,7000,7500,8000]:
+#         for vs in [300,500]:
+            try:
+                ### set voltage
+                print("Setting voltage to {0}".format(vs))
+                is1.send('*CLS')
+                time.sleep(2)
+                is1.send('EVENT:CLEAR')
+                time.sleep(2)
+                is1.setV(vs)
+                time.sleep(10)
+
+                ### measure current
+                outx = ''
+                while outx == '':
+                    ## perform a measurement
+                    pm1.send('TRIG:COUN 100', False)
+                    
+                    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                    pm1.send('INIT', False)
+                    q2 = pm1.query('READ?')
+                    data = list(zip(*[iter(q2.split(','))]*3))
+
+                    ## check the stablitly. If not good: wait and continue
+                    if not isGoodData(data):
+                        print("bad data, will try again")
+                        time.sleep(10)
+                        continue
+                   
+                    time.sleep(2)
+                    vs1 = is1.getV()
+                    print(f"measured V {vs1}")
+                    time.sleep(2)
+#                     is1.turnHVOff()
+#                     time.sleep(10)
+                    ## pass the values to outx 
+                    for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+' '+str(vs)+' '+str(vs1)+'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        is1.turnHVOff()
+        pm1.send('SYSTem:LOCal')
+        pm1.ser.close()
 
 def measureI_autoScan():
     '''Make a measurement of current interactively, save the given voltage as well'''
@@ -600,7 +824,6 @@ def measureI_autoScan():
                 break
 
         ## finish gracefully
-        pm1.send('SOUR:VOLT:STAT OFF')
         pm1.send('SYSTem:LOCal')
 #         pm1.ser.close()
 
@@ -722,9 +945,13 @@ def measureR1():
     for d in data: outx += t0 + ' ' + d[0]+' '+d[1]+' '+d[2]+'\n'
     print(outx)
 
-def test0():
+def run_tests():
     pm1 = Picoammeter()
-    pm1.test0()
+#     pm1.test0()
+    pm1.test1()
+#     pm1.zero_check()
+#     pm1.test_simple_measureI()
+#     pm1.multiple_measureI()
 
 
 def test2():
@@ -735,11 +962,62 @@ def test2():
 
     t = datetime.now()
     t2 = time.time()
-    dT = timedelta(minutes=15)
+#     dT = timedelta(minutes=15)
+    dT = timedelta(seconds=5)
     tN = t+dT
     print(t,t2,tN)
+    while datetime.now()<tN: time.sleep(1)
+    print(tN, datetime.now())
 
-    
+def IsegHVOperationDrill0():
+    while True: ### to lazy to indent following lines
+        for vs in [0,100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000,7500,8000]:
+            try:
+                print("Setting voltage to {0}".format(vs))
+                setIsegV(vs*0.001)
+                time.sleep(20)
+
+                if True:
+                    vs1 = getIsegV()
+                    print(f"get to {vs1}")
+                    time.sleep(5)
+                    turnOffIsegV()
+ 
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        turnOffIsegV()
+
+        break
+
+def IsegHVOperationDrill():
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    while True: ### to lazy to indent following lines
+        for vs in [800,100,200,300,400,500,700,1000,1500,2000,2500,3000,3500,4000,4500,5000,5500,6000,6500,7000,7500,8000]:
+            try:
+                print("Setting voltage to {0}".format(vs))
+                is1.setV(vs)
+                time.sleep(10)
+
+                if True:
+                    vs1 = is1.getV()
+                    print(f"get to {vs1}")
+                    time.sleep(5)
+                    is1.turnHVOff()
+                    time.sleep(1)
+ 
+            except KeyboardInterrupt:
+                break
+
+        ## finish gracefully
+        is1.turnHVOff()
+        break
+
 def HV_out_scan(vlist, dT):
     pm1 = Picoammeter()
     pm1.connect()
@@ -759,12 +1037,263 @@ def HV_out_scan(vlist, dT):
         except KeyboardInterrupt:
             break
 
+def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
+    rCode = 0
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+
+    ### confiugration
+    pm1.send("FUNC 'CURR'")
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    tEnd = None
+    if tLast is not None:
+        dT = timedelta(seconds=tLast)
+        tEnd = datetime.now() + dT
+
+    iGood = 0
+    iData = 0
+    with open(filename,'w') as fout1:
+        while True:
+
+            ### check time requirement.
+            if tEnd and datetime.now() > tEnd: break
+            if iData == nRead: break
+
+            try:
+                pm1.send('TRIG:COUN 100', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                pm1.send('INIT', False)
+                q2 = pm1.query('READ?')
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                isGood = 0 
+                if isGoodData(data):
+                    isGood = 1
+                    iGood += 1
+                    print(f"Number of good dataset: {iGood}")
+
+                ## pass the values to outx 
+                outx = ''
+                for d in data: outx += ' '.join([t0,d[0],d[1],d[2],str(isGood),str(iGood),str(iData)]) + extraStr +'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+                iData += 1
+            except KeyboardInterrupt:
+                rCode = 1
+                break
+    ### finish
+    pm1.disconnect()
+    return rCode
+
+
+def HV_checkI(HVvalue, nGood=3, tLast=30):
+    '''The function is used to check the repeatbiltiy and stablility of the HV.
+    When a HV value is given as argument, this function will try to set the HV source to HVvalue'''
+    rCode = 0 # 0: OK; 1:interruput signal, should stop at higher level
+    dT = timedelta(seconds=tLast)
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+
+    ### confiugration
+    pm1.send("FUNC 'CURR'")
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    ### setup the ouput directory and filename
+    HVstr = 'HV{0}'.format(HVvalue)
+    sampleDir = './'
+    project_dir = sampleDir+HVstr
+    if not os.path.exists(project_dir): os.makedirs(project_dir)
+    ifile, filename = 0, project_dir + '/' + HVstr + '_current_0.dat'
+    while os.path.exists(filename): ifile, filename = ifile+1, project_dir + '/' + HVstr + '_current_{0:d}.dat'.format(ifile)
+
+    ### setup HV from the Iseg control
+    from iseg_control import isegHV
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    ### set to the given value
+    ### set voltage
+    print("Setting voltage to {0}".format(HVvalue))
+    is1.send('*CLS')
+    time.sleep(2)
+    is1.send('EVENT:CLEAR')
+    time.sleep(2)
+    is1.setV(HVvalue)
+ 
+    ### start taking data
+    tEnd = None
+    iGood = 0
+    iData = 0
+    with open(filename,'w') as fout1:
+        while True:
+            ### check time requirement.
+            if tEnd and datetime.now() > tEnd: break
+
+            try:
+                pm1.send('TRIG:COUN 100', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                pm1.send('INIT', False)
+                q2 = pm1.query('READ?')
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                isGood = 0 
+                if isGoodData(data):
+                    isGood = 1
+                    iGood += 1
+                    print(f"Number of good dataset: {iGood}")
+                    if iGood >= nGood and tEnd is None: 
+                        tEnd = datetime.now() + dT
+                        print(f'Will stop taking this dataset at {tEnd}')
+
+                vs1 = is1.getV()
+                print(f"measured V {vs1}")
+                time.sleep(2)
+
+                ## pass the values to outx 
+                outx = ''
+                for d in data: outx += ' '.join([t0,d[0],d[1],d[2],str(HVvalue),str(vs1),str(isGood),str(iGood),str(iData)]) +'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+                iData += 1
+            except KeyboardInterrupt:
+                rCode = 1
+                break
+    ### finish
+    pm1.disconnect()
+
+    ## turn off HV
+    is1.turnHVOff()
+    time.sleep(10)
+    is1.disconnect()
+    return rCode
+
+def run_zero_check():
+    pm1 = Picoammeter()
+    pm1.zero_check()
+
+def run_HV_checkI():
+    for i in range(5): 
+        if HV_checkI(8000): break
+        time.sleep(10)
+
+def run_HV_checkI_Dongwen():
+    for i in range(5): 
+#         if HV_checkI_Dongwen(1000): break
+#         if HV_checkI_Dongwen(5000): break
+        if HV_checkI_Dongwen(8000): break
+        time.sleep(10)
+
+def HV_checkI_Dongwen(HVvalue, nGood=3, tLast=60):
+    '''The function is used to check the repeatbiltiy and stablility of the Dongwen HV device.
+    This need to be done interactively: 1) set the value at the begining and 2) check the value when it's stable.'''
+    rCode = 0 # 0: OK; 1:interruput signal, should stop at higher level
+    dT = timedelta(seconds=tLast)
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+
+    ### confiugration
+    pm1.send("FUNC 'CURR'")
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    ### setup the ouput directory and filename
+    HVstr = 'DongwenHV{0}'.format(HVvalue)
+    sampleDir = './'
+    project_dir = sampleDir+HVstr
+    if not os.path.exists(project_dir): os.makedirs(project_dir)
+    ifile, filename = 0, project_dir + '/' + HVstr + '_current_0.dat'
+    while os.path.exists(filename): ifile, filename = ifile+1, project_dir + '/' + HVstr + '_current_{0:d}.dat'.format(ifile)
+
+    vs1 = input(f"Set the value to {HVvalue} now:")
+
+    print(f"HV vlaue {vs1} confirmed")
+
+    ### start taking data
+    tEnd = None
+    iGood = 0
+    iData = 0
+    with open(filename,'w') as fout1:
+        while True:
+            ### check time requirement.
+            if tEnd and datetime.now() > tEnd: break
+
+            try:
+                pm1.send('TRIG:COUN 100', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                pm1.send('INIT', False)
+                q2 = pm1.query('READ?')
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                isGood = 0 
+                if isGoodData(data):
+                    isGood = 1
+                    iGood += 1
+                    print(f"Number of good dataset: {iGood}")
+                    if iGood >= nGood and tEnd is None: 
+                        vs1 = input("Check the vlue now:")
+                        print(f"measured V {vs1}")
+                        time.sleep(2)
+                        tEnd = datetime.now() + dT
+                        print(f'Will stop taking this dataset at {tEnd}')
+
+                ## pass the values to outx 
+                outx = ''
+                for d in data: outx += ' '.join([t0,d[0],d[1],d[2],str(HVvalue),str(vs1),str(isGood),str(iGood),str(iData)]) +'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+                iData += 1
+            except KeyboardInterrupt:
+                rCode = 1
+                break
+    ### finish
+    pm1.disconnect()
+    return rCode
+
+
 if __name__ == '__main__':
     listPorts()
-#     test0()
-#     HV_out_scan([200,-200,0],dT=10*60)
+#     run_tests()
+#     run_HV_checkI()
+#     run_zero_check()
+#     run_HV_checkI_Dongwen()
+#     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
+    run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
 #     test2()
+#     setIsegV(0.2)
+#     time.sleep(10)
+#     vx = getIsegV()
+#     print(vx)
+#     turnOffIsegV()
+#     IsegHVOperationDrill0()
+#     IsegHVOperationDrill()
+
+#     HV_out_scan([200,-200,0],dT=10*60)
 #     measureR()
 #     measureR1()
 #     measureI_interactively()
-    measureI_autoScan()
+#     measureI_autoScan()
+#     measureI_autoScanIseg()

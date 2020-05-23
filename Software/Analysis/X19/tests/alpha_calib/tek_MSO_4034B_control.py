@@ -471,12 +471,15 @@ def check_pulse():
         rg1.connect()
         rg1.setPulseV(dv*0.001)
 
-        os1.run_project(N=30, dirx='Jan15d', tag=f'TPCHVoff_gasOff_Pulse_{dv}mV_')
+#         os1.run_project(N=30, dirx='Jan15d', tag=f'TPCHVoff_gasOff_Pulse_{dv}mV_')
+        os1.run_project(N=2, dirx='May22b', tag=f'test_Pulse_{dv}mV_')
 
 
 def main():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
-    os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
+    os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
+#     os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
+    os1.run_project(N=-1, dirx='May22a', tag='test1_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
@@ -505,8 +508,8 @@ def test():
         os1.disconnect()
 
 if __name__ == '__main__':
-#     main()
-    check_pulse()
+    main()
+#     check_pulse()
 #     test()
 #     check_multiple()
 #     check_countloss()
