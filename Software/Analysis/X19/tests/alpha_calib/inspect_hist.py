@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import glob
 import os
+import time
 from ROOT import TH1F, TChain, gDirectory, TCanvas
 
 class HistMaker:
@@ -34,27 +35,36 @@ def loopMonitor(rPattern, refRootFiles=[]):
     for i in range(len(refRootFiles)):
         dsList.append(hm1.make_hists(refRootFiles[i],f'ref{i}_'))
 
-    ### get the fname of the latest
-    files = glob.glob(rPattern)
-    lastFile = files[0]
-    for f in files:
-        if os.path.getmtime(f) - os.path.getmtime(lastFile) > 0 and time.time() - os.path.getmtime(f) > 10: lastFile = f
+    c1 = None
+    while True:
+        try:
+            ### get the fname of the latest
+            files = glob.glob(rPattern)
+            lastFile = files[0]
+            for f in files:
+                if os.path.getmtime(f) - os.path.getmtime(lastFile) > 0 and time.time() - os.path.getmtime(f) > 10: lastFile = f
 
-    ### get this list
-    hNew = hm1.make_hists(lastFile,f'test_')
+            ### get this list
+            hNew = hm1.make_hists(lastFile,f'test_')
 
-    ### make the plots
-    nHist = len(hNew)
-    c1 = TCanvas('c1','c1',1000,400)
-    c1.Divide(nHist)
+            ### create canvas if it's not there yet
+            if c1 is None:
+                nHist = len(hNew)
+                c1 = TCanvas('c1','c1',1000,400)
+                c1.Divide(nHist)
 
-    for i in range(nHist):
-        c1.cd(i+1)
-        hNew[i].Draw('PLC')
-        for h in dsList: h[i].Draw('PLC same')
+            ### show the plots
+            for i in range(nHist):
+                c1.cd(i+1)
+                hNew[i].Draw('PLC')
+                for h in dsList: h[i].Draw('PLC same')
 
-    c1.Update()
-    a = input('jjj')
+            c1.Update()
+
+            time.sleep(10)
+    #         a = input('jjj')
+        except KeyboardInterrupt:
+            break
 
 
 def test():
