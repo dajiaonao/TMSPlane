@@ -2,7 +2,7 @@
 import glob
 import os
 import time
-from ROOT import TH1F, TChain, gDirectory, TCanvas
+from ROOT import TH1F, TChain, gDirectory, TCanvas, TLegend
 
 class HistMaker:
     '''This class is used to make some basic histograms from a root file made by oscilloscope_signal_check.py.'''
@@ -47,6 +47,10 @@ def loopMonitor(rPattern, refRootFiles=[]):
             ### get this list
             hNew = hm1.make_hists(lastFile,f'test_')
 
+            lg = TLegend(0.6,0.7,0.8,0.9)
+            lg.SetBorderSize(0)
+            lg.SetFillStyle(0)
+
             ### create canvas if it's not there yet
             if c1 is None:
                 nHist = len(hNew)
@@ -58,6 +62,12 @@ def loopMonitor(rPattern, refRootFiles=[]):
                 c1.cd(i+1)
                 hNew[i].Draw('PLC')
                 for h in dsList: h[i].Draw('PLC same')
+
+                if i==1:
+                    lg.AddEntry(hNew[i],"new",'l')
+                    for h in dsList:
+                        lg.AddEntry(h[i], 'Ref'+h[i].GetName(), 'l')
+                    lg.Draw()
 
             c1.Update()
 
@@ -86,5 +96,6 @@ def test():
 
 if __name__ == '__main__':
 #     test()
-    loopMonitor('./TPC*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
+#     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
+    loopMonitor('h_May26a/*.root', ['h_May26a/*_123.root'])
 

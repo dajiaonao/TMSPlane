@@ -309,36 +309,48 @@ def test0():
 
 def monitor(indir, outdir):
     '''In this mode, it will check the files in `indir` and process any files that is not included in the summary file, and the output histograms are put in `outdir`'''
+    nUpdate = 10
 
     flist = []
     if outdir[-1] != '/': outdir = outdir.rstrip()+'/'
     summary_file = outdir+'summary.txt'
 
-    with open(summary_file,'rw') as fin1:
+    flist = []
+    modex = 'w'
+    if os.path.exists(summary_file):
+        with open(summary_file,'r') as fin1:
 
-        ### load the db first
-        lines = fin1.readlines()
-        flist = [line.split()[0] for line in lines if len(line.split())>1]
+            ### load the db first
+            lines = fin1.readlines()
+            flist = [line.split()[0] for line in lines if len(line.split())>1]
+            modex = 'a'
 
+    with open(summary_file,modex) as fin1:
         while True:
             ### for exception capture
             try:
                 ### get the list of the files in indir
-                new_files = [f for f in glob.glob(indir+'*.isf') if f not in flist]
+                new_files = [f for f in glob(indir+'*.isf') if f not in flist]
 
-                print(len(files), 'to be processed')
+                print(len(new_files), 'to be processed')
+                nProcessed = 0
                 for fx in new_files:
                     print(f"------processing {fx}")
                     myrate = findrate(fx)
                     myrate.outputDir = outdir
-                    myrate.showPlot = True
+                    myrate.showPlot = False
                     myrate.getinput()
                     myrate.processinput(-1)
 
                     fin1.write(myrate.get_summary()+'\n')   
                     flist.append(fx)
 
-                fin1.flush()
+                    nProcessed += 1
+                    if nProcessed > nUpdate:
+                        fin1.flush()
+                        nProcessed = 0
+
+                if nProcessed > 0: fin1.flush()
             except KeyboardInterrupt:
                 break
 
@@ -350,8 +362,9 @@ def main():
     else: test()
 
 if __name__ == '__main__':
+    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May26a/','./h_May26a')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
-    main()
+#     main()
 #     test()
     #multi_run()
