@@ -351,11 +351,11 @@ def monitor(indir, outdir):
                         nProcessed = 0
 
                 if nProcessed > 0: fin1.flush()
+
+                ### wait for the next loop
+                time.sleep(10) ### just means maximum 10s delay if the processing speed is higher than the data recording speed
             except KeyboardInterrupt:
                 break
-
-            ### wait for the next loop
-            time.sleep(10) ### just means maximum 10s delay if the processing speed is higher than the data recording speed
 
 def main():
     if len(argv)>3: multi_run()
