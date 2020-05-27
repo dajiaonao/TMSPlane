@@ -12,16 +12,16 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 #show grid
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
-#if (!exists("projname")) projname='project_67/'
+if (!exists("projname")) projname='h_May27a_r1/'
 #if (!exists("projname")) projname='project_48/'
 #if (!exists("projname")) projname='project_41/'
 #if (!exists("projname")) projname='./'
 #print projname
 set ylabel "Rate"
 set xlabel "Time"
-#set ytics nomirror
-#set y2tics
-#set y2label "Plane HV [V]"
+set ytics nomirror
+set y2tics
+set y2label "prom2 [cnt]"
 #set terminal postscript eps enhanced colour dashed lw 1 "Helvetica" 14 
 #set output projname.'test.eps'
 #plot projname."current.dat" using 1:2 with lines
@@ -29,7 +29,9 @@ set xlabel "Time"
 #set y2tics -150, 10
 #set ytics nomirror
 #plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines axis x1y1, projname."current.dat" using 1:4 axis x1y2
-plot "h_May26a/summary.txt" using 2:($3/$4)
+#plot "h_May26a/summary.txt" using 2:($3/$4)
+plot projname."summary.txt" using 2:5 axis x1y1, projname."summary.txt" using 2:10 axis x1y2
+#plot projname."summary.txt" using 2:5 axis x1y1, projname."summary.txt" using 2:7 axis x1y2
 #plot projname."current.dat" using 1:($2<1?$2*1e12:1/0)
 #plot projname."current.dat" using 1:4
 

@@ -34,6 +34,7 @@ class findrate(object):
         self.isDebug = False
         self.showPlot = False
         self.outputDir = None
+        self.prominence2Cut=10
 
     def getinput_from_root_v0(self, fname=None, entry=0):
         Nsample = 20000000
@@ -172,9 +173,10 @@ class findrate(object):
         proms3 = pks - arwav2[promxmins]
         rtime = peaks - promxmins
 
-        for i in range(self.npeaks):
-            if abs(proms3[i]-proms2[i])>5:
-                print(peaks[i], proms3[i], proms2[i])
+        if self.isDebug:
+            for i in range(self.npeaks):
+                if abs(proms3[i]-proms2[i])>5:
+                    print(peaks[i], proms3[i], proms2[i])
 
         ### plots if requested
         if self.showPlot:
@@ -213,7 +215,7 @@ class findrate(object):
         self.heightmean = np.mean(pks)
         self.diffpeakmean = np.mean(df_pks)
         self.prominencemean = np.mean(proms)
-        self.prominence2mean = np.mean(proms2)
+        self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
         self.widthmean = np.mean(widths)
 
 #         mdx = np.array([])
@@ -323,6 +325,7 @@ def monitor(indir, outdir):
             ### load the db first
             lines = fin1.readlines()
             flist = [line.split()[0] for line in lines if len(line.split())>1]
+            print(flist)
             modex = 'a'
 
     with open(summary_file,modex) as fin1:
@@ -330,7 +333,8 @@ def monitor(indir, outdir):
             ### for exception capture
             try:
                 ### get the list of the files in indir
-                new_files = [f for f in glob(indir+'*.isf') if f not in flist]
+                new_files = [f for f in glob(indir+'*.isf') if os.path.basename(f) not in flist]
+                print(new_files)
 
                 print(len(new_files), 'to be processed')
                 nProcessed = 0
@@ -343,7 +347,7 @@ def monitor(indir, outdir):
                     myrate.processinput(-1)
 
                     fin1.write(myrate.get_summary()+'\n')   
-                    flist.append(fx)
+                    flist.append(os.path.basename(fx))
 
                     nProcessed += 1
                     if nProcessed > nUpdate:
@@ -362,7 +366,7 @@ def main():
     else: test()
 
 if __name__ == '__main__':
-    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May26a/','./h_May26a')
+    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May27a/','./h_May27a_r1')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
 #     main()

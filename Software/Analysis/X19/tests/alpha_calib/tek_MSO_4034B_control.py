@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+'''
+Take data from oscilloscope
+'''
 import time
 import os,sys
 import re
@@ -479,7 +482,8 @@ def main():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
     os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
 #     os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
-    os1.run_project(N=-1, dirx='May26a', tag='test1_')
+#     os1.run_project(N=-1, dirx='May27a', tag='HVscan_scan_1500V_')
+    os1.run_project(N=20, dirx='May27a', tag='HVscan_check_1000V_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')

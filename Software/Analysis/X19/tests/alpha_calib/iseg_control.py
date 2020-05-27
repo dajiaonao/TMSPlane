@@ -168,7 +168,8 @@ def simpleSetHV(vs):
 if __name__ == '__main__':
     listPorts()
 #     test1()
-    simpleSetHV(300)
-#     simpleSetHV(1000)
+#     simpleSetHV(500)
+    simpleSetHV(1000)
+#     simpleSetHV(0)
 #     simpleSetHV(5000)
 #     test2()

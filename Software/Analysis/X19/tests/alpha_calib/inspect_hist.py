@@ -7,7 +7,8 @@ from ROOT import TH1F, TChain, gDirectory, TCanvas, TLegend
 class HistMaker:
     '''This class is used to make some basic histograms from a root file made by oscilloscope_signal_check.py.'''
     def __init__(self):
-        self.promsCfg = 'proms2(128,0,128)'
+#         self.promsCfg = 'proms2(128,0,128)'
+        self.promsCfg = 'proms2(256,0,256)'
         self.dtCfg = 'dt(200,0,20000)'
         self.widthCfg = 'width(200,0,400)'
 
@@ -97,5 +98,5 @@ def test():
 if __name__ == '__main__':
 #     test()
 #     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
-    loopMonitor('h_May26a/*.root', ['h_May26a/*_123.root'])
+    loopMonitor('h_May27a_r1/*.root', ['h_May27a_r1/*_95.root'])
 
