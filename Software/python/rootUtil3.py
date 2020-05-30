@@ -324,6 +324,28 @@ def useNxStyle():
         print(e)
         gStyle.SetPadLeftMargin(0.16)
         gStyle.SetOptStat(0)
+        gStyle.SetCanvasBorderMode(0);
+        gStyle.SetPadBorderMode(0);
+        gStyle.SetPadColor(0);
+        gStyle.SetCanvasColor(0);
+        gStyle.SetPadRightMargin(0.05);
+        gStyle.SetPadTopMargin(0.05);
+#       //   gStyle.SetTitleColor(0);
+        gStyle.SetStatColor(0);
+        gStyle.SetOptTitle(0);
+        gStyle.SetOptStat(0);
+        gStyle.SetOptFit(1111);
+        gStyle.SetLegendBorderSize(0);
+        gStyle.SetPadTickX(1)
+        gStyle.SetPadTickY(1)
+#       //   gStyle.SetHistFillStyle(0);
+#       //   gStyle.SetHistFillColor(2);
+        gStyle.SetFillStyle(0);
+        gStyle.SetLineWidth(1);
+        gStyle.SetHistLineWidth(2);
+        gStyle.SetMarkerStyle(4);
+        gStyle.SetNdivisions(506, "XYZ");
+        gStyle.SetPalette(55);
         pass
 
 def savehistory(dir1=os.environ["HOME"]):

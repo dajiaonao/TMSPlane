@@ -31,8 +31,8 @@ class isegHV:
     def __init__(self):
         self.ser = None
     def connect(self):
-#         portx="/dev/ttyUSB1"
-        portx="/dev/ttyUSB0"
+        portx="/dev/ttyUSB1"
+#         portx="/dev/ttyUSB0"
         bps=9600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     listPorts()
 #     test1()
 #     simpleSetHV(500)
-    simpleSetHV(1000)
+    simpleSetHV(6000)
 #     simpleSetHV(0)
 #     simpleSetHV(5000)
 #     test2()

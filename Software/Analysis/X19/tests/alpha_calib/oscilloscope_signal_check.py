@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+'''
+input: *.isf from ossiloscopy for CSA
+output: summary.txt and root files after peaks findings
+'''
+
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
 # from scipy import signal
@@ -366,9 +371,9 @@ def main():
     else: test()
 
 if __name__ == '__main__':
-    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May27a/','./h_May27a_r1')
+#    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May27a/','./h_May27a_r1')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
 #     main()
 #     test()
-    #multi_run()
+      multi_run()

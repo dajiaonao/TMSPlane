@@ -156,12 +156,48 @@ def compare_Proms():
     waitRootCmdX()
 
 
+class Check_May28:
+    def __init__(self):
+        self.dir1 = '/data/TMS_data/Processed/May27a/'
+
+    def compare_proms2(self):
+        N = 256
+        h0 = TH1F("h0","Proms;Proms [count];Entries",N,0,N)
+
+        var = "proms2"
+        cut = 'proms2>10&&proms2<250'
+        h1 = getHist(self.dir1+"HVscan_scan_500V_*.root",var,h0,"HV 500 V",cut=cut)
+        h2 = getHist(self.dir1+"HVscan_scan_2000V_*.root",var,h0,"HV 2000 V",cut=cut)
+        h3 = getHist(self.dir1+"HVscan_scan_1500V_*.root",var,h0,"HV 1500 V",cut=cut)
+        h4 = getHist(self.dir1+"HVscan_scan_100V_*.root",var,h0,"HV 100 V",cut=cut)
+        h5 = getHist(self.dir1+"HVscan_scan_300V_*.root",var,h0,"HV 300 V",cut=cut)
+        h6 = getHist(self.dir1+"HVscan_scan_800V_*.root",var,h0,"HV 800 V",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+        h3.Draw("PLC PMC same")
+        h4.Draw("PLC PMC same")
+        h5.Draw("PLC PMC same")
+        h6.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.Integral(2,100), h2.Integral(2,100)))
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.GetMean(), h2.GetMean()))
+
+        waitRootCmdX()
+
+
+
+def test():
+    a = Check_May28()
+    a.compare_proms2()
 
 if __name__ == '__main__':
     useNxStyle()
+    test()
 #     compare_Proms()
 #     compare_Proms2()
-    compare_Proms2b()
+#     compare_Proms2b()
 #     compare_dt2()
 #     compare_HV()
 #     compare_Proms2()

@@ -483,7 +483,7 @@ def main():
     os1.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/'
 #     os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
 #     os1.run_project(N=-1, dirx='May27a', tag='HVscan_scan_1500V_')
-    os1.run_project(N=20, dirx='May27a', tag='HVscan_check_1000V_')
+    os1.run_project(N=2, dirx='test', tag='test0')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')

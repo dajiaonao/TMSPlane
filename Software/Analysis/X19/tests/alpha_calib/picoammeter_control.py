@@ -53,7 +53,7 @@ def turnOffIsegV():
 class Picoammeter:
     def __init__(self):
         self.ser = None
-    def connect(self, portx="/dev/ttyUSB1"): #USB Serial Converter
+    def connect(self, portx="/dev/ttyUSB0"): #USB Serial Converter
 #         portx="/dev/ttyUSB0" ##
 #         portx="/dev/ttyUSB1"
         bps=57600
@@ -1048,7 +1048,16 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
     pm1.send('FORM:ELEM READ,TIME,VSO')
 
     pm1.send('TRIG:DEL 0')
-    pm1.send('NPLC 1')
+    pm1.send('NPLC 10')
+
+
+    ### filter control
+    pm1.send('MED:RANK 5') ## give the median of the 2*RANK+1 readings, 1 to 5
+    pm1.send('MED OFF') ## disable median
+    pm1.send('AVER:COUN 20') ## number of reading used to calculat the average, 2 to 100
+    pm1.send('AVER:TCON MOV') ### Type of the average: MOV or REPeat
+    pm1.send('AVER OFF') ### disable average
+
 
     tEnd = None
     if tLast is not None:
@@ -1283,7 +1292,7 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
 #     run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
 #     run_quasicontinious_recording('HVscan_May27a/Ar_0V.dat',extraStr=" 0 0")
-    run_quasicontinious_recording('HVscan_May27a/Ar_alphaOff_1200V.dat',extraStr=" 1200 1200")
+    run_quasicontinious_recording('HVtest_May30a/Air_6000V_c.dat',extraStr=" 6000 6000")
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)
