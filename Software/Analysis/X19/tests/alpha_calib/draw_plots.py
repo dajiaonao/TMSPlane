@@ -186,11 +186,100 @@ class Check_May28:
 
         waitRootCmdX()
 
+class Check_May31:
+    def __init__(self):
+        self.dir1 = '/data/TMS_data/Processed/May31a_cut20/'
+
+    def compare_proms2(self):
+        N = 256
+        h0 = TH1F("h0","Proms;Proms [count];Entries",N,0,N)
+
+        var = "proms2"
+        cut = 'proms2>0&&proms2<250'
+        h1 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_5[0-9].root",var,h0,"HV 1000 V, 5x",cut=cut)
+        h2 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_17[0-9].root",var,h0,"HV 1000 V, 17x",cut=cut)
+        h3 = getHist(self.dir1+"HV_alphaOn_recheckAr_1000V_19[0-9].root",var,h0,"HV 1000 V, recheck",cut=cut)
+#         h4 = getHist(self.dir1+"HVscan_scan_100V_*.root",var,h0,"HV 100 V",cut=cut)
+#         h5 = getHist(self.dir1+"HVscan_scan_300V_*.root",var,h0,"HV 300 V",cut=cut)
+#         h6 = getHist(self.dir1+"HVscan_scan_800V_*.root",var,h0,"HV 800 V",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+        h3.Draw("PLC PMC same")
+#         h4.Draw("PLC PMC same")
+#         h5.Draw("PLC PMC same")
+#         h6.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.Integral(2,100), h2.Integral(2,100)))
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.GetMean(), h2.GetMean()))
+
+        waitRootCmdX()
+
+    def compare_proms(self, var="proms2", cut='proms2>0&&proms2<250', xtitle='Proms'):
+        N = 256
+        h0 = TH1F("h0",f"Proms;{xtitle} [count];Entries",N,0,N)
+
+        h1 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_5[0-9].root",var,h0,"HV 1000 V, 5x",cut=cut)
+        h2 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_17[0-9].root",var,h0,"HV 1000 V, 17x",cut=cut)
+        h3 = getHist(self.dir1+"HV_alphaOn_recheckAr_1000V_19[0-9].root",var,h0,"HV 1000 V, recheck",cut=cut)
+#         h4 = getHist(self.dir1+"HVscan_scan_100V_*.root",var,h0,"HV 100 V",cut=cut)
+#         h5 = getHist(self.dir1+"HVscan_scan_300V_*.root",var,h0,"HV 300 V",cut=cut)
+#         h6 = getHist(self.dir1+"HVscan_scan_800V_*.root",var,h0,"HV 800 V",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+        h3.Draw("PLC PMC same")
+#         h4.Draw("PLC PMC same")
+#         h5.Draw("PLC PMC same")
+#         h6.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.Integral(2,100), h2.Integral(2,100)))
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.GetMean(), h2.GetMean()))
+
+        waitRootCmdX()
+
+
+    def compare_dt2(self, nEnd=20000, nFitStart=400):
+        xEnd = 20000*0.000001
+        h0 = TH1F("h0","dt;dt [s];Entries",100,0,xEnd)
+
+        var = "dt*0.0000005"
+        h1 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_17[0-9].root",var,h0,"HV 1000 V, 17x")
+        h2 = getHist(self.dir1+"HV_alphaOn_recheckAr_1000V_19[0-9].root",var,h0,"HV 1000 V, recheck")
+
+        xFitStart = 500*0.000001
+        h1.Fit('expo','','', xFitStart,xEnd)
+        h2.Fit('expo','','', xFitStart,xEnd)
+
+        h1.SetLineColor(2)
+        h1.SetMarkerColor(2)
+        h1.SetMarkerStyle(20)
+        h2.SetLineColor(4)
+        h2.SetMarkerColor(4)
+        h2.SetMarkerStyle(25)
+
+        fun1 = h1.GetFunction('expo')
+        fun1.SetLineColor(6)
+        fun2 = h2.GetFunction('expo')
+        fun2.SetLineColor(3)
+
+        h1.Draw('E PLC PMC')
+        h2.Draw("E PLC PMC sames")
+        waitRootCmdX()
+
+
 
 
 def test():
-    a = Check_May28()
-    a.compare_proms2()
+#     a = Check_May28()
+    a = Check_May31()
+#     a.compare_proms2()
+    a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_45/'
+#     a.compare_dt2()
+#     a.compare_proms2()
+    a.compare_proms(var="proms3", cut='', xtitle='Proms3')
 
 if __name__ == '__main__':
     useNxStyle()

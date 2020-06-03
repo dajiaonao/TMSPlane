@@ -98,5 +98,5 @@ def test():
 if __name__ == '__main__':
 #     test()
 #     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
-    loopMonitor('h_May27a_r1/*.root', ['h_May27a_r1/*_95.root'])
+    loopMonitor('h_May31a_r1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/May27a/*_95.root'])
 

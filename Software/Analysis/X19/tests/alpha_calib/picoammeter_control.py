@@ -1048,7 +1048,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
     pm1.send('FORM:ELEM READ,TIME,VSO')
 
     pm1.send('TRIG:DEL 0')
-    pm1.send('NPLC 10')
+    pm1.send('NPLC 1')
 
 
     ### filter control
@@ -1063,6 +1063,11 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
     if tLast is not None:
         dT = timedelta(seconds=tLast)
         tEnd = datetime.now() + dT
+
+
+    ### create output direcotry if it does not exist
+    project_dir = os.path.dirname(filename)
+    if not os.path.exists(project_dir): os.makedirs(project_dir)
 
     iGood = 0
     iData = 0
@@ -1292,7 +1297,9 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
 #     run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
 #     run_quasicontinious_recording('HVscan_May27a/Ar_0V.dat',extraStr=" 0 0")
-    run_quasicontinious_recording('HVtest_May30a/Air_6000V_c.dat',extraStr=" 6000 6000")
+#     run_quasicontinious_recording('HVtest_May30a/Air_6000V_c.dat',extraStr=" 6000 6000")
+#     run_quasicontinious_recording('/data/TMS_data/raw/May31a/Ar_alphaOn_scan_1000V_from_0_c1.dat',extraStr=" 1000")
+    run_quasicontinious_recording('/data/TMS_data/raw/Jun01a/Air_alphaOn_check_3000V_from0V_0.dat',extraStr=" 3000")
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

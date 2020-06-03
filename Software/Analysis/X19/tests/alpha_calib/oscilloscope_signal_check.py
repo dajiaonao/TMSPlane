@@ -39,7 +39,9 @@ class findrate(object):
         self.isDebug = False
         self.showPlot = False
         self.outputDir = None
-        self.prominence2Cut=10
+        self.prominence2Cut=20
+#         self.process_fun = self.processinput
+        self.process_fun = self.processinput_v1
 
     def getinput_from_root_v0(self, fname=None, entry=0):
         Nsample = 20000000
@@ -139,6 +141,127 @@ class findrate(object):
 
             self.inputarray = np.asarray(wav1)
 
+    def processinput_v1(self, N):
+        '''Based on the default processinput function, but will only count the peaks pass a cut on prom3. This will remove more background and give a correct dt distribution for the rate estimation.'''
+        print("using processinput_v1") # for debug
+
+        W = 500
+        basename = os.path.basename(self.filename)
+        if N>0: self.inputarray = self.inputarray[:N]
+        arwav2 = self.inputarray
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+        if self.isDebug: print(len(peaks),peaks)
+
+        promsall = peak_prominences(arwav2, peaks, wlen=200)
+        proms = promsall[0]
+        promxmins = promsall[1]
+        promxmaxs = promsall[2]
+        lpromscallow = []
+        for i in range(len(proms)-1):
+            if arwav2[promxmins[i]] < arwav2[promxmaxs[i]]:
+                lpromscallow.append(arwav2[peaks[i]] - arwav2[promxmins[i]])
+            else:
+                lpromscallow.append(arwav2[peaks[i]] - arwav2[promxmaxs[i]])
+        promscallow = np.asarray(lpromscallow)
+
+        if self.isDebug:
+            print(proms[:10])
+            print(promscallow[:10])
+
+        ### get the values
+        self.npeaks = len(peaks)
+        pks = arwav2[peaks]
+        df_pks = np.diff(peaks)
+        widths = properties['widths']
+        proms2 = self.corrected_proms(peaks)
+        proms3 = pks - arwav2[promxmins]
+        rtime = peaks - promxmins
+
+        if self.isDebug:
+            for i in range(self.npeaks):
+                if abs(proms3[i]-proms2[i])>5:
+                    print(peaks[i], proms3[i], proms2[i])
+
+        ### plots if requested
+        if self.showPlot:
+            contour_heights = arwav2[peaks] - proms
+            plt.plot(arwav2)
+            plt.plot(peaks, arwav2[peaks], "x")
+            plt.vlines(x=peaks, ymin=contour_heights, ymax=arwav2[peaks], color = "C1")
+            plt.vlines(promxmins, ymin=contour_heights, ymax=arwav2[peaks], color = "C2", linestyles = "dashed")
+            plt.vlines(promxmaxs, ymin=contour_heights, ymax=arwav2[peaks], color = "C2", linestyles = "dotted")
+            plt.hlines(y=arwav2[peaks], xmin=promxmins, xmax=promxmaxs, color = "C2", linestyles = "dashdot")
+            plt.hlines(y=properties["width_heights"], xmin=properties["left_ips"], xmax=properties["right_ips"], color = "C1")
+
+            plt.plot(peaks, proms2, "+")
+            plt.plot(peaks, proms3, "o")
+
+            proms_diff = proms3 - proms2
+            plt.plot(peaks, proms_diff)
+
+            #x2 = [peaks[i+1]-peaks[i] for i in range(len(peaks)-1)]
+            fig0, ax0 = plt.subplots(num="diffpeak_"+basename)
+
+            num_bins = 50
+            # the histogram of the data
+            n, bins, patches = ax0.hist(np.diff(peaks), num_bins)
+
+            fig1, ax1 = plt.subplots(num="peakheight_"+basename)
+            #n, bins, patches = ax.hist([arwav1[ix] for ix in peaks], num_bins)
+            ax1.hist(arwav2[peaks], num_bins)
+
+            fig2, ax2 = plt.subplots(num="peakprom_"+basename)
+            #plt.plot(proms)
+            ax2.hist(proms, num_bins)
+            plt.show()
+
+        ### calculate means
+        self.heightmean = np.mean(pks)
+        self.diffpeakmean = np.mean(df_pks)
+        self.prominencemean = np.mean(proms)
+        self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
+        self.npeaks_corr = len(proms2[proms2>self.prominence2Cut])/self.timelap 
+        self.widthmean = np.mean(widths)
+
+#         mdx = np.array([])
+#         for i in range(self.npeaks-1):
+#             if peaks[i+1]-peaks[i]<1000: continue
+# #             print(peaks[i],peaks[i+1])
+#             a,b = int(peaks[i])+500, int(peaks[i+1])-500
+#             mdx = np.append(mdx,arwav2[a:b])
+#         self.bkg = np.std(mdx)
+
+        midds = [int(0.5*(peaks[i]+peaks[i+1])) for i in range(self.npeaks-1) if peaks[i+1]-peaks[i]>1000]
+        self.bkg = np.std(arwav2[midds])
+
+        ### save to root
+        df_pks = np.append(np.array([-1]),df_pks)
+        bigx0 = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
+        print(bigx0.shape,bigx0.dtype)
+
+
+        bigx = bigx0
+        ### ---- let's do the interesting things here
+        pCut3 = 45
+        dtC = None ### use None as initial value to deal with the first one properly
+        for i in range(len(bigx0)):
+            if proms3[i] > pCut3:
+                if dtC is not None: bigx0['dt'][i] += dtC ### add the accumulated dt: dtC, no need for 1st one
+                dtC = 0                                ### and reset dtC
+            else:
+                if dtC is not None: dtC += bigx0['dt'][i]  ### accumulating... no need for the 1st one
+                bigx0['dt'][i] = -bigx0['dt'][i]              ### not necussary, but as a check
+
+        bigx = bigx0[bigx0['proms3']>pCut3] ### a tough cut for the sake of sigal purity
+        #### --- OK, interesting thing done, and cut made, ready to be saved now.
+
+
+        oDir = self.outputDir if self.outputDir is not None else myOutPutDir
+        rootfile = array2root(bigx, oDir+"/"+basename[:-4] + '.root',  mode="recreate")
+
+        self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
+
+
     def processinput(self, N):
         W = 500
         basename = os.path.basename(self.filename)
@@ -221,6 +344,7 @@ class findrate(object):
         self.diffpeakmean = np.mean(df_pks)
         self.prominencemean = np.mean(proms)
         self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
+        self.npeaks_corr = len(proms2[proms2>self.prominence2Cut])/self.timelap 
         self.widthmean = np.mean(widths)
 
 #         mdx = np.array([])
@@ -244,13 +368,13 @@ class findrate(object):
         self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
 
     def get_summary(self):
-        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f}"
+        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr}"
 
 def process_file(inputName):
     print(f"Processing {inputName}")
     myrate = findrate(inputName)
     myrate.getinput()
-    myrate.processinput(-1)
+    myrate.process_fun(-1)
     return myrate
 
 def multi_run():
@@ -289,7 +413,7 @@ def test():
         myrate = findrate(files[i])
         myrate.showPlot = True
         myrate.getinput()
-        myrate.processinput(-1)
+        myrate.process_fun(-1)
         myrates.append(myrate)
     print(myrate.header)
     for i in range(len(myrates)):
@@ -311,7 +435,7 @@ def test0():
     if ret is None: return None
 
     fr1.showPlot = True
-    fr1.processinput(-1)
+    fr1.process_fun(-1)
     print(fr1.get_summary())
 
 def monitor(indir, outdir):
@@ -349,7 +473,7 @@ def monitor(indir, outdir):
                     myrate.outputDir = outdir
                     myrate.showPlot = False
                     myrate.getinput()
-                    myrate.processinput(-1)
+                    myrate.process_fun(-1)
 
                     fin1.write(myrate.get_summary()+'\n')   
                     flist.append(os.path.basename(fx))
@@ -371,9 +495,9 @@ def main():
     else: test()
 
 if __name__ == '__main__':
-#    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May27a/','./h_May27a_r1')
+#    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
-#     main()
+    main()
 #     test()
-      multi_run()
+#       multi_run()
