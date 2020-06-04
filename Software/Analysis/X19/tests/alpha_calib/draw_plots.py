@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 ### Draw various plots
-from ROOT import TH1F, TChain, gStyle, gPad, TLegend
+from ROOT import TH1F, TChain, gStyle, gPad, TLegend, TRatioPlot
 from rootUtil3 import waitRootCmdX, useNxStyle
 
 def getHist(fname,var,h0,tag,cut='',style=None,opt=''):
@@ -269,17 +269,43 @@ class Check_May31:
         h2.Draw("E PLC PMC sames")
         waitRootCmdX()
 
+    def dt_fit(self, nEnd=20000, nFitStart=500):
+        xEnd = nEnd*0.000001
+        h0 = TH1F("h0","dt;dt [s];Entries",100,0,xEnd)
 
+        var = "dt*0.0000005"
+#         h1 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_*.root",var,h0,"HV 1000 V, rampAr")
+        h1 = getHist(self.dir1+"HV_alphaOn_recheckAr_1000V_*.root",var,h0,"HV 1000 V, recheck")
 
+        xFitStart = nFitStart*0.000001
+        h1.Fit('expo','','', xFitStart,xEnd)
+
+#         gStyle.SetFunLineColor(2)
+#         h1.SetLineColor(2)
+#         h1.SetMarkerColor(2)
+#         h1.SetMarkerStyle(20)
+
+        rp1 = TRatioPlot(h1);
+        rp1.Draw();
+        rp1.GetLowerRefYaxis().SetTitle("Ratio");
+
+        fun1 = h1.GetFunction('expo')
+        fun1.SetLineColor(6)
+# 
+#         h1.Draw('E PLC PMC')
+        waitRootCmdX()
 
 def test():
 #     a = Check_May28()
     a = Check_May31()
 #     a.compare_proms2()
-    a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_45/'
+    a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+#     a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_45/'
 #     a.compare_dt2()
 #     a.compare_proms2()
-    a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+#     a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+#     a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_20/'
+#     a.dt_fit(nEnd=30000)
 
 if __name__ == '__main__':
     useNxStyle()

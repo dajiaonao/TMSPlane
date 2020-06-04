@@ -242,10 +242,10 @@ class findrate(object):
 
         bigx = bigx0
         ### ---- let's do the interesting things here
-        pCut3 = 45
+        pCut3 = 20
         dtC = None ### use None as initial value to deal with the first one properly
         for i in range(len(bigx0)):
-            if proms3[i] > pCut3:
+            if proms3[i] > pCut3 and (proms3[i]<180 or proms3[i]>190):
                 if dtC is not None: bigx0['dt'][i] += dtC ### add the accumulated dt: dtC, no need for 1st one
                 dtC = 0                                ### and reset dtC
             else:
