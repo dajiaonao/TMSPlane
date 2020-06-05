@@ -3,6 +3,7 @@
 import serial
 import time
 import os
+import sys
 from datetime import datetime, timedelta
 import logging
 
@@ -152,24 +153,48 @@ def simpleSetHV(vs):
     is1.connect()
     print(is1.query(':READ:IDNT?'))
 
-    print("Setting voltage to {0}".format(vs))
-    is1.send('*CLS')
-    time.sleep(2)
-    is1.send('EVENT:CLEAR')
-    time.sleep(2)
-    is1.setV(vs)
-    time.sleep(10)
+    ### deal with special requirement
+    if vs in ['ON', 'OFF']:
+        print(is1.send(f':VOLTage {vs}'))
+    else:
+        print("Setting voltage to {0}".format(vs))
+        is1.send('*CLS')
+        time.sleep(2)
+        is1.send('EVENT:CLEAR')
+        time.sleep(2)
+        is1.setV(vs)
+        time.sleep(10)
 
-    vs1 = is1.getV()
-    print(f"measured V {vs1}")
+        vs1 = is1.getV()
+        print(f"measured V {vs1}")
 
     is1.disconnect()
 
+def main():
+    usage_str = f"Usage: {sys.argv[0]} go VALUE|OFF|ON"
+    if len(sys.argv)<3 or sys.argv[1]!='go':
+        print(usage_str)
+        return
+    try:
+        value = int(sys.argv[2])
+    except ValueError:
+        if sys.argv[2] in ['ON','OFF']:
+            value = sys.argv[2]
+        else:
+            print(f"{sys.argv[2]} could not be interpreted")
+            print(usage_str)
+            return
+
+    ### start the operation
+    simpleSetHV(value)
+
+
 if __name__ == '__main__':
     listPorts()
+    main()
 #     test1()
 #     simpleSetHV(500)
-    simpleSetHV(0)
+#     simpleSetHV(10000)
 #     simpleSetHV(3000)
 #     simpleSetHV(5000)
 #     test2()
