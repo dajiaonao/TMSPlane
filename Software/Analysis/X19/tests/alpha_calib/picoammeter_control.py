@@ -99,6 +99,7 @@ class Picoammeter:
     def test0(self):
         '''Check if the connection is sucessful'''
         self.connect()
+        self.send('*RST')
         print(self.query('*IDN?'))
         self.disconnect()
 
@@ -1203,16 +1204,106 @@ def run_zero_check():
     pm1.zero_check()
 
 def run_HV_checkI():
-    for i in range(5): 
-        if HV_checkI(8000): break
-        time.sleep(10)
+#     for HV in [0,100,300,500,800,1000,2000,3000,4000,5000,6000,7000,8000]: 
+    for HV in [6000,7000,8000]: 
+#     for HV in reversed([0,100,300,500,800,1000,2000,3000,4000,5000,6000,7000,8000]): 
+#     for HV in reversed([0]): 
+        if HV_checkI(HV): break
+        time.sleep(80)
+
+#     for i in range(5): 
+#         if HV_checkI(8000): break
+#         time.sleep(10)
 
 def run_HV_checkI_Dongwen():
-    for i in range(5): 
+#     for i in range(5): 
 #         if HV_checkI_Dongwen(1000): break
 #         if HV_checkI_Dongwen(5000): break
-        if HV_checkI_Dongwen(8000): break
-        time.sleep(10)
+#         if HV_checkI_Dongwen(8000): break
+#         time.sleep(10)
+    while True:
+        hv = input('HV value:')
+        if HV_checkI_Dongwen(int(hv)): break
+
+        time.sleep(50)
+
+def run_interactively_HV_checkI_Dongwen(outfile, nGood=3, tLast=60):
+    '''The function is used to check the repeatbiltiy and stablility of the Dongwen HV device.
+    This need to be done interactively: 1) set the value at the begining and 2) check the value when it's stable.'''
+    rCode = 0 # 0: OK; 1:interruput signal, should stop at higher level
+    dT = timedelta(seconds=tLast)
+
+    pm1 = Picoammeter()
+    pm1.connect()
+    print(pm1.query('*IDN?'))
+
+    ### confiugration
+    pm1.send("FUNC 'CURR'")
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    ### setup the ouput directory and filename
+    project_dir = os.path.dirname(outfile)
+    filename0 = outfile
+    ifile = 0
+    filename = filename0
+    if not os.path.exists(project_dir): os.makedirs(project_dir)
+    while os.path.exists(filename): ifile, filename = ifile+1, project_dir + '/' + filename0 + '.{0:d}'.format(ifile)
+
+    with open(filename,'w') as fout1:
+        while True:
+            vs1 = input(f"Set the value now to:")
+            if vs1 == 'q': break
+
+            HVvalue = vs1
+            print(f"HV vlaue {vs1} confirmed")
+
+            ### start taking data
+            tEnd = None
+            iGood = 0
+            iData = 0
+            while True:
+                ### check time requirement.
+                if tEnd and datetime.now() > tEnd: break
+
+                try:
+                    pm1.send('TRIG:COUN 100', False)
+                    
+                    t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                    pm1.send('INIT', False)
+                    q2 = pm1.query('READ?')
+                    data = list(zip(*[iter(q2.split(','))]*3))
+
+                    isGood = 0 
+                    if isGoodData(data):
+                        isGood = 1
+                        iGood += 1
+                        print(f"Number of good dataset: {iGood}")
+                        if iGood >= nGood and tEnd is None: 
+                            vs1 = input("Check the vlue now:")
+                            print(f"measured V {vs1}")
+                            time.sleep(2)
+                            tEnd = datetime.now() + dT
+                            print(f'Will stop taking this dataset at {tEnd}')
+
+                    ## pass the values to outx 
+                    outx = ''
+                    for d in data: outx += ' '.join([t0,d[0],d[1],d[2],str(HVvalue),str(vs1),str(isGood),str(iGood),str(iData)]) +'\n'
+
+                    ## write out outx
+                    fout1.write(outx)
+                    fout1.flush()
+                    iData += 1
+                except KeyboardInterrupt:
+                    rCode = 1
+                    break
+    ### finish
+    pm1.disconnect()
+    return rCode
+
+
 
 def HV_checkI_Dongwen(HVvalue, nGood=3, tLast=60):
     '''The function is used to check the repeatbiltiy and stablility of the Dongwen HV device.
@@ -1294,13 +1385,14 @@ if __name__ == '__main__':
 #     run_HV_checkI()
 #     run_zero_check()
 #     run_HV_checkI_Dongwen()
+    run_interactively_HV_checkI_Dongwen('/data/TMS_data/raw/May31a/Jun10_DongwenHV/current.dat')
 #     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
 #     run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
 #     run_quasicontinious_recording('HVscan_May27a/Ar_0V.dat',extraStr=" 0 0")
 #     run_quasicontinious_recording('HVtest_May30a/Air_6000V_c.dat',extraStr=" 6000 6000")
 #     run_quasicontinious_recording('/data/TMS_data/raw/May31a/Ar_alphaOn_scan_1000V_from_0_c1.dat',extraStr=" 1000")
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun01a/Air_alphaOn_check_3000V_from0V_0.dat',extraStr=" 3000")
-    run_quasicontinious_recording('/data/TMS_data/raw/Jun05a/Air_alphaOn_5000V.dat',extraStr=" 5000")
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun05a/Air_alphaOn_5000V.dat',extraStr=" 5000")
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

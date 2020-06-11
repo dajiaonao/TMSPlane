@@ -148,6 +148,18 @@ def test2():
     tN = t+dT
     print(t,t2,tN)
 
+def measureHV():
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    vs1 = is1.getV()
+    print(f"measured V {vs1}")
+
+    is1.disconnect()
+
+
+
 def simpleSetHV(vs):
     is1 = isegHV()
     is1.connect()
@@ -192,6 +204,7 @@ def main():
 if __name__ == '__main__':
     listPorts()
     main()
+#     measureHV()
 #     test1()
 #     simpleSetHV(500)
 #     simpleSetHV(10000)
