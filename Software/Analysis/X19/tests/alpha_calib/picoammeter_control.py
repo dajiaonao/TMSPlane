@@ -123,6 +123,22 @@ class Picoammeter:
 
         self.disconnect()
 
+    def test1a(self):
+        '''Perform a simple current measurement. Taken from the manual'''
+        self.connect()
+        self.send('*RST')
+        self.send("FUNC 'CURR'")
+        self.send('RANG:AUTO ON')
+        self.send('READ?')
+
+        result = self.ser.read(200)
+        print(result)
+        print(result.decode())
+
+        self.disconnect()
+
+
+
     def test_simple_measureI(self):
         '''Preform a simple measurement'''
         self.connect()
@@ -949,7 +965,8 @@ def measureR1():
 def run_tests():
     pm1 = Picoammeter()
 #     pm1.test0()
-    pm1.test1()
+#     pm1.test1()
+    pm1.test1a()
 #     pm1.zero_check()
 #     pm1.test_simple_measureI()
 #     pm1.multiple_measureI()
@@ -1385,7 +1402,7 @@ if __name__ == '__main__':
 #     run_HV_checkI()
 #     run_zero_check()
 #     run_HV_checkI_Dongwen()
-    run_interactively_HV_checkI_Dongwen('/data/TMS_data/raw/May31a/Jun10_DongwenHV/current.dat')
+#     run_interactively_HV_checkI_Dongwen('/data/TMS_data/raw/May31a/Jun10_DongwenHV/current.dat')
 #     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
 #     run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
 #     run_quasicontinious_recording('HVscan_May27a/Ar_0V.dat',extraStr=" 0 0")
@@ -1393,6 +1410,9 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/May31a/Ar_alphaOn_scan_1000V_from_0_c1.dat',extraStr=" 1000")
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun01a/Air_alphaOn_check_3000V_from0V_0.dat',extraStr=" 3000")
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun05a/Air_alphaOn_5000V.dat',extraStr=" 5000")
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun11a/Air_acceptanceCheck_outter.dat',extraStr=" -1")
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc500V.dat',extraStr=" -1")
+    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc750V.dat',extraStr=" -1")
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)
