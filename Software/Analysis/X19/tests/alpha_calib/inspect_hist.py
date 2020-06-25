@@ -63,6 +63,7 @@ def loopMonitor(rPattern, refRootFiles=[]):
                 c1.cd(i+1)
                 hNew[i].Draw('PLC')
                 for h in dsList: h[i].Draw('PLC same')
+                hNew[i].Draw('same')
 
                 if i==1:
                     lg.AddEntry(hNew[i],"new",'l')
@@ -98,5 +99,6 @@ def test():
 if __name__ == '__main__':
 #     test()
 #     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
-    loopMonitor('h_May31a_r1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/May27a/*_95.root'])
+#     loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
+    loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['/data/TMS_data/Processed/Jun25a_p1/*_280.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
 

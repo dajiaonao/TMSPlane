@@ -13,7 +13,8 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 #set timefmt x "%Y-%m-%d_%H:%M:%S"
 set timefmt "%Y-%m-%d_%H:%M:%S"
 #if (!exists("projname")) projname='/data/TMS_data/Processed/May27a/'
-if (!exists("projname")) projname='/data/TMS_data/Processed/May31a_cut20/'
+if (!exists("projname")) projname='/data/TMS_data/Processed/Jun25a_p1/'
+#if (!exists("projname")) projname='/data/TMS_data/Processed/May31a_cut20/'
 #if (!exists("projname2")) projname2='h_May31a_r1/'
 #if (!exists("projname")) projname='project_48/'
 #if (!exists("projname")) projname='project_41/'

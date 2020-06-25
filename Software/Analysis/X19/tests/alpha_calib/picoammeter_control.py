@@ -53,6 +53,7 @@ def turnOffIsegV():
 class Picoammeter:
     def __init__(self):
         self.ser = None
+        self.hidden_cmd_file = '.hidden_pm'
     def connect(self, portx="/dev/ttyUSB0"): #USB Serial Converter
 #         portx="/dev/ttyUSB0" ##
 #         portx="/dev/ttyUSB1"
@@ -69,6 +70,19 @@ class Picoammeter:
         if log_cmd: logging.info(msg.rstrip())
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
+
+    def checkCmd(self):
+        '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
+        with open(self.hidden_cmd_file) as f1:
+            lines = [l.strip() for l in f1.readlines() if len(l)>0 and l[0] not in ['\n','#'] ]
+            for line in lines:
+                if line.lower() in ['q','quit','exit','end']: return 'q'
+                else:
+                    try:
+                        exec(line)
+                    except NameError as e:
+                        print(f"Error running command:{line}--> {e}")
+        return None
 
     def zero_check(self, doZeroCorr=True):
         '''Perform zero check: 
@@ -1055,11 +1069,16 @@ def HV_out_scan(vlist, dT):
         except KeyboardInterrupt:
             break
 
-def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
+def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', nrps=100):
+    '''
+    nspt: n readings per sample
+    '''
     rCode = 0
     pm1 = Picoammeter()
     pm1.connect()
+    pm1.send('*RST')
     print(pm1.query('*IDN?'))
+    pm1.send('SYST:ZCH OFF')
 
     ### confiugration
     pm1.send("FUNC 'CURR'")
@@ -1086,6 +1105,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
     ### create output direcotry if it does not exist
     project_dir = os.path.dirname(filename)
     if not os.path.exists(project_dir): os.makedirs(project_dir)
+    if os.path.exists(filename): filename += '.1'
 
     iGood = 0
     iData = 0
@@ -1097,7 +1117,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
             if iData == nRead: break
 
             try:
-                pm1.send('TRIG:COUN 100', False)
+                pm1.send(f'TRIG:COUN {nrps}', False)
                 
                 t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
                 pm1.send('INIT', False)
@@ -1121,6 +1141,10 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr=''):
             except KeyboardInterrupt:
                 rCode = 1
                 break
+
+            ### allow hidden command break
+            if pm1.checkCmd() == 'q': break
+
     ### finish
     pm1.disconnect()
     return rCode
@@ -1412,7 +1436,22 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun05a/Air_alphaOn_5000V.dat',extraStr=" 5000")
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun11a/Air_acceptanceCheck_outter.dat',extraStr=" -1")
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc500V.dat',extraStr=" -1")
-    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc750V.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc750V.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc870V.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasure_FocusOff_Uc2000V.dat',extraStr=" -1")
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc1000V_read1000.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000b.dat',extraStr=" -1")
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun19a/Air_acceptanceMeasureD3mm_FocusOn_Uc2000V.dat',extraStr=" -1")
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jun19a/Air_leakCurrentCheck.dat',extraStr=" -1", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc1500V.dat',extraStr=" -1", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun23a/Air_systemCheck_FocusOn_Uc500.dat',extraStr=" 1000 500", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun24a/Air_systemCheckIn.dat',extraStr=" 1000 0", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI.dat',extraStr=" 2000 0", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1000.dat',extraStr=" 1000 1140", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2500.dat',extraStr=" 2500 2850", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2000_Fc1000.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
+    run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1500_Fc1000.dat',extraStr=" 1500 2570 1000 2500", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

@@ -444,10 +444,12 @@ def monitor(indir, outdir):
 
     flist = []
     if outdir[-1] != '/': outdir = outdir.rstrip()+'/'
+    if not os.path.exists(outdir): os.makedirs(outdir)
     summary_file = outdir+'summary.txt'
 
     flist = []
     modex = 'w'
+    print(summary_file)
     if os.path.exists(summary_file):
         with open(summary_file,'r') as fin1:
 
@@ -496,8 +498,9 @@ def main():
 
 if __name__ == '__main__':
 #    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
+   monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
-    main()
+#     main()
 #     test()
 #       multi_run()
