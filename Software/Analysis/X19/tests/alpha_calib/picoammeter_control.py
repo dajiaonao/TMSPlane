@@ -76,7 +76,7 @@ class Picoammeter:
     def checkCmd(self):
         '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
         ### check the status of the hidden command file
-        if not os.path.exists(self.hiddenCmdFile) return None
+        if not os.path.exists(self.hiddenCmdFile): return None
 
         ### check if it's updated since the begining of the program
         tmp_t = os.path.getmtime(self.hiddenCmdFile)
@@ -1481,7 +1481,11 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1000.dat',extraStr=" 1000 1140", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2500.dat',extraStr=" 2500 2850", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2000_Fc1000.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
-    run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1500_Fc1000.dat',extraStr=" 1500 2570 1000 2500", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1500_Fc1000.dat',extraStr=" 1500 2570 1000 2500", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_totalI.dat',extraStr=" 2000 2280", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000_close.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
+    run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_close.dat',extraStr=" 2000 2280", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)
