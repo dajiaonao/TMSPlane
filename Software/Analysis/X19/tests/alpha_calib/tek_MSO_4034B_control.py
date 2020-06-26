@@ -33,18 +33,35 @@ class Oscilloscope:
         self.dir0 = '/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw2/'
         self.dirx = 'test'
         self.tag = 'test_'
+        self.hiddenCmdFile = '.hidden_cmd'
+        self.hiddenCmdT = time.time() 
 
     def checkCmd(self):
         '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
-        with open('.hidden_cmd') as f1:
+        ### check the status of the hidden command file
+        if not os.path.exists(self.hiddenCmdFile) return None
+
+        ### check if it's updated since the begining of the program
+        tmp_t = os.path.getmtime(self.hiddenCmdFile)
+        if tmp_t < self.hiddenCmdT: return None
+        self.hiddenCmdT = tmp_t
+
+        ### process as given in the file
+        with open(self.hiddenCmdFile) as f1:
             lines = [l.strip() for l in f1.readlines() if len(l)>0 and l[0] not in ['\n','#'] ]
             for line in lines:
                 if line.lower() in ['q','quit','exit','end']: return 'q'
+#                 elif line.lower() in ['i']:
+#                     print("going into interactive mode...")
+#                     return 'i'
                 else:
                     try:
                         exec(line)
                     except NameError as e:
                         print(f"Error running command:{line}--> {e}")
+
+        ### update the time
+        self.hiddenCmdT = os.path.getmtime(self.hiddenCmdFile)
         return None
 
     def connect(self, force=False):

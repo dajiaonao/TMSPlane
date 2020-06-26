@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+'''
+Find the manual here: https://iseg-hv.com/files/media/HPx-LPx_300-800W_eng.pdf
+'''
 # from __future__ import print_function
 import serial
 import time
@@ -59,6 +62,16 @@ class isegHV:
     def test0(self):
         self.connect()
         print(self.query('*IDN?'))
+
+    def setILimit(self, I):
+        '''Current in A'''
+        self.send(f':CURRent:LIMit {I}')
+        time.sleep(1)
+
+    def setVSpeed(self, speed):
+        '''Speed in V/s'''
+        self.send(f':CONFigure:RAMP:VOLTage {speed}')
+        time.sleep(1)
 
     def setV(self, v):
 #         print(':VOLTage {0}'.format(v))
@@ -170,6 +183,7 @@ def simpleSetHV(vs):
         print(is1.send(f':VOLTage {vs}'))
     else:
         print("Setting voltage to {0}".format(vs))
+        print("Status:", is1.query('READ:CHANnel:EVent:STATus?'))
         is1.send('*CLS')
         time.sleep(2)
         is1.send('EVENT:CLEAR')
