@@ -2,7 +2,7 @@
 from array import array
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
+from scipy.optimize import minimize, curve_fit
 from scipy.stats import norm, kstest
 from math import sqrt
 
@@ -18,6 +18,19 @@ def test():
 
 def funx(x):
     return x[0]+3*x[0]*x[0]
+
+def remove_outlier3(data1):
+    '''Remove measurements affectted by HV trips'''
+    N = len(data1)
+    seeds = []
+    for i in range(1,N-8):
+        if (data1[i]-data1[i-1])*(data1[i]-np.mean(data1[i+3:i+8]))>70: seeds.append(i)
+    for s in seeds:
+        for i in range(-1,20):
+            if 0 <= s+i < N: data1[s+i] = None
+    data1 = [x for x in data1 if x is not None]
+
+    return data1
 
 def remove_outlier2(data1, x1):
     ### find seed: 1) 5 sigma away from mean of the rsidual, 2) the one before are after are more than 3 sigma away
@@ -145,6 +158,8 @@ def getRange(i01, nMax=100, show=False):
 
     return (start0, start1, end1, end2, d, v)
 
+def fit_arverage(x, p0):
+    return p0
 
 def fit_ds(ds, show=False, check=False):
 #     r = getRange(ds, show=True)
@@ -157,8 +172,8 @@ def fit_ds(ds, show=False, check=False):
     else: data1 = ds
 
     V0 = (1,1) ### initial variance
-    res = minimize(ffun, [-53,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell')
-#     print(res)
+    res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell')
+    print(res)
 
     ### redo the fit with the uncertainty difference taken into account
     rsd = [data1[i]-ffunY(res.x, i) for i in range(len(data1))]
@@ -170,6 +185,8 @@ def fit_ds(ds, show=False, check=False):
 #     plt.plot(data1)
 #     plt.show()
 
+    ### ad-hoc fix
+    if res.x[5]>len(data1): res.x[5]=len(data1)-50
     res = minimize(ffun, res.x, args=(data1, V1), method='Powell')
 
 #     rsd2 = [data1[i]-ffunY(res.x, i) for i in range(len(data1))]
@@ -363,7 +380,7 @@ def test2():
 
     plt.show()
 
-def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None):
+def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None):
     '''Check data'''
 #     fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat'
 
@@ -383,8 +400,10 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
     results = []
     i0 = None
     for k,v in dList.items():
+        if k in excludeDS: continue
         print(k, len(v))
 
+#         if k!='2020-06-25_21:44:52': continue
 #         print("ttt")
 #         plt.plot(v)
 #         ds1 = remove_outlier(v)
@@ -394,40 +413,65 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 #         v = ds1
 #         print("ttt")
 
-
-
-        fr = fit_ds(v, show=True)
+        if HVtripFix:
+#             plt.plot(v)
+            v = remove_outlier3(v)
+#             plt.plot(v)
+#             plt.show()
+#
+#         fr = fit_ds(v, show=True)
 #         fr = fit_ds(v, show=True, check=True)
 #         fr = fit_ds(v, show=False, check=True)
-#         fr = fit_ds(v, show=False, check=False)
+        fr = fit_ds(v, show=False, check=False)
 
         results.append(fr)
 
 #     plt.plot(results)
-    plt.hist([abs(a[0]) for a in results])
-    plt.show()
+#     plt.hist([abs(a[0]) for a in results])
+#     plt.show()
 
     x = range(len(results))
     y = [abs(a[0]) for a in results]
     e = [a[1] for a in results]
     plt.errorbar(x, y, yerr=e, fmt='o')
-    plt.show()
+    plt.xlabel("Measurement Index")
+    plt.ylabel("Current [pA]")
+
+    popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, p0=[y[0]], bounds=(-20, 20))
+#     popt, pcov = curve_fit(x, y, sigma=e, p0=[0], bounds=([-20], [20]))
+    print(popt, pcov)
+    mean = popt[0]
+    err = sqrt(pcov[0][0])
+    plt.axhline(y=mean, color='red', label=f"mean: {mean:.2f}$\pm${err:.2f}")
+    plt.axhspan(mean-err, mean+err, facecolor='0.5', alpha=0.5)
+
+    if infoText is not None: plt.title(infoText)
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    if sName is not None: plt.savefig(sName)
+    else:
+        plt.show()
+    plt.cla()
 
 
 
 if __name__ == '__main__':
+    dir1 = '/data/TMS_data/raw/'
+    dir2 = '/home/TMSTest/dz/'
 #     test()
 #     test2()
 #     test3()
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1000.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2500.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd3000.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2000b.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2000_Fc1000.dat.1')
-#     check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1500_Fc1000.dat')
-#     check_ds(fname = '/data/TMS_data/raw/Jun26a/Air_totalI.dat', startIdx=950)
-#     check_ds(fname = '/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000.dat', startIdx=5850)
-#     check_ds(fname = '/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000_close.dat', startIdx=None)
-    check_ds(fname = '/data/TMS_data/raw/Jun26a/Air_I_Fd2000_close.dat', startIdx=9000)
+    check_ds(dir1+'Jun25a/Argon_totalI.dat',infoText='Ar, total, $U_{D}$=2 kV', sName=dir2+'Ar_total_Ud2kV.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd1000.dat', infoText='Ar, total, $U_{D}$=1 kV', excludeDS=['2020-06-25_21:29:23'], sName=dir2+'Ar_total_Ud1kV.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd2500.dat', infoText='Ar, total, $U_{D}$=2.5 kV', sName=dir2+'Ar_total_Ud2p5k.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd3000.dat',HVtripFix=True, infoText='Ar, total, $U_{D}$=3 kV', sName=dir2+'Ar_total_Ud3kV.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd2000b.dat', infoText='Ar, total, $U_{D}$=2 kV, dataset 2', sName=dir2+'Ar_total_Ud2kV_ds2.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd2000_Fc1000.dat.1', infoText='Ar, Focusing, $U_{D}$=2 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud2kV_Uc1kV.eps')
+    check_ds(dir1+'Jun25a/Argon_totalI_Fd1500_Fc1000.dat', infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud1p5kV_Uc1kV.eps')
+#     check_ds(dir1+'Jun26a/Air_totalI.dat', startIdx=950)
+#     check_ds(dir1+'Jun26a/Air_I_Fd2000_Fc1000.dat', startIdx=5850)
+#     check_ds(dir1+'Jun26a/Air_I_Fd2000_Fc1000_close.dat', startIdx=None)
+#     check_ds(dir1+'Jun26a/Air_I_Fd2000_close.dat', startIdx=9000)
+#     check_ds(dir1+'Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000b.dat', startIdx=None)
 
