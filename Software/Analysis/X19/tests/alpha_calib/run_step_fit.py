@@ -167,13 +167,30 @@ def fit_ds(ds, show=False, check=False):
     if show: print('r=',r)
 
     data1 = None
-    if r[0]: data1 = ds[r[0]:]
-    elif r[3]: data1 = ds[:r[3]]
+    r1 = r[1]
+    r2 = r[2]
+    if r[0]:
+        d = 5
+        data1 = ds[r[0]+d:]
+        r1 -= (r[0]+d)
+        r2 -= (r[0]+d)
+    elif r[3]:
+        data1 = ds[:r[3]]
     else: data1 = ds
 
+    ndata1 = len(data1)
+    bounds1 = ((None,None),(None,None),(None,None),(None,None),(r1-10,r1+10),(r2-10,r2+10))
     V0 = (1,1) ### initial variance
-    res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell')
-    print(res)
+#     res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell')
+
+#     if res.x[5]>len(data1):
+#         res = minimize(ffun, res.x, args=(data1, V1), method='Powell')
+#     res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell', bounds=bounds1)
+    res = minimize(ffun, [0,0,0,r[5],r1,r2], args=(data1, V0), method='Powell', bounds=bounds1)
+#     res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='SLSQP', bounds=(None,None,None,None,(20,400),(700,980)))
+#     res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='SLSQP')
+#     print(res)
+    if not res.success: print(res)
 
     ### redo the fit with the uncertainty difference taken into account
     rsd = [data1[i]-ffunY(res.x, i) for i in range(len(data1))]
@@ -186,9 +203,14 @@ def fit_ds(ds, show=False, check=False):
 #     plt.show()
 
     ### ad-hoc fix
-    if res.x[5]>len(data1): res.x[5]=len(data1)-50
-    res = minimize(ffun, res.x, args=(data1, V1), method='Powell')
+#     if res.x[5]>len(data1): res.x[5]=len(data1)-50
+#     if res.x[5]>len(data1): res.x[5]=r[2]
+    res = minimize(ffun, res.x, args=(data1, V1), method='Powell', bounds=bounds1)
+#     res = minimize(ffun, res.x, args=(data1, V1), method='Powell', bounds=(None,None,None,None,(20,400),(700,980)))
+#     res = minimize(ffun, res.x, args=(data1, V1), method='SLSQP', bounds=(None,None,None,None,(20,400),(700,980)))
+#     res = minimize(ffun, res.x, args=(data1, V1), method='SLSQP')
 
+    if not res.success: print(res)
 #     rsd2 = [data1[i]-ffunY(res.x, i) for i in range(len(data1))]
 #     V2 = (np.var(rsd[:int(res.x[4])]+rsd[int(res.x[5]):]), np.var(rsd[int(res.x[4]):int(res.x[5])]))
 #     print("V1:", V1)
@@ -251,7 +273,7 @@ def fit_ds(ds, show=False, check=False):
         plt.legend(loc='upper right')
         plt.show()
 
-    return res.x[3], tot_err
+    return res.x[3], tot_err, res.fun
 
 def test2():
     '''Check data'''
@@ -274,7 +296,6 @@ def test2():
     results = []
     i0 = None
     for k,v in dList.items():
-        print(k, len(v))
 #         if i0 is None: i0 = (k, v)
 #         fr = fit_ds(v, show=True)
         fr = fit_ds(v, show=False, check=False)
@@ -282,6 +303,7 @@ def test2():
 
 #         return
 
+        print(k, len(v), fr)
         results.append(fr)
 
 #     plt.plot(results)
@@ -401,9 +423,10 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
     i0 = None
     for k,v in dList.items():
         if k in excludeDS: continue
-        print(k, len(v))
 
 #         if k!='2020-06-25_21:44:52': continue
+#         if k!='2020-06-30_09:39:45': continue
+        if k!='2020-06-30_14:45:54': continue
 #         print("ttt")
 #         plt.plot(v)
 #         ds1 = remove_outlier(v)
@@ -420,10 +443,11 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 #             plt.show()
 #
 #         fr = fit_ds(v, show=True)
-#         fr = fit_ds(v, show=True, check=True)
+        fr = fit_ds(v, show=True, check=True)
 #         fr = fit_ds(v, show=False, check=True)
-        fr = fit_ds(v, show=False, check=False)
+#         fr = fit_ds(v, show=False, check=False)
 
+        print(k, len(v), fr)
         results.append(fr)
 
 #     plt.plot(results)
@@ -437,7 +461,7 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
     plt.xlabel("Measurement Index")
     plt.ylabel("Current [pA]")
 
-    popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, p0=[y[0]], bounds=(-20, 20))
+    popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, absolute_sigma=True, p0=[y[0]], bounds=(-20, 20))
 #     popt, pcov = curve_fit(x, y, sigma=e, p0=[0], bounds=([-20], [20]))
     print(popt, pcov)
     mean = popt[0]
@@ -462,16 +486,29 @@ if __name__ == '__main__':
 #     test()
 #     test2()
 #     test3()
-    check_ds(dir1+'Jun25a/Argon_totalI.dat',infoText='Ar, total, $U_{D}$=2 kV', sName=dir2+'Ar_total_Ud2kV.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd1000.dat', infoText='Ar, total, $U_{D}$=1 kV', excludeDS=['2020-06-25_21:29:23'], sName=dir2+'Ar_total_Ud1kV.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd2500.dat', infoText='Ar, total, $U_{D}$=2.5 kV', sName=dir2+'Ar_total_Ud2p5k.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd3000.dat',HVtripFix=True, infoText='Ar, total, $U_{D}$=3 kV', sName=dir2+'Ar_total_Ud3kV.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd2000b.dat', infoText='Ar, total, $U_{D}$=2 kV, dataset 2', sName=dir2+'Ar_total_Ud2kV_ds2.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd2000_Fc1000.dat.1', infoText='Ar, Focusing, $U_{D}$=2 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud2kV_Uc1kV.eps')
-    check_ds(dir1+'Jun25a/Argon_totalI_Fd1500_Fc1000.dat', infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud1p5kV_Uc1kV.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI.dat',infoText='Ar, total, $U_{D}$=2 kV', sName=dir2+'Ar_total_Ud2kV.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd1000.dat', infoText='Ar, total, $U_{D}$=1 kV', excludeDS=['2020-06-25_21:29:23'], sName=dir2+'Ar_total_Ud1kV.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd2500.dat', infoText='Ar, total, $U_{D}$=2.5 kV', sName=dir2+'Ar_total_Ud2p5k.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd3000.dat',HVtripFix=True, infoText='Ar, total, $U_{D}$=3 kV', sName=dir2+'Ar_total_Ud3kV.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd2000b.dat', infoText='Ar, total, $U_{D}$=2 kV, dataset 2', sName=dir2+'Ar_total_Ud2kV_ds2.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd2000_Fc1000.dat.1', infoText='Ar, Focusing, $U_{D}$=2 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud2kV_Uc1kV.eps')
+#     check_ds(dir1+'Jun25a/Argon_totalI_Fd1500_Fc1000.dat', infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=1 kV$', sName=dir2+'Ar_Focusing_Ud1p5kV_Uc1kV.eps')
 #     check_ds(dir1+'Jun26a/Air_totalI.dat', startIdx=950)
 #     check_ds(dir1+'Jun26a/Air_I_Fd2000_Fc1000.dat', startIdx=5850)
 #     check_ds(dir1+'Jun26a/Air_I_Fd2000_Fc1000_close.dat', startIdx=None)
 #     check_ds(dir1+'Jun26a/Air_I_Fd2000_close.dat', startIdx=9000)
 #     check_ds(dir1+'Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000b.dat', startIdx=None)
+#     check_ds(dir1+'Jun28a/Air_HV_check_nrps1000.dat', startIdx=30350)
+#     check_ds(dir1+'Jun29a/Air_HV_alphaOn_outside.dat', startIdx=16450)
+#     check_ds(dir1+'Jun29a/Air_Fd3500.dat', startIdx=25760)
+#     check_ds(dir1+'Jun29a/Air_totalI_Fd1500.dat', startIdx=25760)
+#     check_ds(dir1+'Jun29a/Air_totalI_Fd4500.dat', excludeDS=['2020-06-29_22:15:18'])
+#     check_ds(dir1+'Jun29a/Air_totalI_Fd2500.dat', excludeDS=[])
+#     check_ds(dir1+'Jun30a/Air_totalI_Fd2000.dat', excludeDS=[], startIdx=4950)
+#     check_ds(dir1+'Jun30a/Air_totalI_Fd2000.dat', excludeDS=['2020-06-30_09:56:35'])
+#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2000.dat', excludeDS=[])
+#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
+#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
+#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
+    check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, infoText='Ar, total, $U_{D}$=2 kV$')
 

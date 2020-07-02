@@ -97,6 +97,12 @@ class isegHV:
         print(rx)
         return float(rx[:-1])
 
+    def getI(self):
+        rx = self.query(':MEASure:CURRent?')
+        print(rx)
+        return float(rx[:-1])
+
+
     def turnHVOff(self):
         self.send(':VOLTage OFF')
 
@@ -193,6 +199,9 @@ def simpleSetHV(vs):
 
         vs1 = is1.getV()
         print(f"measured V {vs1}")
+
+        vs1 = is1.getI()
+        print(f"measured I {vs1}")
 
     is1.disconnect()
 

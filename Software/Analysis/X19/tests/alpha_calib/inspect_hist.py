@@ -8,7 +8,7 @@ class HistMaker:
     '''This class is used to make some basic histograms from a root file made by oscilloscope_signal_check.py.'''
     def __init__(self):
 #         self.promsCfg = 'proms2(128,0,128)'
-        self.promsCfg = 'proms2(256,0,256)'
+        self.promsCfg = 'proms3(256,0,256)'
         self.dtCfg = 'dt(200,0,20000)'
         self.widthCfg = 'width(200,0,400)'
 
@@ -16,8 +16,8 @@ class HistMaker:
         tree1 = TChain("tree")
         tree1.Add(fname)
 
-        tree1.Draw(f"proms2>>{tag}{self.promsCfg}","","goff")
-        h_pm = gDirectory.Get(f'{tag}proms2')
+        tree1.Draw(f"proms3>>{tag}{self.promsCfg}","","goff")
+        h_pm = gDirectory.Get(f'{tag}proms3')
 
         tree1.Draw(f"dt>>{tag}{self.dtCfg}","","goff")
         h_dt = gDirectory.Get(f'{tag}dt')
@@ -100,5 +100,6 @@ if __name__ == '__main__':
 #     test()
 #     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
 #     loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
-    loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['/data/TMS_data/Processed/Jun25a_p1/*_280.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
+#     loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun25a_p1/*_280.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
+    loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun30a_p1/*_297.root','/data/TMS_data/Processed/Jun25a_p1/*_280.root'])
 

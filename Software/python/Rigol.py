@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 '''For Rigol DG4162. The device should be configured to use ip 192.168.2.3 and subnet mask 255.255.255.0
+Documentation: https://www.rigolna.com/products/waveform-generators/dg4000/
 '''
 import socket
 import time
 import sys
+import math
 
 class Handle:
     def __init__(self, s):
@@ -11,12 +13,13 @@ class Handle:
 
     def write(self, cmd, dt=0.5):
         print('sending',cmd)
-        self.s.send(bytes(cmd+'\n','UTF-8'))
+#         self.s.send(bytes(cmd+'\n','UTF-8'))
+        self.s.sendall(bytes(cmd+'\n','UTF-8'))
         if dt is not None: time.sleep(dt)
 
     def read(self,cmd,ndata=-1):
         print('reading',cmd)
-        self.s.send(cmd+'\n')
+        self.s.send(bytes(cmd+'\n','UTF-8'))
 
         a = self.s.recv(1024)
         while len(a)<ndata:
@@ -41,6 +44,56 @@ class Rigol:
         self.s3.connect((Rig_hostname, Rig_port))
 
         self._instr = Handle(self.s3)
+
+
+    def raiseT_test(self, nDt, hV=0.05, lV=0):
+        '''
+        The freqency be fixed to 100 Hz. dt = 1/100/16000 ~= 0.625 us. Half for decay and the other half to gradually reset signal.
+        Range for nDt is [0, 2000], corresponding to [0, 1]ms
+        '''
+        self._instr.write(":OUTPut2 OFF")
+        freq = 100
+        self._instr.write(":SOURce2:FUNCtion USER")
+        ### source2 for trigger: 3.3V Square output
+        self._instr.write(":SOURce2:FREQ %g" % freq)
+        ### [:SOURce<n>]:VOLTage[:LEVel][:IMMediate]:HIGH <voltage>|MINimum|MAXimum
+        self._instr.write(":SOURce2:VOLTage:HIGH %g" % hV)
+        self._instr.write(":SOURce2:VOLTage:LOW %g" % lV)
+
+        N0 = 200 ### start with n1 HV points
+        N1 = 10000 - N0 - nDt ### N1 points for decay
+        N2 = 6000 ### N2 points for reset. N1+N2 = 20000, the limit from the device is N1+N2<=32768.
+        NT = 600
+
+        dataI = []
+        dataI += [16383]*N0
+        dataI += [int(16383*(1-n/nDt)) for n in range(nDt)]
+        dataI += [0]*N1
+        dataI += [int(16383*(1.-math.exp(-n/NT))) for n in range(N2)]
+#         print(len(dataI))
+
+#         dataI = dataI[1000:2000]
+
+        ndata = len(dataI)
+        nndata = len(str(ndata))
+        data = [x.to_bytes(2, byteorder = 'big') for x in dataI]
+        datab = bytes(':DATA:DAC VOLATILE,#{0:d}{1:d}'.format(nndata, ndata),'UTF-8')
+        for b in data: datab += b
+        print(len(datab),datab[:30])
+#         print(len(data))
+#         print(''.join(data))
+#         return
+#         ndata = bytes(len(data))
+
+#         dataS = '#{0:d}'.format(len(ndata))+str(ndata)
+#         print(dataS)
+#         data = [':DATA:DAC VOLATILE']
+#         data += ',#516000'
+#         data += ''.join([])
+#         self._instr.write(', '.join(data))
+#         self._instr.write(":DATA:DAC VOLATILE,#516000"+''.join(data))
+        self._instr.s.sendall(datab)
+        self._instr.write(":OUTPut2 ON")
 
     def calibration(self, freq=100):
         hV = 0.3
@@ -133,7 +186,7 @@ class Rigol:
 
 #         return
         string = ':DATA:DAC VOLATILE,'
-        string += ','.join(['{0:d}'.format(x*16300/120) for x in range(120)])
+        string += ','.join(['{0:d}'.format(int(x*16300/120)) for x in range(120)])
 #         string += ','.join(['{0:.2f}'.format(1.-0.01*x) for x in range(20)])
 
         print(string)
@@ -189,9 +242,10 @@ class Rigol:
 def test2():
     r1 = Rigol()
     r1.connect()
+#     r1.raiseT_test(100)
 #     r1.test_volatile()
     r1.calibration()
-    r1.setPulseV(0.2)
+#     r1.setPulseV(0.2)
 #     r1.tune()
 #     r1.test(20)
 

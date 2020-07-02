@@ -28,6 +28,9 @@ class findrate(object):
         self.timelap = 10. #second
         self.inputarray = np.array([])
         self.npeaks = 0
+        self.npeaks_corr_pm2 = 0
+        self.npeaks_corr_pm = 0
+        self.npeaks_corr_pm3 = 0
         self.date = ""
         self.time = ""
         self.diffpeakmean = 0
@@ -35,11 +38,15 @@ class findrate(object):
         self.widthmean = 0
         self.prominencemean = 0
         self.prominence2mean = 0
+        self.prominence3mean = 0
         self.bkg = 0
         self.isDebug = False
         self.showPlot = False
         self.outputDir = None
         self.prominence2Cut=20
+        self.prominenceCut=10
+        self.prominence3Cut=20
+
 #         self.process_fun = self.processinput
         self.process_fun = self.processinput_v1
 
@@ -269,14 +276,15 @@ class findrate(object):
         arwav2 = self.inputarray
 #         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=50) 
 #         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=30) 
-        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+#        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=2000, prominence=2, distance=160) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,500) , wlen=W, prominence=2, distance=160) 
 #         peaks, properties = find_peaks(arwav2, height=None, wlen=W, prominence=2, width=(150,500), distance=30) 
-
+#          peaks, properties = find_peaks(arwav2, height=None, width=100, prominence=2, distance=100, wlen=2000)
         if self.isDebug: print(len(peaks),peaks)
         #wav3 = [wav2[ix] for ix in peaks]
 
-#         promsall = peak_prominences(arwav2, peaks, wlen=W)
-        promsall = peak_prominences(arwav2, peaks, wlen=200)
+        promsall = peak_prominences(arwav2, peaks, wlen=W)
+#         promsall = peak_prominences(arwav2, peaks, wlen=200)
         proms = promsall[0]
         promxmins = promsall[1]
         promxmaxs = promsall[2]
@@ -344,7 +352,10 @@ class findrate(object):
         self.diffpeakmean = np.mean(df_pks)
         self.prominencemean = np.mean(proms)
         self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
-        self.npeaks_corr = len(proms2[proms2>self.prominence2Cut])/self.timelap 
+        self.prominence3mean = np.mean(proms3[proms3>self.prominence3Cut])
+        self.npeaks_corr_pm2 = len(proms2[proms2>self.prominence2Cut])
+        self.npeaks_corr_pm = len(proms[proms>self.prominenceCut])
+        self.npeaks_corr_pm3 = len(proms[proms3>self.prominence3Cut])
         self.widthmean = np.mean(widths)
 
 #         mdx = np.array([])
@@ -368,7 +379,7 @@ class findrate(object):
         self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
 
     def get_summary(self):
-        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr}"
+        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr_pm2/self.timelap} {self.npeaks_corr_pm/self.timelap} {self.prominence3mean:.3f} {self.npeaks_corr_pm3/self.timelap}"
 
 def process_file(inputName):
     print(f"Processing {inputName}")
@@ -472,6 +483,7 @@ def monitor(indir, outdir):
                 for fx in new_files:
                     print(f"------processing {fx}")
                     myrate = findrate(fx)
+                    myrate.process_fun = myrate.processinput
                     myrate.outputDir = outdir
                     myrate.showPlot = False
                     myrate.getinput()
@@ -498,7 +510,8 @@ def main():
 
 if __name__ == '__main__':
 #    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
-   monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
+#    monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
+   monitor('/data/TMS_data/raw/Jun30a_tek/','/data/TMS_data/Processed/Jun30a_p1')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
 #     main()

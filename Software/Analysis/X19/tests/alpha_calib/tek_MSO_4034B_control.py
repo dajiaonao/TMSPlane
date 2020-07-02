@@ -39,7 +39,7 @@ class Oscilloscope:
     def checkCmd(self):
         '''check the command in .hidden_cmd, exit if it's 'q', otherwise run the command there. Use # for comments.'''
         ### check the status of the hidden command file
-        if not os.path.exists(self.hiddenCmdFile) return None
+        if not os.path.exists(self.hiddenCmdFile): return None
 
         ### check if it's updated since the begining of the program
         tmp_t = os.path.getmtime(self.hiddenCmdFile)
@@ -502,7 +502,9 @@ def main():
 #     os1.run_project(N=-1, dirx='Jan15b', tag='TPCHV2kV_PHV0V_gasoff_')
 #     os1.run_project(N=-1, dirx='May27a', tag='HVscan_scan_1500V_')
 #     os1.run_project(N=-1, dirx='Jun25a_tek', tag='HV_alphaOn_foucsing_Vd1500V_Vc1000V_')
-    os1.run_project(N=-1, dirx='Jun25a_tek', tag='HV_alphaOn_total_Vd1500V_')
+#     os1.run_project(N=-1, dirx='Jun30a_tek', tag='HV_alphaOn_total_Vd2000Vb_')
+#     os1.run_project(N=-1, dirx='Jun30a_tek', tag='HV_alphaOn_Focusing_Vd1500V_Vc1500Vb_')
+    os1.run_project(N=-1, dirx='Jun30a_tek', tag='HV_alphaOn_Focusing_Vd1500V_Vc2300Vb_')
 #     os1.run_project(N=2, dirx='test', tag='test0')
 
 def test():
