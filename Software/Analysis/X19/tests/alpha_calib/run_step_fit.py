@@ -95,7 +95,17 @@ class SPlusBPdf:
     def func(self):
         return x[0]+pars[0]*x[0]*x[0]
 
-def ffunY(x, i):
+
+def ffunY(x,i):
+    Nhalf = 500
+    a = 0 if x[2]==0 else -0.5*x[1]/(1./x[2] + Nhalf)
+    y = x[0]+x[1]*i+a*i*i
+    if x[4]<i<x[5]: y -= x[3]
+
+    return y
+
+
+def ffunY0(x, i):
     y = x[0]+x[1]*i+x[2]*i*i
     if x[4]<i<x[5]: y -= x[3]
 
@@ -179,7 +189,8 @@ def fit_ds(ds, show=False, check=False):
     else: data1 = ds
 
     ndata1 = len(data1)
-    bounds1 = ((None,None),(None,None),(None,None),(None,None),(r1-10,r1+10),(r2-10,r2+10))
+#     bounds1 = ((None,None),(None,None),(None,None),(None,None),(r1-10,r1+10),(r2-10,r2+10))
+    bounds1 = ((None,None),(None,None),(-0.002,0.002),(None,None),(r1-10,r1+10),(r2-10,r2+10))
     V0 = (1,1) ### initial variance
 #     res = minimize(ffun, [0,0,0,r[5],r[1],r[2]], args=(data1, V0), method='Powell')
 
@@ -402,7 +413,7 @@ def test2():
 
     plt.show()
 
-def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None):
+def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None):
     '''Check data'''
 #     fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat'
 
@@ -422,11 +433,13 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
     results = []
     i0 = None
     for k,v in dList.items():
+        if k == stopTag: break
         if k in excludeDS: continue
 
 #         if k!='2020-06-25_21:44:52': continue
 #         if k!='2020-06-30_09:39:45': continue
-        if k!='2020-06-30_14:45:54': continue
+#         if k!='2020-06-30_14:45:54': continue
+#         if k!='2020-06-30_16:57:52': continue
 #         print("ttt")
 #         plt.plot(v)
 #         ds1 = remove_outlier(v)
@@ -505,10 +518,16 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jun29a/Air_totalI_Fd4500.dat', excludeDS=['2020-06-29_22:15:18'])
 #     check_ds(dir1+'Jun29a/Air_totalI_Fd2500.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_totalI_Fd2000.dat', excludeDS=[], startIdx=4950)
-#     check_ds(dir1+'Jun30a/Air_totalI_Fd2000.dat', excludeDS=['2020-06-30_09:56:35'])
+#     check_ds(dir1+'Jun30a/Air_totalI_Fd2000.dat', excludeDS=[ '2020-06-30_10:01:23'])
+#     check_ds(dir1+'Jun30a/Ar_I_Fd2000_Fc2000.dat', excludeDS=['2020-06-30_23:19:42'], infoText='Ar, Focusing, $U_{D}$=2 kV, $U_{C}=2 kV$', sName=dir2+'Jun30a_Ar_Focusing_Ud2kV_Uc2kV.eps')
+#     check_ds(dir1+'Jun30a/Ar_I_Fd1500_Fc2000.dat', excludeDS=[], infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=2 kV$', sName=dir2+'Jun30a_Ar_Focusing_Ud1p5kV_Uc2kV.eps')
+#     check_ds(dir1+'Jun30a/Ar_I_Fd1500_Fc1500.dat', excludeDS=[], infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=1.5 kV$', sName=dir2+'Jun30a_Ar_Focusing_Ud1p5kV_Uc1p5kV.eps')
+#     check_ds(dir1+'Jun30a/Ar_I_Fd1500_Fc2300.dat', excludeDS=['2020-06-30_23:34:08',], infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=2.3 kV$',sName=dir2+'Jun30a_Ar_Focusing_Ud1p5kV_Uc2p3kV.eps')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2000.dat', excludeDS=[])
-#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
+    check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
-    check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, infoText='Ar, total, $U_{D}$=2 kV$')
+#     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')
+#     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=32800, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')
+#     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=35960, infoText='Ar, total, $U_{D}$=2 kV')
 
