@@ -5,6 +5,7 @@ import time
 import os,sys
 from datetime import datetime, timedelta
 import logging
+import glob
 import numpy as np
 
 dSuffix = 'project_'
@@ -1109,6 +1110,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', n
     pm1.send('*RST')
     print(pm1.query('*IDN?'))
     pm1.send('SYST:ZCH OFF')
+    pm1.send('SYST:AZER ON')
 
     ### confiugration
     pm1.send("FUNC 'CURR'")
@@ -1135,8 +1137,21 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', n
     ### create output direcotry if it does not exist
     project_dir = os.path.dirname(filename)
     if not os.path.exists(project_dir): os.makedirs(project_dir)
-    if os.path.exists(filename): filename += '.1'
 
+    ### check if the filename already exist. If so, add a number suffix.
+    if os.path.exists(filename):
+        exist_files = glob.glob(filename+'.*')
+        maxn = 1
+        for f in exist_files:
+            lastF = f.split('.')[-1]
+            try:
+                n = int(lastF)
+            except ValueError as e:
+                continue
+            if n>=maxn: maxn = n+1
+        filename += f'.{maxn}'
+
+    ### start taking data
     iGood = 0
     iData = 0
     with open(filename,'w') as fout1:
@@ -1506,7 +1521,8 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd2000_Fc2000.dat',extraStr="2000 4110 2000 3390", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc1500.dat',extraStr="1500 3080 1500 2540", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc2300.dat',extraStr="1500 3880 2300 4033", nrps=1000)
-    run_quasicontinious_recording('/data/TMS_data/raw/Jul1a/drift_check.dat',extraStr="", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul1a/drift_check.dat',extraStr="", nrps=1000)
+    run_quasicontinious_recording('/data/TMS_data/raw/Jul31a/Mixed_I_Fd1500_Fc2000.dat',extraStr="1500 3580 2000 3470", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

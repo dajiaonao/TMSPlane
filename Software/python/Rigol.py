@@ -61,9 +61,9 @@ class Rigol:
         self._instr.write(":SOURce2:VOLTage:LOW %g" % lV)
 
         N0 = 200 ### start with n1 HV points
-        N1 = 10000 - N0 - nDt ### N1 points for decay
-        N2 = 6000 ### N2 points for reset. N1+N2 = 20000, the limit from the device is N1+N2<=32768.
-        NT = 600
+        N1 = 1000 - N0 - nDt ### N1 points for decay
+        N2 = 600 ### N2 points for reset. N1+N2 = 20000, the limit from the device is N1+N2<=32768.
+        NT = N2/10
 
         dataI = []
         dataI += [16383]*N0
@@ -74,11 +74,10 @@ class Rigol:
 
 #         dataI = dataI[1000:2000]
 
-        ndata = len(dataI)
+        ndata = len(dataI)*2
         nndata = len(str(ndata))
-        data = [x.to_bytes(2, byteorder = 'big') for x in dataI]
         datab = bytes(':DATA:DAC VOLATILE,#{0:d}{1:d}'.format(nndata, ndata),'UTF-8')
-        for b in data: datab += b
+        for x in dataI: datab += x.to_bytes(2, byteorder = 'big')
         print(len(datab),datab[:30])
 #         print(len(data))
 #         print(''.join(data))
@@ -93,7 +92,7 @@ class Rigol:
 #         self._instr.write(', '.join(data))
 #         self._instr.write(":DATA:DAC VOLATILE,#516000"+''.join(data))
         self._instr.s.sendall(datab)
-        self._instr.write(":OUTPut2 ON")
+#         self._instr.write(":OUTPut2 ON")
 
     def calibration(self, freq=100):
         hV = 0.3
@@ -242,9 +241,9 @@ class Rigol:
 def test2():
     r1 = Rigol()
     r1.connect()
-#     r1.raiseT_test(100)
+    r1.raiseT_test(100)
 #     r1.test_volatile()
-    r1.calibration()
+#     r1.calibration()
 #     r1.setPulseV(0.2)
 #     r1.tune()
 #     r1.test(20)
