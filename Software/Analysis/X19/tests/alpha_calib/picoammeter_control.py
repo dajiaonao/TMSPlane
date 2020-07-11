@@ -1100,7 +1100,7 @@ def HV_out_scan(vlist, dT):
         except KeyboardInterrupt:
             break
 
-def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', nrps=100):
+def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', nrps=100, U=None):
     '''
     nspt: n readings per sample
     '''
@@ -1118,15 +1118,31 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', n
 
     pm1.send('TRIG:DEL 0')
     pm1.send('NPLC 1')
+#     pm1.send('NPLC 1.1')
+#     pm1.send('NPLC 0.9')
+#     pm1.send('NPLC 10')
 
+    pm1.send('RANGE:AUTO ON')
+#     pm1.send('RANG 2e-8')
 
     ### filter control
+#     print(pm1.query(':SENSe:CURRent:DAMPing:STATe?'))
+#     pm1.send('CURRent:DAMPing:STATe OFF')
+    pm1.send('CURRent:DAMPing:STATe ON')
+    print(pm1.query('CURRent:DAMPing:STATe?'))
     pm1.send('MED:RANK 5') ## give the median of the 2*RANK+1 readings, 1 to 5
     pm1.send('MED OFF') ## disable median
     pm1.send('AVER:COUN 20') ## number of reading used to calculat the average, 2 to 100
     pm1.send('AVER:TCON MOV') ### Type of the average: MOV or REPeat
     pm1.send('AVER OFF') ### disable average
 
+    if U is not None:
+        ### HV
+        uRange = min([x for x in [5,10,100,500] if abs(U)<x])
+        pm1.send(f'SOUR:VOLT:RANG {uRange}') #Select 10V source range.
+        pm1.send(f'SOUR:VOLT {U}') #  Set voltage source output to 10V.
+        pm1.send('SOUR:VOLT:ILIM 2.5e-4') #  Set current limit to 0.25mA.
+        pm1.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
 
     tEnd = None
     if tLast is not None:
@@ -1140,6 +1156,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', n
 
     ### check if the filename already exist. If so, add a number suffix.
     if os.path.exists(filename):
+        print(f"{filename} already exist!!!!!")
         exist_files = glob.glob(filename+'.*')
         maxn = 1
         for f in exist_files:
@@ -1150,6 +1167,7 @@ def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', n
                 continue
             if n>=maxn: maxn = n+1
         filename += f'.{maxn}'
+        print(f"Saving to file {filename}")
 
     ### start taking data
     iGood = 0
@@ -1522,7 +1540,17 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc1500.dat',extraStr="1500 3080 1500 2540", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc2300.dat',extraStr="1500 3880 2300 4033", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul1a/drift_check.dat',extraStr="", nrps=1000)
-    run_quasicontinious_recording('/data/TMS_data/raw/Jul31a/Mixed_I_Fd1500_Fc2000.dat',extraStr="1500 3580 2000 3470", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul31a/Mixed_I_Fd1500_Fc2000.dat',extraStr="1500 3580 2000 3470", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul06a/R500M_check.dat',extraStr="", nrps=1000, U=0.1)
+#    run_quasicontinious_recording('/data/TMS_data/raw/Jul06a/R500M_1V_check.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul07a/R500M_2.5Vpp_25Hz_check.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_check.dat',extraStr="", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_1p1PLC_check.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_0p9PLC_check.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_1PLC_check_b.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_T6msPulse5mVDc5mVpp1over3_1PLC_DampingOff.dat',extraStr="", nrps=100)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_T6msPulse5mVDc5mVpp1over3_1PLC_DampingOn.dat',extraStr="", nrps=100)
+    run_quasicontinious_recording('/data/TMS_data/raw/Jul11a/R1GOh_6mVDc10mVpp10mHz_1PLC_DampingOn.dat',extraStr="", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

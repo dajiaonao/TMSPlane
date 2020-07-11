@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, curve_fit
 from scipy.stats import norm, kstest
-from math import sqrt
+from math import sqrt, isnan
 
 pA = 1e-12
 
@@ -221,7 +221,9 @@ def fit_ds(ds, show=False, check=False):
 #     res = minimize(ffun, res.x, args=(data1, V1), method='SLSQP', bounds=(None,None,None,None,(20,400),(700,980)))
 #     res = minimize(ffun, res.x, args=(data1, V1), method='SLSQP')
 
-    if not res.success: print(res)
+    if not res.success: 
+        print(res)
+        return None
 #     rsd2 = [data1[i]-ffunY(res.x, i) for i in range(len(data1))]
 #     V2 = (np.var(rsd[:int(res.x[4])]+rsd[int(res.x[5]):]), np.var(rsd[int(res.x[4]):int(res.x[5])]))
 #     print("V1:", V1)
@@ -430,6 +432,8 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
         except KeyError:
             dList[fs[0]] = [float(fs[1])/pA]
 
+    print(dList.keys())
+
     results = []
     i0 = None
     for k,v in dList.items():
@@ -456,11 +460,18 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 #             plt.show()
 #
 #         fr = fit_ds(v, show=True)
-        fr = fit_ds(v, show=True, check=True)
+#         fr = fit_ds(v, show=True, check=True)
 #         fr = fit_ds(v, show=False, check=True)
-#         fr = fit_ds(v, show=False, check=False)
+        fr = fit_ds(v, show=False, check=False)
+        if fr is None: continue
 
         print(k, len(v), fr)
+
+        bad = False
+        for r in fr: 
+            if isnan(r): bad = True
+        if bad: continue
+
         results.append(fr)
 
 #     plt.plot(results)
@@ -524,7 +535,8 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jun30a/Ar_I_Fd1500_Fc1500.dat', excludeDS=[], infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=1.5 kV$', sName=dir2+'Jun30a_Ar_Focusing_Ud1p5kV_Uc1p5kV.eps')
 #     check_ds(dir1+'Jun30a/Ar_I_Fd1500_Fc2300.dat', excludeDS=['2020-06-30_23:34:08',], infoText='Ar, Focusing, $U_{D}$=1.5 kV, $U_{C}=2.3 kV$',sName=dir2+'Jun30a_Ar_Focusing_Ud1p5kV_Uc2p3kV.eps')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2000.dat', excludeDS=[])
-    check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
+#     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
+    check_ds(dir1+'Jul31a/Mixed_I_Fd1500_Fc2000.dat.1', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')
