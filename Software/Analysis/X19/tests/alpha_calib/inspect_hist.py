@@ -101,5 +101,6 @@ if __name__ == '__main__':
 #     loopMonitor('h_May26a/*.root', ["TPCHV2kV_PHV0V_air3_126.root"])
 #     loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
 #     loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun25a_p1/*_280.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
-    loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun30a_p1/*_297.root','/data/TMS_data/Processed/Jun25a_p1/*_280.root'])
+#     loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun30a_p1/*_297.root','/data/TMS_data/Processed/Jun25a_p1/*_280.root'])
+    loopMonitor('/data/TMS_data/Processed/Jul12a_p1/*.root', ['/data/TMS_data/Processed/Jul12a_p1/filtered_10mVpp_2us_1000Hz_0.root','/data/TMS_data/Processed/Jul12a_p1/filtered_20mVpp_150us_200Hz_*.root'])
 

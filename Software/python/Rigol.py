@@ -243,18 +243,20 @@ class Rigol:
         chan = '' if ch is None else f':SOURce{ch}'
 
         if fT is None:
-            self._instr.write(chan+f":APPLy:SQUare {fq},{dv},{dv*0.5+0.01}") #[:SOURce<n>]:APPLy:SQUare [<freq>[,<amp>[,<offset>[,<phase>]]]]
+            self._instr.write(chan+f":APPLy:SQUare {fq},{dV},{dV*0.5+0.01}") #[:SOURce<n>]:APPLy:SQUare [<freq>[,<amp>[,<offset>[,<phase>]]]]
         else:
-            self._instr.write(chan+f":APPLy:PULSe {fq},{dv},{dv*0.5+0.01}") #[:SOURce<n>]:APPLy:PULSe [<freq>[,<amp>[,<offset>[,<delay>]]]]
+            self._instr.write(chan+f":APPLy:PULSe {fq},{dV},{dV*0.5+0.01}") #[:SOURce<n>]:APPLy:PULSe [<freq>[,<amp>[,<offset>[,<delay>]]]]
             time.sleep(0.5)
-            self._instr.write(chan+f":PULSe:TRANsition:TRAiling {fT*1e6}")#[:SOURce<n>]:PULSe:TRANsition:TRAiling <seconds>|MINimum|MAXimum
+            self._instr.write(chan+f":PULSe:TRANsition:TRAiling {fT*1e-6}")#[:SOURce<n>]:PULSe:TRANsition:TRAiling <seconds>|MINimum|MAXimum
         time.sleep(0.5)
+        
+        if ch is None: ch = 1
         self._instr.write(f":OUTPut{ch} ON")
 
 def test2():
     r1 = Rigol()
     r1.connect()
-    r1.setTTPulse(0.02,2)
+    r1.setTTPulse(0.02,2,1000)
 #     r1.raiseT_test(100)
 #     r1.test_volatile()
 #     r1.calibration()
