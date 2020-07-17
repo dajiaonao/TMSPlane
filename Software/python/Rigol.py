@@ -256,7 +256,10 @@ class Rigol:
 def test2():
     r1 = Rigol()
     r1.connect()
-    r1.setTTPulse(0.02,2,1000)
+#     r1.setTTPulse(0.02,2,1000)
+    r1._instr.write(":OUTPut1 OFF")
+    time.sleep(0.5)
+    print(r1._instr.read(":OUTPUT1?"))
 #     r1.raiseT_test(100)
 #     r1.test_volatile()
 #     r1.calibration()

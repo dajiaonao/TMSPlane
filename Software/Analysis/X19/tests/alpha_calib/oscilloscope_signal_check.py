@@ -152,14 +152,15 @@ class findrate(object):
         '''Based on the default processinput function, but will only count the peaks pass a cut on prom3. This will remove more background and give a correct dt distribution for the rate estimation.'''
         print("using processinput_v1") # for debug
 
-        W = 500
+        W = 300
         basename = os.path.basename(self.filename)
         if N>0: self.inputarray = self.inputarray[:N]
         arwav2 = self.inputarray
-        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+#         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(20,300), wlen=W, prominence=2, distance=160) 
         if self.isDebug: print(len(peaks),peaks)
 
-        promsall = peak_prominences(arwav2, peaks, wlen=200)
+        promsall = peak_prominences(arwav2, peaks, wlen=W)
         proms = promsall[0]
         promxmins = promsall[1]
         promxmaxs = promsall[2]
@@ -217,18 +218,28 @@ class findrate(object):
             #n, bins, patches = ax.hist([arwav1[ix] for ix in peaks], num_bins)
             ax1.hist(arwav2[peaks], num_bins)
 
-            fig2, ax2 = plt.subplots(num="peakprom_"+basename)
+            fig2, ax2 = plt.subplots(num="peakprom3_"+basename)
             #plt.plot(proms)
-            ax2.hist(proms, num_bins)
+            ax2.hist(proms3, num_bins)
             plt.show()
 
         ### calculate means
+#         self.heightmean = np.mean(pks)
+#         self.diffpeakmean = np.mean(df_pks)
+#         self.prominencemean = np.mean(proms)
+#         self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
+#         self.npeaks_corr = len(proms2[proms2>self.prominence2Cut])/self.timelap 
+#         self.widthmean = np.mean(widths)
         self.heightmean = np.mean(pks)
         self.diffpeakmean = np.mean(df_pks)
         self.prominencemean = np.mean(proms)
         self.prominence2mean = np.mean(proms2[proms2>self.prominence2Cut])
-        self.npeaks_corr = len(proms2[proms2>self.prominence2Cut])/self.timelap 
+        self.prominence3mean = np.mean(proms3[proms3>self.prominence3Cut])
+        self.npeaks_corr_pm2 = len(proms2[proms2>self.prominence2Cut])
+        self.npeaks_corr_pm = len(proms[proms>self.prominenceCut])
+        self.npeaks_corr_pm3 = len(proms[proms3>self.prominence3Cut])
         self.widthmean = np.mean(widths)
+
 
 #         mdx = np.array([])
 #         for i in range(self.npeaks-1):
@@ -249,10 +260,12 @@ class findrate(object):
 
         bigx = bigx0
         ### ---- let's do the interesting things here
+#         pCut3 = 2
         pCut3 = 20
         dtC = None ### use None as initial value to deal with the first one properly
         for i in range(len(bigx0)):
-            if proms3[i] > pCut3 and (proms3[i]<180 or proms3[i]>190):
+            if proms3[i] > pCut3 and (proms3[i]<142 or proms3[i]>148):
+#             if proms3[i] > pCut3 and (proms3[i]<180 or proms3[i]>190):
                 if dtC is not None: bigx0['dt'][i] += dtC ### add the accumulated dt: dtC, no need for 1st one
                 dtC = 0                                ### and reset dtC
             else:
@@ -483,7 +496,7 @@ def monitor(indir, outdir):
                 for fx in new_files:
                     print(f"------processing {fx}")
                     myrate = findrate(fx)
-                    myrate.process_fun = myrate.processinput
+#                     myrate.process_fun = myrate.processinput
                     myrate.outputDir = outdir
                     myrate.showPlot = False
                     myrate.getinput()
@@ -504,6 +517,24 @@ def monitor(indir, outdir):
             except KeyboardInterrupt:
                 break
 
+def main1():
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option("-f", "--file", dest="filePath", help="the file or pattern to monitor")
+    parser.add_option("-p", "--pattern",    dest="filePattern",    help="the file or pattern to view")
+    parser.add_option("-m", "--monitor",    dest="monitorDir",    help="the file or pattern to view")
+    parser.add_option("-d", "--dir",    dest="indir",    help="the file or pattern to view")
+    parser.add_option("-o", "--outdir",    dest="outdir",    help="the file or pattern to view")
+
+    (options, args) = parser.parse_args()
+
+    if options.monitorPattern:
+        monitor(options.monitorPattern)
+    elif options.viewPattern:
+        view(options.viewPattern)
+    else:
+        print("Unknown pattern")
+
 def main():
     if len(argv)>3: multi_run()
     else: test()
@@ -512,7 +543,11 @@ if __name__ == '__main__':
 #    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
 #    monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
 #    monitor('/data/TMS_data/raw/Jun30a_tek/','/data/TMS_data/Processed/Jun30a_p1')
-   monitor('/data/TMS_data/raw/Jul12a_tek/','/data/TMS_data/Processed/Jul12a_p1')
+#    monitor('/data/TMS_data/raw/Jul12a_tek/','/data/TMS_data/Processed/Jul12a_p1')
+#    monitor('/data/TMS_data/raw/Jul16b_tek/','/data/TMS_data/Processed/Jul16b_p1')
+#    monitor('/data/TMS_data/raw/Jul16c_tek/','/data/TMS_data/Processed/Jul16c_p1')
+#    monitor('/data/TMS_data/raw/Jul16d_tek/','/data/TMS_data/Processed/Jul16d_p2')
+   monitor('/data/TMS_data/raw/Jul17a_tek/','/data/TMS_data/Processed/Jul17a_p1')
 #     test0()
 #     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
 #     main()

@@ -186,6 +186,68 @@ class Check_May28:
 
         waitRootCmdX()
 
+class Check_Jul16:
+    def __init__(self):
+        self.dir1 = '/data/TMS_data/Processed/Jul16d_p2/'
+
+    def dt_fit(self, nEnd=20000, nFitStart=500):
+        xEnd = nEnd*0.000001
+        h0 = TH1F("h0","dt;dt [s];Entries",100,0,xEnd)
+
+        var = "dt*0.0000005"
+#         h1 = getHist(self.dir1+"HV_alphaOn_rampAr_1000V_*.root",var,h0,"HV 1000 V, rampAr")
+        h1 = getHist(self.dir1+"goodOnes/*.root",var,h0,"Drift HV 1500 V")
+
+        xFitStart = nFitStart*0.000001
+        h1.Fit('expo','','', xFitStart,xEnd)
+
+#         gStyle.SetFunLineColor(2)
+#         h1.SetLineColor(2)
+#         h1.SetMarkerColor(2)
+#         h1.SetMarkerStyle(20)
+
+        rp1 = TRatioPlot(h1);
+        rp1.Draw();
+        rp1.GetLowerRefYaxis().SetTitle("Ratio");
+
+        fun1 = h1.GetFunction('expo')
+        fun1.SetLineColor(6)
+# 
+#         h1.Draw('E PLC PMC')
+        waitRootCmdX()
+
+    def compare_proms(self, var="proms2", cut='proms2>0&&proms2<250', xtitle='Proms'):
+        N = 256
+        h0 = TH1F("h0",f"Proms;{xtitle} [count];Entries",N,0,N)
+
+        h1 = getHist(self.dir1+"goodOnes/*.root",var,h0,"HV 1500 V",cut=cut)
+        h2 = getHist("/data/TMS_data/Processed/Jul16d_p1/Filtered_HV_alphaOn_noHV_pulse80mV500Hz_1[1-2].root",var,h0,"Pulse",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+
+        waitRootCmdX()
+
+
+    def compare_promsX(self, var="proms2", cut='proms2>0&&proms2<250', xtitle='Proms'):
+        N = 256
+        h0 = TH1F("h0",f"Proms;{xtitle} [count];Entries",N,0,N)
+
+        dir2 = '/data/TMS_data/Processed/Jul16a_p1/'
+        h1 = getHist(dir2+"subset1/*.root",var,h0,"HV 1500 V",cut=cut)
+        h2 = getHist(dir2+"*_212.root",var,h0,"Pulse",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+
+        waitRootCmdX()
+
+
+
 class Check_May31:
     def __init__(self):
         self.dir1 = '/data/TMS_data/Processed/May31a_cut20/'
@@ -297,9 +359,11 @@ class Check_May31:
 
 def test():
 #     a = Check_May28()
-    a = Check_May31()
+#     a = Check_May31()
+    a = Check_Jul16()
 #     a.compare_proms2()
-    a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+#     a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+    a.compare_promsX(var="proms3", cut='', xtitle='Proms3')
 #     a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_45/'
 #     a.compare_dt2()
 #     a.compare_proms2()

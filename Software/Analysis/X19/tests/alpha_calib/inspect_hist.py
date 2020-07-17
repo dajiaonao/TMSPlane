@@ -8,6 +8,7 @@ class HistMaker:
     '''This class is used to make some basic histograms from a root file made by oscilloscope_signal_check.py.'''
     def __init__(self):
 #         self.promsCfg = 'proms2(128,0,128)'
+        self.promsVar = 'proms3'
         self.promsCfg = 'proms3(256,0,256)'
         self.dtCfg = 'dt(200,0,20000)'
         self.widthCfg = 'width(200,0,400)'
@@ -16,7 +17,7 @@ class HistMaker:
         tree1 = TChain("tree")
         tree1.Add(fname)
 
-        tree1.Draw(f"proms3>>{tag}{self.promsCfg}","","goff")
+        tree1.Draw(f"{self.promsVar}>>{tag}{self.promsCfg}","","goff")
         h_pm = gDirectory.Get(f'{tag}proms3')
 
         tree1.Draw(f"dt>>{tag}{self.dtCfg}","","goff")
@@ -27,11 +28,14 @@ class HistMaker:
 
         return h_pm, h_dt, h_wd
 
-def loopMonitor(rPattern, refRootFiles=[]):
+def loopMonitor(rPattern, refRootFiles=[], promsVarX=None):
     '''Keep showing the newest histogram in hdir, and the reference histograms if the reference root file is given'''
 
     dsList = []
     hm1 = HistMaker()
+    if promsVarX is not None:
+        hm1.promsVar = promsVarX[0]
+        hm1.promsCfg = promsVarX[1]
     ### get the reference histogram is given
     for i in range(len(refRootFiles)):
         dsList.append(hm1.make_hists(refRootFiles[i],f'ref{i}_'))
@@ -102,5 +106,9 @@ if __name__ == '__main__':
 #     loopMonitor('/data/TMS_data/Processed/Jun25a_p1/*.root', ['h_May31a_r1/*_180.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
 #     loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun25a_p1/*_280.root', '/data/TMS_data/Processed/Jun25a_p1/*_295.root'])
 #     loopMonitor('/data/TMS_data/Processed/Jun30a_p1/*.root', ['/data/TMS_data/Processed/Jun30a_p1/*_297.root','/data/TMS_data/Processed/Jun25a_p1/*_280.root'])
-    loopMonitor('/data/TMS_data/Processed/Jul12a_p1/*.root', ['/data/TMS_data/Processed/Jul12a_p1/filtered_10mVpp_2us_1000Hz_0.root','/data/TMS_data/Processed/Jul12a_p1/filtered_20mVpp_150us_200Hz_*.root'])
+#     loopMonitor('/data/TMS_data/Processed/Jul16a_p1/*.root', ['/data/TMS_data/Processed/Jul16a_p1/HV_*_212.root','/data/TMS_data/Processed/Jul16a_p1/HV_alphaOn_*_254.root','/data/TMS_data/Processed/Jul16a_p1/HV_alphaOn_Fd1500V_211.root'])
+    loopMonitor('/data/TMS_data/Processed/Jul17a_p1/*.root', ['/data/TMS_data/Processed/Jul16d_p1/*_11.root','/data/TMS_data/Processed/Jul16d_p2/goodOnes/*_75.root'], promsVarX=('proms3*0.2','proms3(250,0,50)'))
+#     loopMonitor('/data/TMS_data/Processed/Jul16a_p1/*.root', ['/data/TMS_data/Processed/Jul16a_p1/HV_*_212.root','/data/TMS_data/Processed/Jul16a_p1/HV_alphaOn_Fd1500V_211.root'])
+#     loopMonitor('/data/TMS_data/Processed/Jul16c_p1/*.root', ['/data/TMS_data/Processed/Jul16c_p1/HV_*_0.root','/data/TMS_data/Processed/Jul16c_p1/*_31.root'], promsVarX=('proms3*2','proms3(50,0,100)'))
+#     loopMonitor('/data/TMS_data/Processed/Jul16a_p1/*.root', ['/data/TMS_data/Processed/Jul12a_p1/filtered_10mVpp_2us_1000Hz_0.root','/data/TMS_data/Processed/Jul12a_p1/filtered_20mVpp_150us_200Hz_*.root'])
 
