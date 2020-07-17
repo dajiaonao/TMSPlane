@@ -417,7 +417,7 @@ def test2():
     plt.show()
 
 
-def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None, summary_file='summary.ttl', showSummary=False):
+def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None, summary_file='summary.ttl', show=None):
     '''based on check_ds, but will keep the results in a text file (summary_file) and only update those not there yet'''
 
     ### take data
@@ -439,25 +439,26 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
 
         tList_end[fs[0]] = float(fs[2])
 
+
     print(dList.keys())
 
+
+    results_exist = []
+    results = []
+
     ### check the database
-    flist = []
+    get_values = lambda fs: (fs[0], float(fs[1]), float(fs[2]), float(fs[3]), float(fs[4]))
     modex = 'w'
     if os.path.exists(summary_file):
+        modex = 'a'
         with open(summary_file,'r') as fin1:
-
             ### load the db first
-            lines = fin1.readlines()
-            flist = [line.split()[0] for line in lines if len(line.split())>1]
-            print(flist)
-            modex = 'a'
+            results_exist += [get_values(line.rstrip().split()) for line in fin1.readlines() if len(line.split())>1]
     elif summary_file is not None:
         outdir = os.path.dirname(summary_file)
         if not os.path.exists(outdir): os.makedirs(outdir)
 
-    results0 = []
-    results = []
+    flist = [a[0] for a in results_exist]
     i0 = None
     for k,v in dList.items():
         if k == stopTag: break
@@ -469,7 +470,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         fr = fit_ds(v, show=False, check=False)
 
         if fr is None:
-            results0.append((k, tList_end[k], -999, -999, -900))
+            results.append((k, tList_end[k], -999, -999, -900))
             continue
 
         print(k, len(v), fr)
@@ -478,23 +479,24 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         for r in fr: 
             if isnan(r): bad = True
         if bad:
-            results0.append((k, tList_end[k], -999, -999, -800))
+            results.append((k, tList_end[k], -999, -999, -800))
             continue
-        results0.append((k, tList_end[k], fr[0], fr[1], fr[2]))
-
-        results.append(fr)
+        results.append((k, tList_end[k], fr[0], fr[1], fr[2]))
 
     ### save results to database
     with open(summary_file,modex) as fout1:
         if modex == 'w': fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F')
 
-        for aa in results0:
+        for aa in results:
             fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]}')
 
-    if showSummary:
+    if show is not None:
+        if show == 'all': results += results_exist ## results_exist should be empty if show == 'new'
+        results = [r for r in results if r[4]>=0 and r[3]>0] ### only select valide results
+
         x = range(len(results))
-        y = [abs(a[0]) for a in results]
-        e = [a[1] for a in results]
+        y = [abs(a[2]) for a in results]
+        e = [a[3] for a in results]
         plt.errorbar(x, y, yerr=e, fmt='o')
         plt.xlabel("Measurement Index")
         plt.ylabel("Current [pA]")
@@ -514,7 +516,6 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         else:
             plt.show()
         plt.cla()
-
 
 def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None):
     '''Check data'''
@@ -641,7 +642,7 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jul31a/Mixed_I_Fd1500_Fc2000.dat.1', excludeDS=[])
 #     check_ds(dir1+'Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat', excludeDS=[])
 #     check_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300)
-    process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl')
+    process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')
