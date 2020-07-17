@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from array import array
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize, curve_fit
@@ -415,6 +416,106 @@ def test2():
 
     plt.show()
 
+
+def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None, summary_file='summary.ttl', showSummary=False):
+    '''based on check_ds, but will keep the results in a text file (summary_file) and only update those not there yet'''
+
+    ### take data
+    dList = {}
+    tList_start = {}
+    tList_end = {}
+    with open(fname,'r') as fin1:
+        lines = fin1.readlines()
+
+    for line in lines:
+        fs = line.split()
+        if startIdx is not None and float(fs[2])<startIdx: continue
+
+        try:
+            dList[fs[0]].append(float(fs[1])/pA)
+        except KeyError:
+            dList[fs[0]] = [float(fs[1])/pA]
+            tList_start[fs[0]] = float(fs[2])
+
+        tList_end[fs[0]] = float(fs[2])
+
+    print(dList.keys())
+
+    ### check the database
+    flist = []
+    modex = 'w'
+    if os.path.exists(summary_file):
+        with open(summary_file,'r') as fin1:
+
+            ### load the db first
+            lines = fin1.readlines()
+            flist = [line.split()[0] for line in lines if len(line.split())>1]
+            print(flist)
+            modex = 'a'
+    elif summary_file is not None:
+        outdir = os.path.dirname(summary_file)
+        if not os.path.exists(outdir): os.makedirs(outdir)
+
+    results0 = []
+    results = []
+    i0 = None
+    for k,v in dList.items():
+        if k == stopTag: break
+        if k in excludeDS: continue
+        if k in flist: continue
+
+        if HVtripFix: v = remove_outlier3(v)
+
+        fr = fit_ds(v, show=False, check=False)
+
+        if fr is None:
+            results0.append((k, tList_end[k], -999, -999, -900))
+            continue
+
+        print(k, len(v), fr)
+
+        bad = False
+        for r in fr: 
+            if isnan(r): bad = True
+        if bad:
+            results0.append((k, tList_end[k], -999, -999, -800))
+            continue
+        results0.append((k, tList_end[k], fr[0], fr[1], fr[2]))
+
+        results.append(fr)
+
+    ### save results to database
+    with open(summary_file,modex) as fout1:
+        if modex == 'w': fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F')
+
+        for aa in results0:
+            fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]}')
+
+    if showSummary:
+        x = range(len(results))
+        y = [abs(a[0]) for a in results]
+        e = [a[1] for a in results]
+        plt.errorbar(x, y, yerr=e, fmt='o')
+        plt.xlabel("Measurement Index")
+        plt.ylabel("Current [pA]")
+
+        popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, absolute_sigma=True, p0=[y[0]], bounds=(-20, 20))
+        print(popt, pcov)
+        mean = popt[0]
+        err = sqrt(pcov[0][0])
+        plt.axhline(y=mean, color='red', label=f"mean: {mean:.2f}$\pm${err:.2f}")
+        plt.axhspan(mean-err, mean+err, facecolor='0.5', alpha=0.5)
+
+        if infoText is not None: plt.title(infoText)
+        plt.legend(loc='best')
+        plt.tight_layout()
+
+        if sName is not None: plt.savefig(sName)
+        else:
+            plt.show()
+        plt.cla()
+
+
 def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None, stopTag=None, infoText=None, HVtripFix=False, excludeDS=[],sName=None):
     '''Check data'''
 #     fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat'
@@ -506,6 +607,7 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 
 if __name__ == '__main__':
     dir1 = '/data/TMS_data/raw/'
+    dir3 = '/data/TMS_data/Processed/'
     dir2 = '/home/TMSTest/dz/'
 #     test()
 #     test2()
@@ -538,7 +640,8 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
 #     check_ds(dir1+'Jul31a/Mixed_I_Fd1500_Fc2000.dat.1', excludeDS=[])
 #     check_ds(dir1+'Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat', excludeDS=[])
-    check_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300)
+#     check_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300)
+    process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')
