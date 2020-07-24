@@ -176,6 +176,8 @@ def fit_ds(ds, show=False, check=False):
 #     r = getRange(ds, show=True)
     r = getRange(ds)
     if show: print('r=',r)
+    if r[0] is not None and r[0] > 0.6*len(ds):
+        r = (100, int(0.25*len(ds)), int(0.75*len(ds)), len(ds)-100, int(0.5*len(ds)), 0.)
 
     data1 = None
     r1 = r[1]
@@ -439,9 +441,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
 
         tList_end[fs[0]] = float(fs[2])
 
-
-    print(dList.keys())
-
+#     print(dList.keys())
 
     results_exist = []
     results = []
@@ -458,16 +458,32 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         outdir = os.path.dirname(summary_file)
         if not os.path.exists(outdir): os.makedirs(outdir)
 
+    excludeDS1 = [d for d in excludeDS if isinstance(d,str)]
+    excludeDS2 = [d for d in excludeDS if isinstance(d,tuple)]
+    print(excludeDS2)
+
+
     flist = [a[0] for a in results_exist]
     i0 = None
     for k,v in dList.items():
         if k == stopTag: break
-        if k in excludeDS: continue
+        if k in excludeDS1: continue
         if k in flist: continue
+
+        ex2_flag = False
+        for ex2 in excludeDS2:
+#             print(ex2, tList_start[k], tList_end[k])
+            if tList_start[k]>ex2[1] or tList_end[k]<ex2[0]: continue
+            else:
+                ex2_flag = True
+#                 print("here: should stop here!!!!")
+                break
+        if ex2_flag: continue
 
         if HVtripFix: v = remove_outlier3(v)
 
-        fr = fit_ds(v, show=False, check=False)
+#         fr = fit_ds(v, show=False, check=False)
+        fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
             results.append((k, tList_end[k], -999, -999, -900))
@@ -491,7 +507,8 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
             fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]}')
 
     if show is not None:
-        if show == 'all': results += results_exist ## results_exist should be empty if show == 'new'
+        results_new = [r for r in results if r[4]>=0 and r[3]>0]
+        if show == 'all': results = results_exist + results ## results_exist should be empty if show == 'new'
         results = [r for r in results if r[4]>=0 and r[3]>0] ### only select valide results
 
         x = range(len(results))
@@ -500,6 +517,12 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         plt.errorbar(x, y, yerr=e, fmt='o')
         plt.xlabel("Measurement Index")
         plt.ylabel("Current [pA]")
+
+        if results_new:
+            x2 = range(len(results)-len(results_new), len(results))
+            y2 = [abs(a[2]) for a in results_new]
+            e2 = [a[3] for a in results_new]
+            plt.errorbar(x2, y2, yerr=e2, fmt='x')
 
         popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, absolute_sigma=True, p0=[y[0]], bounds=(-20, 20))
         print(popt, pcov)
@@ -642,7 +665,11 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jul31a/Mixed_I_Fd1500_Fc2000.dat.1', excludeDS=[])
 #     check_ds(dir1+'Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat', excludeDS=[])
 #     check_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300)
-    process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
+#     process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
+#     process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat', excludeDS=['2020-07-17_21:28:12'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
+#     process_ds(dir1+'Jul23a/SMU10mV_R998MOhm.dat', excludeDS=[(16300,17980)], startIdx=4100, summary_file=dir3+'Jul23a/summary.ttl', show='all')
+#     process_ds(dir1+'Jul24a/Ar_totalI_IsegFd1500_HVscan.dat', excludeDS=[], summary_file=dir3+'Jul24a/summary.ttl', show='all')
+    process_ds(dir1+'Jul24a/Ar_totalI_IsegFd2000_drift.dat', excludeDS=[], summary_file=dir3+'Jul24a/drift2kV_summary.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')

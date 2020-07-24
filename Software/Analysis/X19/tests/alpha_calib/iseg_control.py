@@ -35,7 +35,7 @@ class isegHV:
     def __init__(self):
         self.ser = None
     def connect(self):
-        portx="/dev/ttyUSB1"
+        portx="/dev/ttyUSB0"
 #         portx="/dev/ttyUSB0"
         bps=9600
         timex=5
@@ -180,9 +180,11 @@ def measureHV():
 
 
 def simpleSetHV(vs):
+#     print(f"setting {vs}")
     is1 = isegHV()
     is1.connect()
     print(is1.query(':READ:IDNT?'))
+
 
     ### deal with special requirement
     if vs in ['ON', 'OFF']:
@@ -212,6 +214,7 @@ def main():
         return
     try:
         value = int(sys.argv[2])
+#         print(f"get value {value}")
     except ValueError:
         if sys.argv[2] in ['ON','OFF']:
             value = sys.argv[2]

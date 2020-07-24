@@ -261,10 +261,11 @@ class findrate(object):
         bigx = bigx0
         ### ---- let's do the interesting things here
 #         pCut3 = 2
-        pCut3 = 20
+        pCut3 = 5
         dtC = None ### use None as initial value to deal with the first one properly
         for i in range(len(bigx0)):
-            if proms3[i] > pCut3 and (proms3[i]<142 or proms3[i]>148):
+#             if proms3[i] > pCut3 and (proms3[i]<142 or proms3[i]>148):
+            if proms3[i] > pCut3:
 #             if proms3[i] > pCut3 and (proms3[i]<180 or proms3[i]>190):
                 if dtC is not None: bigx0['dt'][i] += dtC ### add the accumulated dt: dtC, no need for 1st one
                 dtC = 0                                ### and reset dtC
@@ -547,9 +548,12 @@ if __name__ == '__main__':
 #    monitor('/data/TMS_data/raw/Jul16b_tek/','/data/TMS_data/Processed/Jul16b_p1')
 #    monitor('/data/TMS_data/raw/Jul16c_tek/','/data/TMS_data/Processed/Jul16c_p1')
 #    monitor('/data/TMS_data/raw/Jul16d_tek/','/data/TMS_data/Processed/Jul16d_p2')
-   monitor('/data/TMS_data/raw/Jul17a_tek/','/data/TMS_data/Processed/Jul17a_p1')
+#    monitor('/data/TMS_data/raw/Jul17a_tek/','/data/TMS_data/Processed/Jul17a_p1')
+#    monitor('/data/TMS_data/raw/Jul21a_tek/','/data/TMS_data/Processed/Jul21a_p1')
+#    monitor('/data/TMS_data/raw/Jul22a_tek/','/data/TMS_data/Processed/Jul22a_p1')
+   monitor('/data/TMS_data/raw/Jul24a_tek/','/data/TMS_data/Processed/Jul24a_p1')
 #     test0()
-#     process_file('/data/Samples/TMSPlane/Jan15a/TPCHV2kV_PHV0V_air3_204.isf')
+#     process_file('/data/TMS_data/raw/Jul17a_tek/unfiltered_HV_alphaOn_Fd2500V_pulse80mV1Hz_203.isf')
 #     main()
 #     test()
 #       multi_run()

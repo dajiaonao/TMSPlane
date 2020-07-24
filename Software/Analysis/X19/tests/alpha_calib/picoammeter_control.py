@@ -57,7 +57,7 @@ class Picoammeter:
         self.hiddenCmdFile = '.hidden_pm'
         self.hiddenCmdT = time.time()
 
-    def connect(self, portx="/dev/ttyUSB0"): #USB Serial Converter
+    def connect(self, portx="/dev/ttyUSB1"): #USB Serial Converter
 #         portx="/dev/ttyUSB0" ##
 #         portx="/dev/ttyUSB1"
         bps=57600
@@ -1557,10 +1557,12 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat',extraStr=" 1500", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_calib3mV_after.dat',extraStr=" 1500", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_calib13mV_after.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib13mV_1.dat',extraStr=" 2500", nRead=2, nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib25mV_1.dat',extraStr=" 2500", nRead=2, nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib3mV_1.dat',extraStr=" 2500", nRead=2, nrps=1000)
-    run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat',extraStr=" 2500", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib13mV_2.dat',extraStr=" 2500", nRead=2, nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib25mV_2.dat',extraStr=" 2500", nRead=2, nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib3mV_3.dat',extraStr=" 2500", nRead=2, nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd650_HVscan.dat',extraStr=" 650 858", nrps=1000, nRead=1)
+    run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd2000_drift.dat',extraStr=" 2000 2640", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat',extraStr=" 2500", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)
