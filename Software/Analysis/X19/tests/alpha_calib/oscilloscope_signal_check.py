@@ -402,9 +402,7 @@ def process_file(inputName):
     myrate.process_fun(-1)
     return myrate
 
-def multi_run():
-    script, pattern, Nfiles, mydir = argv
-
+def process_all(pattern, Nfiles, mydir):
     if not os.path.exists(mydir): os.makedirs(mydir)
     global myOutPutDir
     myOutPutDir = mydir
@@ -425,6 +423,10 @@ def multi_run():
         print(s)
         newfile.write(s+'\n')   
 
+
+def multi_run():
+    script, pattern, Nfiles, mydir = argv
+    process_all(pattern, Nfiles, mydir)
 
 def test():
     script, pattern, Nfiles = argv
@@ -521,20 +523,48 @@ def monitor(indir, outdir):
 def main1():
     from optparse import OptionParser
     parser = OptionParser()
-    parser.add_option("-f", "--file", dest="filePath", help="the file or pattern to monitor")
-    parser.add_option("-p", "--pattern",    dest="filePattern",    help="the file or pattern to view")
-    parser.add_option("-m", "--monitor",    dest="monitorDir",    help="the file or pattern to view")
-    parser.add_option("-d", "--dir",    dest="indir",    help="the file or pattern to view")
-    parser.add_option("-o", "--outdir",    dest="outdir",    help="the file or pattern to view")
+    parser.add_option("-f", "--file",    dest="filePath", default=None, help="process this file")
+    parser.add_option("-p", "--pattern", dest="filePattern",default=None,    help="process all files match the pattern")
+    parser.add_option("-d", "--fileDir", dest="fileDir", default=None,   help="process all files in the dir")
+    parser.add_option("-m", "--monitor", dest="monitorDir",default=None,    help="the file or pattern to view")
+    parser.add_option("-N", "--NFiles",  dest="NFiles", default=-1,   help="number of files to be processed")
+    parser.add_option("-o", "--outdir",  dest="outDir", default=None,   help="output directory")
+    parser.add_option("-a", "--auto",    dest="auto", default=False, action="store_true", help="use default dir")
 
     (options, args) = parser.parse_args()
 
-    if options.monitorPattern:
-        monitor(options.monitorPattern)
-    elif options.viewPattern:
-        view(options.viewPattern)
+    dir0_I = '/data/TMS_data/raw/'
+    dir0_O = '/data/TMS_data/Processed/'
+
+    if options.monitorDir:
+        inDir = options.monitorDir
+        outDir = os.path.basename(inDir)+'_p0' if options.outDir is None else options.outDir
+        if options.auto:
+            inDir = dir0_I + inDir
+            outDir = dir0_O + options.outDir
+        monitor(inDir, outDir)
+    elif options.filePattern:
+        process_all(options.filePattern, options.NFiles, outDir)
+    elif options.fileDir:
+        inDir = options.fileDir
+        outDir = os.path.basename(inDir)+'_p0' if options.outDir is None else options.outDir
+        if options.auto:
+            inDir = dir0_I + inDir
+            outDir = dir0_O + options.outDir
+        if inDir[-1] != '/': inDir += '/'
+        process_all(inDir+'*.isf', options.NFiles, outDir)
+    elif options.filePath:
+        process_file(options.filePath)
+    elif args:
+        print("Will process files:")
+        print(args)
+
+        for f in args:
+            if not os.path.exists(f):
+                print(f"skipping file {f}")
+            process_file(f)
     else:
-        print("Unknown pattern")
+        parser.print_usage()
 
 def main():
     if len(argv)>3: multi_run()
@@ -551,9 +581,9 @@ if __name__ == '__main__':
 #    monitor('/data/TMS_data/raw/Jul17a_tek/','/data/TMS_data/Processed/Jul17a_p1')
 #    monitor('/data/TMS_data/raw/Jul21a_tek/','/data/TMS_data/Processed/Jul21a_p1')
 #    monitor('/data/TMS_data/raw/Jul22a_tek/','/data/TMS_data/Processed/Jul22a_p1')
-   monitor('/data/TMS_data/raw/Jul24a_tek/','/data/TMS_data/Processed/Jul24a_p1')
+#    monitor('/data/TMS_data/raw/Jul24a_tek/','/data/TMS_data/Processed/Jul24a_p1')
 #     test0()
 #     process_file('/data/TMS_data/raw/Jul17a_tek/unfiltered_HV_alphaOn_Fd2500V_pulse80mV1Hz_203.isf')
-#     main()
+    main1()
 #     test()
 #       multi_run()
