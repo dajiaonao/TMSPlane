@@ -50,7 +50,10 @@ class TPCSystem:
             return mo[0][0], mo[1][0]
 
     def showConfig(self,dU,cU=None, debug=False):
-        print("*"*20+f" {self.name}/{self.version} "+'*'*20)
+        print("* "*30)
+        print("*"*2+f"     {self.name}/{self.version}     "+'*'*2)
+        print("* "*30)
+        print()
         if cU is None:
             U1 =  (1+(self.dEProvider.R+self.dU_RCFilter_R+self.cU_R)/self.dU_R)*dU 
             print(f"Drift HV: {dU:.0f}")
@@ -73,17 +76,24 @@ class TPCSystem:
                 mi.Print()
                 mo.Print()
 
+
+            current_D = dU/self.dU_R
+            current_C = cU/self.cU_R-current_D
+#             current_C = (mo[1][0]-cU)/(self.cEProvider.R+self.cU_RCFilter_R)
+
             print(f"Drift HV: {dU:.0f}")
             print(f"Focus HV: {cU:.0f}")
 
             print('-'*10)
             print(f"[{self.dEProvider.name}]   [{self.cEProvider.name}]")
             print(f"Drift        Focus")
-            print(f"{mo[0][0]:.0f}         {mo[1][0]:.0f}")
+            print(f"{mo[0][0]:.0f}         {mo[1][0]:.0f}  V")
+            print(f"{current_D:.2g}          {current_C:.2g}   mA")
 
-            print("- "*20)
-            print("Safe ramp:")
-            print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2f} < Ud[{self.dEProvider.name}]/Uc[{self.cEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2f}")
+            print('\n'+"- "*10 + "Safe ramp" + '- '*10)
+#             print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2f} < Ud[{self.dEProvider.name}]/Uc[{self.cEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2f}")
+#             print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2g} < Ud[{self.dEProvider.name}]/Uc[{self.cEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2g}\n")
+            print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2g} Uc[{self.cEProvider.name}] < Ud[{self.dEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2g} Uc[{self.cEProvider.name}]\n")
 
 #             Ud * self.cU_R/(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R < Uc
 #             Ud > Uc * self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R)
