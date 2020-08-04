@@ -221,7 +221,10 @@ class findrate(object):
             fig2, ax2 = plt.subplots(num="peakprom3_"+basename)
             #plt.plot(proms)
             ax2.hist(proms3, num_bins)
+
+            plt.ion()
             plt.show()
+            a = input("Press any key to continue")
 
         ### calculate means
 #         self.heightmean = np.mean(pks)
@@ -395,10 +398,11 @@ class findrate(object):
     def get_summary(self):
         return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr_pm2/self.timelap} {self.npeaks_corr_pm/self.timelap} {self.prominence3mean:.3f} {self.npeaks_corr_pm3/self.timelap}"
 
-def process_file(inputName):
+def process_file(inputName, show=False):
     print(f"Processing {inputName}")
     myrate = findrate(inputName)
     myrate.getinput()
+    myrate.showPlot = show
     myrate.process_fun(-1)
     return myrate
 
@@ -468,6 +472,8 @@ def test0():
 def monitor(indir, outdir):
     '''In this mode, it will check the files in `indir` and process any files that is not included in the summary file, and the output histograms are put in `outdir`'''
     nUpdate = 10
+    print(indir, outdir)
+    if indir[-1]!='/': indir+='/'
 
     flist = []
     if outdir[-1] != '/': outdir = outdir.rstrip()+'/'
@@ -530,6 +536,7 @@ def main1():
     parser.add_option("-N", "--NFiles",  dest="NFiles", default=-1,   help="number of files to be processed")
     parser.add_option("-o", "--outdir",  dest="outDir", default=None,   help="output directory")
     parser.add_option("-a", "--auto",    dest="auto", default=False, action="store_true", help="use default dir")
+    parser.add_option("-i", "--interactive",    dest="interactive", default=False, action="store_true", help="use default dir")
 
     (options, args) = parser.parse_args()
 
@@ -554,7 +561,7 @@ def main1():
         if inDir[-1] != '/': inDir += '/'
         process_all(inDir+'*.isf', options.NFiles, outDir)
     elif options.filePath:
-        process_file(options.filePath)
+        process_file(options.filePath, options.interactive)
     elif args:
         print("Will process files:")
         print(args)
@@ -562,7 +569,7 @@ def main1():
         for f in args:
             if not os.path.exists(f):
                 print(f"skipping file {f}")
-            process_file(f)
+            process_file(f, options.interactive)
     else:
         parser.print_usage()
 

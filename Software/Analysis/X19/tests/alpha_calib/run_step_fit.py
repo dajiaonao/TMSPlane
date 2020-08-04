@@ -510,6 +510,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         results_new = [r for r in results if r[4]>=0 and r[3]>0]
         if show == 'all': results = results_exist + results ## results_exist should be empty if show == 'new'
         results = [r for r in results if r[4]>=0 and r[3]>0] ### only select valide results
+        results = [r for r in results if r[3]<=0.2] ### only select valide results
 
         x = range(len(results))
         y = [abs(a[2]) for a in results]
@@ -669,7 +670,10 @@ if __name__ == '__main__':
 #     process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat', excludeDS=['2020-07-17_21:28:12'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
 #     process_ds(dir1+'Jul23a/SMU10mV_R998MOhm.dat', excludeDS=[(16300,17980)], startIdx=4100, summary_file=dir3+'Jul23a/summary.ttl', show='all')
 #     process_ds(dir1+'Jul24a/Ar_totalI_IsegFd1500_HVscan.dat', excludeDS=[], summary_file=dir3+'Jul24a/summary.ttl', show='all')
-    process_ds(dir1+'Jul24a/Ar_totalI_IsegFd2000_drift.dat', excludeDS=[], summary_file=dir3+'Jul24a/drift2kV_summary.ttl', show='all')
+#     process_ds(dir1+'Jul24a/Ar_totalI_IsegFd2000_drift.dat', excludeDS=[], summary_file=dir3+'Jul24a/drift2kV_summary.ttl', show='all')
+#     process_ds(dir1+'Aug01a/Air_totalI_DongwenFd500_drift1.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
+#     process_ds(dir1+'Aug01a/Air_I_DongwenFd500_IsegFc700.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
+    process_ds(dir1+'Aug01a/Air_totalI_HVscan_IsegFd120.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')

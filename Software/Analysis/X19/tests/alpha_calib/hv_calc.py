@@ -88,7 +88,7 @@ class TPCSystem:
             print(f"[{self.dEProvider.name}]   [{self.cEProvider.name}]")
             print(f"Drift        Focus")
             print(f"{mo[0][0]:.0f}         {mo[1][0]:.0f}  V")
-            print(f"{current_D:.2g}          {current_C:.2g}   mA")
+            print(f"{current_D:.2g}      {current_C:.2g}    uA")
 
             print('\n'+"- "*10 + "Safe ramp" + '- '*10)
 #             print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2f} < Ud[{self.dEProvider.name}]/Uc[{self.cEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2f}")
@@ -99,12 +99,34 @@ class TPCSystem:
 #             Ud > Uc * self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R)
 
 
+def checkConfig1(Ud=None, Uc=None):
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-1'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.buildMatrix()
+    
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    vO = tpc.showConfig(Ud, Uc)
+
+
+
 def checkConfig2(Ud=None, Uc=None):
     DongwenHV = HVDevice("Dongwen")
     IsegHV = HVDevice("Iseg", 10)
 
     tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
-    tpc.version = 'Config-0'
+    tpc.version = 'Config-2'
     tpc.dU_RCFilter_R = 0
     tpc.cU_RCFilter_R = 0
     tpc.buildMatrix()
@@ -118,6 +140,79 @@ def checkConfig2(Ud=None, Uc=None):
     if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
 
     vO = tpc.showConfig(Ud, Uc)
+
+def checkConfig3(Ud=None, Uc=None, show=True):
+    '''Check the code'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-3'
+    tpc.dU_RCFilter_R = 500
+    tpc.cU_RCFilter_R = 16
+    tpc.buildMatrix()
+    
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    if show:
+        vO = tpc.showConfig(Ud, Uc)
+    else:
+        return tpc.getConfig(Ud, Uc)
+
+def checkConfig3b(Ud=None, Uc=None, show=True):
+    '''Using Iseg HV for drifting, but use the collection HV port, to access higher voltage'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=IsegHV)
+    tpc.version = 'Config-3b'
+    tpc.dU_RCFilter_R = 16
+    tpc.cU_RCFilter_R = -999
+#     tpc.buildMatrix()
+    
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    if show:
+        vO = tpc.showConfig(Ud, Uc)
+    else:
+        return tpc.getConfig(Ud, Uc)
+
+def specialConfigA(Ud=None, Uc=None):
+    '''Based on checkConfig3, but cU_R is set to 7.5 MOhm, 30 || 10 M from multimeter'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-3'
+    tpc.dU_RCFilter_R = 500
+    tpc.cU_RCFilter_R = 16
+    tpc.cU_R = 30
+    tpc.dU_R = 141
+    tpc.buildMatrix()
+    
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    vO = tpc.showConfig(Ud, Uc)
+
+
 
 def testConfig():
     DongwenHV = HVDevice("Dongwen")
@@ -335,7 +430,11 @@ if __name__ == '__main__':
 #     calc_v2()
 #     calc_v4()
 #     testConfig()
-    checkConfig2()
+#     checkConfig1()
+#     checkConfig3()
+    checkConfig3b()
+#     specialConfigA()
+#     checkConfig2()
 #     calc_v3()
 #     calc_v3b()
 #     calc_v5()

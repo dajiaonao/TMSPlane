@@ -1482,9 +1482,18 @@ def HV_checkI_Dongwen(HVvalue, nGood=3, tLast=60):
     pm1.disconnect()
     return rCode
 
+def Aug01_test():
+#     run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_totalI_DongwenFd500_drift1.dat',extraStr=" 500 2267", nrps=1000, nRead=3)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_I_DongwenFd500_IsegFc500.dat',extraStr=" 500 2667 500 847", nrps=1000, nRead=3)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_I_DongwenFd500_IsegFc400.dat',extraStr=" 500 2267 400 660", nrps=1000, nRead=3)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_I_DongwenFd500_IsegFc250.dat',extraStr=" 500 2417 250 380", nrps=1000, nRead=3)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_I_DongwenFd500_IsegFc350.dat',extraStr=" 500 2517 250 567", nrps=1000, nRead=3)
+    run_quasicontinious_recording('/data/TMS_data/raw/Aug01a/Air_I_DongwenFd500_IsegFc700.dat',extraStr=" 500 2867 700 1220", nrps=1000, nRead=3)
+
 
 if __name__ == '__main__':
-    listPorts()
+    Aug01_test()
+#     listPorts()
 #     run_tests()
 #     run_HV_checkI()
 #     run_zero_check()
@@ -1561,7 +1570,7 @@ if __name__ == '__main__':
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib25mV_2.dat',extraStr=" 2500", nRead=2, nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib3mV_3.dat',extraStr=" 2500", nRead=2, nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd650_HVscan.dat',extraStr=" 650 858", nrps=1000, nRead=1)
-    run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd2000_drift.dat',extraStr=" 2000 2640", nrps=1000)
+#     run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd2000_drift.dat',extraStr=" 2000 2640", nrps=1000)
 #     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat',extraStr=" 2500", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
