@@ -46,6 +46,8 @@ class findrate(object):
         self.prominence2Cut=20
         self.prominenceCut=10
         self.prominence3Cut=20
+        self.promsCut = 10
+        self.pulseVeto = (-1,999)
 
 #         self.process_fun = self.processinput
         self.process_fun = self.processinput_v1
@@ -211,6 +213,7 @@ class findrate(object):
             fig0, ax0 = plt.subplots(num="diffpeak_"+basename)
 
             num_bins = 50
+#             bins = range(0,256)
             # the histogram of the data
             n, bins, patches = ax0.hist(np.diff(peaks), num_bins)
 
@@ -258,25 +261,21 @@ class findrate(object):
         ### save to root
         df_pks = np.append(np.array([-1]),df_pks)
         bigx0 = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
-        print(bigx0.shape,bigx0.dtype)
+#         print(bigx0.shape,bigx0.dtype)
 
 
         bigx = bigx0
         ### ---- let's do the interesting things here
-#         pCut3 = 2
-        pCut3 = 5
         dtC = None ### use None as initial value to deal with the first one properly
         for i in range(len(bigx0)):
-#             if proms3[i] > pCut3 and (proms3[i]<142 or proms3[i]>148):
-            if proms3[i] > pCut3:
-#             if proms3[i] > pCut3 and (proms3[i]<180 or proms3[i]>190):
+            if proms3[i] > self.promsCut and (proms3[i]<self.pulseVeto[0] or proms3[i]>self.pulseVeto[1]):
                 if dtC is not None: bigx0['dt'][i] += dtC ### add the accumulated dt: dtC, no need for 1st one
-                dtC = 0                                ### and reset dtC
+                dtC = 0                                   ### and reset dtC
             else:
                 if dtC is not None: dtC += bigx0['dt'][i]  ### accumulating... no need for the 1st one
-                bigx0['dt'][i] = -bigx0['dt'][i]              ### not necussary, but as a check
+                bigx0['dt'][i] = -bigx0['dt'][i]           ### not necussary, but as a check
 
-        bigx = bigx0[bigx0['proms3']>pCut3] ### a tough cut for the sake of sigal purity
+        bigx = bigx0[bigx0['proms3']>self.promsCut] ### a tough cut for the sake of sigal purity
         #### --- OK, interesting thing done, and cut made, ready to be saved now.
 
 
@@ -395,8 +394,16 @@ class findrate(object):
 
         self.inputarray = None ### we do not need to keep it, otherwise it will take a lot of memory...
 
+    def get_summary_header(self):
+        return "fname/C:idx/I:time/C:N/i:t/F:rate0:height:proms:width:bkg:proms2:rate2:rate1:proms3:rate3"
     def get_summary(self):
-        return f"{os.path.basename(self.filename)} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr_pm2/self.timelap} {self.npeaks_corr_pm/self.timelap} {self.prominence3mean:.3f} {self.npeaks_corr_pm3/self.timelap}"
+        idx = -1
+        try:
+            idx = int(self.filename[:-4].split('_')[-1])
+        except ValueError:
+            pass
+
+        return f"{os.path.basename(self.filename)} {idx:d} {self.date}_{self.time} {self.npeaks} {self.timelap} {self.npeaks/self.timelap} {self.heightmean:.3f} {self.prominencemean:.3f} {self.widthmean:.3f} {self.bkg:.3f} {self.prominence2mean:.3f} {self.npeaks_corr_pm2/self.timelap} {self.npeaks_corr_pm/self.timelap} {self.prominence3mean:.3f} {self.npeaks_corr_pm3/self.timelap}"
 
 def process_file(inputName, show=False):
     print(f"Processing {inputName}")
@@ -493,6 +500,7 @@ def monitor(indir, outdir):
             modex = 'a'
 
     with open(summary_file,modex) as fin1:
+        write_header = (modex == 'w')
         while True:
             ### for exception capture
             try:
@@ -511,7 +519,10 @@ def monitor(indir, outdir):
                     myrate.getinput()
                     myrate.process_fun(-1)
 
-                    fin1.write(myrate.get_summary()+'\n')   
+                    if write_header:
+                        fin1.write(myrate.get_summary_header())
+                        write_header = False
+                    fin1.write('\n'+myrate.get_summary())   
                     flist.append(os.path.basename(fx))
 
                     nProcessed += 1
@@ -543,6 +554,7 @@ def main1():
     dir0_I = '/data/TMS_data/raw/'
     dir0_O = '/data/TMS_data/Processed/'
 
+    global myOutPutDir ### use this in several cases
     if options.monitorDir:
         inDir = options.monitorDir
         outDir = os.path.basename(inDir)+'_p0' if options.outDir is None else options.outDir
@@ -551,6 +563,7 @@ def main1():
             outDir = dir0_O + options.outDir
         monitor(inDir, outDir)
     elif options.filePattern:
+        outDir = './' if options.outDir is None else options.outDir
         process_all(options.filePattern, options.NFiles, outDir)
     elif options.fileDir:
         inDir = options.fileDir
@@ -561,15 +574,22 @@ def main1():
         if inDir[-1] != '/': inDir += '/'
         process_all(inDir+'*.isf', options.NFiles, outDir)
     elif options.filePath:
-        process_file(options.filePath, options.interactive)
+        if options.outDir is not None: myOutPutDir = options.outDir
+
+        r = process_file(options.filePath, options.interactive)
+        print(r.get_summary_header())
+        print(r.get_summary())
     elif args:
+        if options.outDir is not None: myOutPutDir = options.outDir
         print("Will process files:")
         print(args)
 
+        print(r.get_summary_header())
         for f in args:
             if not os.path.exists(f):
                 print(f"skipping file {f}")
-            process_file(f, options.interactive)
+            r = process_file(f, options.interactive)
+            print(r.get_summary())
     else:
         parser.print_usage()
 
@@ -577,6 +597,7 @@ def main():
     if len(argv)>3: multi_run()
     else: test()
 
+print("xxx")
 if __name__ == '__main__':
 #    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
 #    monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
@@ -591,6 +612,7 @@ if __name__ == '__main__':
 #    monitor('/data/TMS_data/raw/Jul24a_tek/','/data/TMS_data/Processed/Jul24a_p1')
 #     test0()
 #     process_file('/data/TMS_data/raw/Jul17a_tek/unfiltered_HV_alphaOn_Fd2500V_pulse80mV1Hz_203.isf')
+    print("yyy")
     main1()
 #     test()
 #       multi_run()
