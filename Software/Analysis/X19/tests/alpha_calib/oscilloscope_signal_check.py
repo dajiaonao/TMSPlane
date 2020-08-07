@@ -418,22 +418,23 @@ def process_all(pattern, Nfiles, mydir):
     global myOutPutDir
     myOutPutDir = mydir
 
+    ### get the list of files whose corresponding root files does not exist
     filesall = sorted([f for f in glob(pattern) if not os.path.exists(mydir+'/'+os.path.basename(f)[:-4]+'.root')], key=lambda f:os.path.getmtime(f))
+    ### if a positive number of files to be processed is given, then just pick the first Nfiles
     files = filesall[:int(Nfiles)] if int(Nfiles)>0 else filesall[:]
-    print(files)
+    print(files, '--->', len(files), ' to be processed.')
     myrates = []
-    print(len(files))
 
     p = Pool(6)
     myrates = p.map(process_file, files)
    
     newfile = open(mydir+"/summary.txt","a")
-    print(findrate.header)
     for i in range(len(myrates)):
         s = myrates[i].get_summary()
-        print(s)
-        newfile.write(s+'\n')   
+        if i==0: s = myrates[i].get_summary_header() +'\n'+s
 
+        print(s)
+        newfile.write(s+'\n') 
 
 def multi_run():
     script, pattern, Nfiles, mydir = argv
@@ -597,7 +598,6 @@ def main():
     if len(argv)>3: multi_run()
     else: test()
 
-print("xxx")
 if __name__ == '__main__':
 #    monitor('/home/TMSTest/PlacTests/TMSPlane/data/fpgaLin/raw/May31a/','/data/TMS_data/Processed/May31a_cut20')
 #    monitor('/data/TMS_data/raw/Jun25a_tek/','/data/TMS_data/Processed/Jun25a_p1')
@@ -612,7 +612,6 @@ if __name__ == '__main__':
 #    monitor('/data/TMS_data/raw/Jul24a_tek/','/data/TMS_data/Processed/Jul24a_p1')
 #     test0()
 #     process_file('/data/TMS_data/raw/Jul17a_tek/unfiltered_HV_alphaOn_Fd2500V_pulse80mV1Hz_203.isf')
-    print("yyy")
     main1()
 #     test()
 #       multi_run()
