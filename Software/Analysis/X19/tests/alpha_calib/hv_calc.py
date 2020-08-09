@@ -26,6 +26,7 @@ class TPCSystem:
         self.driftOnly = False
         self.mr2s = None
         self.ms2r = None
+        self.mfun = self.mr2s
 
     def buildMatrix(self):
         self.mr2s = TMatrixD(2,2)
@@ -35,6 +36,8 @@ class TPCSystem:
         self.mr2s[1][1] = 1. +  (self.cEProvider.R+self.cU_RCFilter_R)/self.cU_R
         self.ms2r = self.mr2s.Clone()
         self.ms2r.Invert()
+
+        self.mfun = self.mr2s
 
     def getConfig(self,dU,cU=None):
         if cU is None:
@@ -46,8 +49,21 @@ class TPCSystem:
             mi[0][0] = dU
             mi[1][0] = cU
 
-            mo.Mult(self.mr2s,mi)
+            mo.Mult(self.mfun,mi)
             return mo[0][0], mo[1][0]
+
+    def showSystemConfig(self):
+        print("x "*30)
+        print(f"Drift device   : {self.dEProvider.name}")
+        print(f"      device  R: {self.dEProvider.R} MOhm")
+        print(f"Drift         R: {self.dU_R} MOhm")
+        print(f"Drift RC      R: {self.dU_RCFilter_R} MOhm")
+        print("= "*30)
+        print(f"Collection device   : {self.cEProvider.name}")
+        print(f"           device  R: {self.cEProvider.R} MOhm")
+        print(f"Collection         R: {self.cU_R} MOhm")
+        print(f"Collection RC      R: {self.cU_RCFilter_R} MOhm")
+        print("+ "*30)
 
     def showConfig(self,dU,cU=None, debug=False):
         print("* "*30)
@@ -69,10 +85,10 @@ class TPCSystem:
             mi[0][0] = dU
             mi[1][0] = cU
 
-            mo.Mult(self.mr2s,mi)
+            mo.Mult(self.mfun,mi)
 
             if debug:
-                self.mr2s.Print()
+                self.mfun.Print()
                 mi.Print()
                 mo.Print()
 
@@ -97,6 +113,25 @@ class TPCSystem:
 
 #             Ud * self.cU_R/(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R < Uc
 #             Ud > Uc * self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R)
+
+def checkConfig0(Ud=None, Uc=None):
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-0'
+    tpc.dU_RCFilter_R = 0
+    tpc.cU_RCFilter_R = 0
+    tpc.buildMatrix()
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    vO = tpc.showConfig(Ud, Uc)
 
 
 def checkConfig1(Ud=None, Uc=None):
@@ -140,6 +175,57 @@ def checkConfig2(Ud=None, Uc=None):
     if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
 
     vO = tpc.showConfig(Ud, Uc)
+
+def printInfo(tpc, Ud, Uc, show):
+    tpc.buildMatrix()
+
+    if len(sys.argv)>1 and sys.argv[1] == 'tpc':
+        tpc.showSystemConfig()
+        return
+
+    if sys.argv[-1]=='s2r': tpc.mfun = tpc.ms2r
+
+    if Ud is None:
+        if len(sys.argv)<2:
+            print("Ud is not provided")
+            return
+        Ud = int(sys.argv[1])
+    if Uc is None and len(sys.argv)>2: Uc = int(sys.argv[2])
+
+    if show:
+        vO = tpc.showConfig(Ud, Uc)
+    else:
+        return tpc.getConfig(Ud, Uc)
+
+
+
+def checkConfig4a(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4'
+    tpc.dU_RCFilter_R = 0
+    tpc.cU_RCFilter_R = 0
+    tpc.dU_R = 180
+    tpc.cU_R = 24
+
+    printInfo(tpc, Ud, Uc, show)
+
+def checkConfig4(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.dU_R = 180
+    tpc.cU_R = 50
+
+    printInfo(tpc, Ud, Uc, show)
 
 def checkConfig3(Ud=None, Uc=None, show=True):
     '''Check the code'''
@@ -430,9 +516,12 @@ if __name__ == '__main__':
 #     calc_v2()
 #     calc_v4()
 #     testConfig()
+#     checkConfig0()
 #     checkConfig1()
 #     checkConfig3()
-    checkConfig3b()
+#     checkConfig4a()
+    checkConfig4()
+#     checkConfig3b()
 #     specialConfigA()
 #     checkConfig2()
 #     calc_v3()
