@@ -41,6 +41,7 @@ class isegHV:
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
     def disconnect(self):
+        print("disconnecting...")
         self.send('*GTL') ## Go To Local
         self.ser.close()
 

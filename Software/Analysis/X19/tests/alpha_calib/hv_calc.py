@@ -213,7 +213,79 @@ def checkConfig4a(Ud=None, Uc=None, show=True):
 
     printInfo(tpc, Ud, Uc, show)
 
+def checkConfig4b(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4b'
+    tpc.dU_RCFilter_R = 0
+    tpc.cU_RCFilter_R = 0
+    tpc.dU_R = 180
+    tpc.cU_R = 32
+
+    printInfo(tpc, Ud, Uc, show)
+
 def checkConfig4(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4b'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.dU_R = 180
+    tpc.cU_R = 32
+
+    return printInfo(tpc, Ud, Uc, show)
+
+def checkConfig4Aug12(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4b'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.dU_R = 150
+    tpc.cU_R = 30
+
+    return printInfo(tpc, Ud, Uc, show)
+
+
+
+def checkConfig4DriftOnly(Ud=None, Uc=None, cU_R=32, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=IsegHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.dU_R = 180
+    tpc.cU_R = cU_R
+
+    return printInfo(tpc, Ud, Uc, show)
+
+def checkConfig4DriftOnlyAug12(Ud=None, Uc=None, cU_R=10.4, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=IsegHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 16
+    tpc.dU_R = 150
+    tpc.cU_R = cU_R
+
+    return printInfo(tpc, Ud, Uc, show)
+    
+def checkConfig4DriftOnlyAug13(Ud=None, Uc=None, cU_R=10.4, show=True):
     '''Used in HV spark check'''
     DongwenHV = HVDevice("Dongwen")
     IsegHV = HVDevice("Iseg", 10)
@@ -222,11 +294,11 @@ def checkConfig4(Ud=None, Uc=None, show=True):
     tpc.version = 'Config-4'
     tpc.dU_RCFilter_R = 8
     tpc.cU_RCFilter_R = 16
-    tpc.dU_R = 180
-    tpc.cU_R = 50
+    tpc.dU_R = 150
+    tpc.cU_R = cU_R
 
-    printInfo(tpc, Ud, Uc, show)
-
+    return printInfo(tpc, Ud, Uc, show)
+ 
 def checkConfig3(Ud=None, Uc=None, show=True):
     '''Check the code'''
     DongwenHV = HVDevice("Dongwen")
@@ -520,7 +592,12 @@ if __name__ == '__main__':
 #     checkConfig1()
 #     checkConfig3()
 #     checkConfig4a()
-    checkConfig4()
+#    checkConfig4b()
+#    checkConfig4()
+#      checkConfig4DriftOnly()
+#     checkConfig4DriftOnlyAug12()
+#     checkConfig4DriftOnlyAug13()
+    checkConfig4Aug12()
 #     checkConfig3b()
 #     specialConfigA()
 #     checkConfig2()

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 ### Draw various plots
-from ROOT import TH1F, TChain, gStyle, gPad, TLegend, TRatioPlot
+from ROOT import TH1F, TTree, TChain, gStyle, gPad, TLegend, TRatioPlot
 from rootUtil3 import waitRootCmdX, useNxStyle
 
-def getHist(fname,var,h0,tag,cut='',style=None,opt=''):
+def getHist(fname,var,h0,tag,cut='',style=None,opt='goff'):
     t1 = TChain("tree")
     if isinstance(fname, list):
         for fn in fname: t1.Add(fn)
@@ -246,11 +246,85 @@ class Check_Jul16:
 
         waitRootCmdX()
 
+class Check_Aug13a:
+    def __init__(self):
+        self.dir1 = '/data/TMS_data/Processed/Aug13a_p0/'
+
+    def dt_fit(self, fpattern, ftag="test fit", nEnd=20000, nFitStart=500):
+        xEnd = nEnd*0.000001
+        h0 = TH1F("h0","dt;dt [s];Entries",100,0,xEnd)
+
+        print(self.dir1+fpattern)
+        var = "dt*0.0000005"
+        h1 = getHist(self.dir1+fpattern,var,h0,ftag)
+
+        xFitStart = nFitStart*0.000001
+        h1.Fit('expo','','', xFitStart,xEnd)
+
+        rp1 = TRatioPlot(h1);
+        rp1.Draw();
+        rp1.GetLowerRefYaxis().SetTitle("Ratio");
+
+        fun1 = h1.GetFunction('expo')
+        fun1.SetLineColor(6)
+
+        waitRootCmdX()
+
+    def compare_proms(self, var="proms2", cut='proms2>0&&proms2<250', xtitle='Proms'):
+        N = 256
+        h0 = TH1F("h0",f"Proms;{xtitle} [count];Entries",N,0,N)
+
+        h1 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setten0_IsegFd1500_pulse80mV1Hz_*.root",var,h0,"Total",cut=cut)
+        h2 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_1[0-3][0-9].root",var,h0,"1xx",cut=cut)
+        h3 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_9[0-3][0-9].root",var,h0,"9xx",cut=cut)
+        h4 = getHist(self.dir1+"filtered_HV_alphaOn_C4_settenO_pulse80mV500Hz_*.root",var,h0,"Pulse",cut=cut)
+        h5 = getHist(self.dir1+"filtered_HV_alphaOn_C4_set18O_IsegFd1500_pulse80mV1Hz_*.root",var,h0,"new Dirft",cut=cut)
+#         h5 = getHist(self.dir1+"HVscan_scan_300V_*.root",var,h0,"HV 300 V",cut=cut)
+#         h6 = getHist(self.dir1+"HVscan_scan_800V_*.root",var,h0,"HV 800 V",cut=cut)
+
+        h2.Draw('PLC PMC')
+        h1.Draw("PLC PMC same")
+        h3.Draw("PLC PMC same")
+        h4.Draw("PLC PMC same")
+        h5.Draw("PLC PMC same")
+#         h6.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.Integral(2,100), h2.Integral(2,100)))
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.GetMean(), h2.GetMean()))
+
+        waitRootCmdX()
+
 
 
 class Check_May31:
     def __init__(self):
-        self.dir1 = '/data/TMS_data/Processed/May31a_cut20/'
+        self.dir1 = '/home/TMSTest/PlacTests/TMSPlane/Software/Analysis/X19/tests/alpha_calib/_p0/'
+
+    def compare_proms(self, var="proms2", cut='proms2>0&&proms2<250', xtitle='Proms'):
+        N = 256
+        h0 = TH1F("h0",f"Proms;{xtitle} [count];Entries",N,0,N)
+
+        h1 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setten0_IsegFd1500_pulse80mV1Hz_23.root",var,h0,"Total",cut=cut)
+        h2 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_99.root",var,h0,"99",cut=cut)
+        h3 = getHist(self.dir1+"filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_513.root",var,h0,"513",cut=cut)
+#         h4 = getHist(self.dir1+"HVscan_scan_100V_*.root",var,h0,"HV 100 V",cut=cut)
+#         h5 = getHist(self.dir1+"HVscan_scan_300V_*.root",var,h0,"HV 300 V",cut=cut)
+#         h6 = getHist(self.dir1+"HVscan_scan_800V_*.root",var,h0,"HV 800 V",cut=cut)
+
+        h1.Draw('PLC PMC')
+        h2.Draw("PLC PMC same")
+        h3.Draw("PLC PMC same")
+#         h4.Draw("PLC PMC same")
+#         h5.Draw("PLC PMC same")
+#         h6.Draw("PLC PMC same")
+
+        gPad.BuildLegend()
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.Integral(2,100), h2.Integral(2,100)))
+        print("h1:{0:.1f}, h2:{1:.1f}".format(h1.GetMean(), h2.GetMean()))
+
+        waitRootCmdX()
+
 
     def compare_proms2(self):
         N = 256
@@ -357,7 +431,19 @@ class Check_May31:
 #         h1.Draw('E PLC PMC')
         waitRootCmdX()
 
+
+def draw_HV_scan_in_air():
+    tr1 = TTree()
+    tr1.ReadFile('/data/TMS_data/Processed/Aug01a/HVscan_summary.ttl')
+
+    tr1.Draw("mean:error:HV")
+#     tr1.Draw("abs(mean):HV:error")
+    
+
 def test():
+    draw_HV_scan_in_air()
+
+def run1():
 #     a = Check_May28()
 #     a = Check_May31()
     a = Check_Jul16()
@@ -371,9 +457,18 @@ def test():
 #     a.dir1 = '/data/TMS_data/Processed/May31a_pCut3_20/'
 #     a.dt_fit(nEnd=30000)
 
+def run_Aug13a():
+    a = Check_Aug13a()
+#     a.compare_proms(var="proms3", cut='', xtitle='Proms3')
+    a.dt_fit("filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_11[0-9].root","11x")
+
+
+
+
 if __name__ == '__main__':
     useNxStyle()
     test()
+    run_Aug13a()
 #     compare_Proms()
 #     compare_Proms2()
 #     compare_Proms2b()

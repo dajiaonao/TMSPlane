@@ -482,8 +482,8 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
 
         if HVtripFix: v = remove_outlier3(v)
 
-#         fr = fit_ds(v, show=False, check=False)
-        fr = fit_ds(v, show=True, check=True)
+        fr = fit_ds(v, show=False, check=False)
+#         fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
             results.append((k, tList_end[k], -999, -999, -900))
@@ -525,12 +525,13 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
             e2 = [a[3] for a in results_new]
             plt.errorbar(x2, y2, yerr=e2, fmt='x')
 
-        popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, absolute_sigma=True, p0=[y[0]], bounds=(-20, 20))
-        print(popt, pcov)
-        mean = popt[0]
-        err = sqrt(pcov[0][0])
-        plt.axhline(y=mean, color='red', label=f"mean: {mean:.2f}$\pm${err:.2f}")
-        plt.axhspan(mean-err, mean+err, facecolor='0.5', alpha=0.5)
+        if len(y)>0:
+            popt, pcov = curve_fit(fit_arverage, x, y, sigma=e, absolute_sigma=True, p0=[y[0]], bounds=(-20, 20))
+            print(popt, pcov)
+            mean = popt[0]
+            err = sqrt(pcov[0][0])
+            plt.axhline(y=mean, color='red', label=f"mean: {mean:.2f}$\pm${err:.2f}")
+            plt.axhspan(mean-err, mean+err, facecolor='0.5', alpha=0.5)
 
         if infoText is not None: plt.title(infoText)
         plt.legend(loc='best')
@@ -673,7 +674,21 @@ if __name__ == '__main__':
 #     process_ds(dir1+'Jul24a/Ar_totalI_IsegFd2000_drift.dat', excludeDS=[], summary_file=dir3+'Jul24a/drift2kV_summary.ttl', show='all')
 #     process_ds(dir1+'Aug01a/Air_totalI_DongwenFd500_drift1.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
 #     process_ds(dir1+'Aug01a/Air_I_DongwenFd500_IsegFc700.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
-    process_ds(dir1+'Aug01a/Air_totalI_HVscan_IsegFd120.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
+#    process_ds(dir1+'Aug01a/Air_totalI_HVscan_IsegFd120.dat', excludeDS=[], summary_file=dir3+'Aug01a/drift500V_summary.ttl', show='all')
+#     process_ds(dir1+'Aug10a/Air_totalI_HVscan_set2_IsegFd2900.dat', excludeDS=[], summary_file=dir3+'Aug10a/HVscan_summary.ttl', show='all')
+#     process_ds(dir1+'Aug10a/Air_totalI_HVscan_set2_IsegFd1800.dat', excludeDS=[], summary_file='/tmp/HVscan_summary10a.ttl', show='all')
+#     process_ds(dir1+'Aug10b/Air_I_IsegFd1800.dat', excludeDS=[], summary_file=dir3+'Aug10b/HVscan_summary1800.ttl', show='all')
+#    process_ds(dir1+'Aug10b/Air_I_DonwenFd1800_IsegFc1800.dat', excludeDS=[], summary_file=dir3+'Aug10b/HVscan_summary1800_1800.ttl', show='all')
+#    process_ds(dir1+'Aug12a/Air_totalI_HVscan_set2_IsegFd1500.dat', excludeDS=[], summary_file=dir3+'Aug12a/Air_totalI_HVscan_set2_IsegFd1500.ttl', show='all')
+#    process_ds(dir1+'Aug12a/Air_I_DonwenFd1500_IsegFc2000.dat', excludeDS=[], summary_file=dir3+'Aug12a/Air_I_DonwenFd1500_IsegFc2000.ttl', show='all')
+#     process_ds(dir1+'Aug13b/Air_I_set1_DonwenFd1500_IsegFc2000.dat', excludeDS=[], summary_file=dir3+'Aug13b/Air_I_set1_DonwenFd1500_IsegFc2000.ttl', show='all')
+#     process_ds(dir1+'Aug13b/Air_totalI_set1_IsegFc1500.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Air_totalI_set1_IsegFc1500.ttl', show='all')
+#     process_ds(dir1+'Aug13b/Ar_I_DonwenFd1500_IsegFc2000.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_DonwenFd1500_IsegFc20002.ttl', show='all')
+#    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Air_totalI_set1_IsegFc1500.ttl', show='all')
+#    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.ttl', show='all')
+    process_ds(dir1+'Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.dat.2', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.ttl.2', show='all')
+#    process_ds(dir1+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.ttl', show='all')
+#    process_ds(dir1+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500.dat', HVtripFix=True, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500_HVtripFixed1.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2500.dat', excludeDS=[], infoText='Air, Focusing, $U_{D}$=2 kV, $U_{C}=2.5 kV$')
 #     check_ds(dir1+'Jun30a/Ar_totalI_Fd2000.dat', excludeDS=[], startIdx=16100, stopTag='2020-06-30_17:53:01', infoText='Ar, total, $U_{D}$=2 kV')

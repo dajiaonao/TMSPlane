@@ -260,7 +260,8 @@ class findrate(object):
 
         ### save to root
         df_pks = np.append(np.array([-1]),df_pks)
-        bigx0 = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.float32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
+        print(df_pks[:30])
+        bigx0 = np.array([(df_pks[i],pks[i],proms[i],widths[i],proms2[i],proms3[i],rtime[i]) for i in range(self.npeaks)],dtype=[('dt',np.int32),('pk',np.float32),('proms',np.float32),('width',np.float32),('proms2',np.float32), ('proms3',np.float32), ('rtime',np.float32)])
 #         print(bigx0.shape,bigx0.dtype)
 
 
@@ -568,12 +569,12 @@ def main1():
         process_all(options.filePattern, options.NFiles, outDir)
     elif options.fileDir:
         inDir = options.fileDir
-        outDir = os.path.basename(inDir)+'_p0' if options.outDir is None else options.outDir
+        outDir = os.path.basename(inDir.rstrip('/'))+'_p0' if options.outDir is None else options.outDir
         if options.auto:
             inDir = dir0_I + inDir
             outDir = dir0_O + options.outDir
         if inDir[-1] != '/': inDir += '/'
-        process_all(inDir+'*.isf', options.NFiles, outDir)
+        process_all(inDir+'/*.isf', options.NFiles, outDir)
     elif options.filePath:
         if options.outDir is not None: myOutPutDir = options.outDir
 

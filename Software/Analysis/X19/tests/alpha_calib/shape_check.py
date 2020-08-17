@@ -3,6 +3,7 @@ from scipy.signal import find_peaks, peak_prominences
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import glob, sys
 mpl.rc('image', cmap='gray')
 mpl.rcParams['text.usetex'] = True
 
@@ -47,6 +48,8 @@ class WaveformGeter:
         self.A = None
         self.W = 500
         self.width = (2,600)
+        self.proms3Cut = 35
+        self.histData = None
         
     def get_auto(self, filename, ith=1, AA=None):
         ishift1=self.ishift1
@@ -94,13 +97,12 @@ class WaveformGeter:
 
     #     plt.plot(peaks, proms3, "o")
         if debug:
-            plt.hist(proms3[proms3>20], bins=range(0,256))
+            plt.hist(proms3[proms3>self.proms3Cut], bins=range(0,256))
             plt.show()
     #     ret = plt.hist(proms3[proms3>20], bins=range(0,256))
-        ret = np.histogram(proms3[proms3>20], bins=range(0,256))
-    #     print(ret)
+        self.histData = np.histogram(proms3[proms3>self.proms3Cut], bins=range(0,256))
+#         print(ret)
 
-        arr = ret[0]
     #     print("Arrays for the max element:",result)
     #     print("List for the maximum value indexes:",result[0])
     # 
@@ -110,12 +112,13 @@ class WaveformGeter:
     #     plt.show()
 
         xx = AA
-        arr = ret[0]
+        arr = self.histData[0]
         if xx is None: xx = self.A
         if xx is None:
             amax = np.max(arr)
+            print(f"max is {amax}")
             conditon = (arr == amax)
-            result = np.where(conditon)
+            results = np.where(conditon)
 
             xx = results[0]
         yy = arr[xx]
@@ -232,6 +235,57 @@ def check_shapes_Jun30a_Fc1500V_samefile():
 
     a = input("Press any key to exit")
 
+def check_shapes_Aug10a():
+    dir1 = '/data/TMS_data/raw/Aug10a_tek/'
+    getF = lambda x: dir1+'filtered_HV_alphaOn_C3_DongwenFd'+x+'.isf'
+
+    wg1 = WaveformGeter()
+    wg1.A = None
+
+    xs = [0.5*x for x in range(-200, 1200)]
+
+    plt.plot(xs, wg1.get_auto(getF('1800_IsegFc1200_pulse50mV1Hz_12'), 11), label='1200V, max')
+    plt.plot(xs, wg1.get_auto(getF('1800_IsegFc1500_pulse80mV1Hz_10'), 119), label='1500V, max')
+    plt.plot(xs, wg1.get_auto(getF('1800_IsegFc2000_pulse80mV1Hz_3'), 39), label='2000V, max')
+
+    plt.xlabel(r"t [$\mu$s]")
+    plt.ylabel("U [mV]")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.ion()
+    plt.show()
+
+    a = input("Press any key to exit")
+
+def check_shapes_Aug10a_drift():
+    dir1 = '/data/TMS_data/raw/Aug10a_tek/'
+    getF = lambda x: dir1+'filtered_HV_alphaOn_C3_DongwenFd'+x+'.isf'
+    getF2 = lambda x: dir1+'filtered_HV_alphaOn_C3_'+x+'.isf'
+
+    wg1 = WaveformGeter()
+    wg1.A = None
+
+    xs = [0.5*x for x in range(-200, 1200)]
+
+    plt.plot(xs, wg1.get_auto(getF2('IsegFd382_pulse80mV1Hz_33'), 39), label='382VD, max')
+    plt.plot(xs, wg1.get_auto(getF2('IsegFd1800_pulse80mV1Hz_24'), 39), label='1800VD, max')
+    plt.plot(xs, wg1.get_auto(getF('1350_IsegFc1500_pulse80mV1Hz_1'), 119), label='1350V, max')
+    plt.plot(xs, wg1.get_auto(getF('1800_IsegFc2000_pulse80mV1Hz_3'), 39), label='1800V, max')
+    plt.plot(xs, wg1.get_auto(getF('382_IsegFc571_pulse50mV1Hz_15'), 39), label='382V, max')
+
+    plt.xlabel(r"t [$\mu$s]")
+    plt.ylabel("U [mV]")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.ion()
+    plt.show()
+
+    a = input("Press any key to exit")
+
+
+
 def check_shapes_Jun30a():
     dir1 = '/data/TMS_data/raw/Jun30a_tek/'
     getF = lambda x: dir1+'HV_alphaOn_Focusing_'+x+'.isf'
@@ -258,12 +312,104 @@ def check_shapes_Jun30a():
 
     a = input("Press any key to exit")
 
+def getFn(dir1,i, ith=0):
+    fs = glob.glob(dir1+f'*{i}.isf')
+    print(dir1+f'*{i}.isf')
+
+    if fs:
+        if len(fs)>0: print(fs)
+        return fs[ith]
+    return None
+
+def check_shapes_Aug13a():
+    dir1 = '/data/TMS_data/raw/Aug13a_tek/'
+    ## /data/TMS_data/raw/Aug13a_tek/filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_672.isf
+    getF = lambda x: dir1+'filtered_HV_alphaOn_C4_setelevenOafter_continue_DongwenFd1500_IsegFd1500_pulse80mV1Hz_'+x+'.isf'
+
+
+    xs = [0.5*x for x in range(-200, 1200)]
+    wg1 = WaveformGeter()
+
+#     plt.plot(xs, wg1.get_auto(getF('100'), 92), label='100')
+#     plt.plot(xs, wg1.get_auto(getF('600'), 92), label='600')
+#     plt.plot(xs, wg1.get_auto(dir1+'filtered_HV_alphaOn_C4_setten0_IsegFd1500_pulse80mV1Hz_22.isf', 92), label='Drift 22')
+#     plt.plot(xs, wg1.get_auto(dir1+'filtered_HV_alphaOn_C4_settenO_pulse80mV500Hz_19.isf', 92), label='Pulse')
+
+#     plt.plot(xs, wg1.get_auto(getFn(dir1,30), 192), label='30')
+#     plt.plot(xs, wg1.get_auto(getFn(dir1,600), 192), label='600')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,1000), 192), label='1000, focus1')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,1200), 192), label='1200, drift1')
+# #     plt.plot(xs, wg1.get_auto(getFn(dir1,1701), 192), label='1701')
+#     plt.plot(xs, wg1.get_auto(getFn(dir1,1870), 192), label='1870')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,2500), 192), label='2500, focus2a')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,3000), 192), label='3000, focus2b')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,4000), 100), label='4000, focus2c')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,4650), 100), label='4650, focus2c')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,5200), 200), label='5200, focus2cgasoff')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,5258), 200), label='5258, focus2cgasoff')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,5500), 200), label='5500, focus2cgasoff')
+    plt.plot(xs, wg1.get_auto(getFn(dir1,5579), 200), label='5579, focus2cgasoff')
+
+
+
+    plt.xlabel(r"t [$\mu$s]")
+    plt.ylabel("U [mV]")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.ion()
+    plt.show()
+
+    a = input("Press any key to exit")
+
+
+def check_shapes_Aug13b():
+    dir1 = '/data/TMS_data/raw/Aug13a_tek/'
+
+    xs = [0.5*x for x in range(-200, 1200)]
+    wg1 = WaveformGeter()
+
+    evtx  = 1
+    for x in sys.argv[1:]:
+        ax = x.split(':')
+        filex = int(ax[0])
+        if len(ax)>1: evtx = int(ax[1])
+        plt.figure(1)
+        plt.plot(xs, wg1.get_auto(getFn(dir1,filex), evtx), label=f'{filex}:{evtx}')
+        plt.figure(2)
+        plt.bar(wg1.histData[1][:-1],wg1.histData[0],width=1, alpha=0.6, label=f'{filex}')
+
+    plt.figure(1)
+    plt.xlabel(r"t [$\mu$s]")
+    plt.ylabel("U [mV]")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.figure(2)
+    plt.xlabel(r"Counts")
+    plt.ylabel("Entries")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.ion()
+    plt.show()
+
+    a = input("Press any key to exit")
+
+
+
 def run():
 #     showShapes()
 #     check_shapes_500V()
 #     check_shapes_Jun30a()
 #     check_shapes_Jun30a_Fc1500V()
-    check_shapes_Jun30a_Fc1500V_samefile()
+#     check_shapes_Jun30a_Fc1500V_samefile()
+#     check_shapes_Aug10a_drift()
+#     check_shapes_Aug10a()
+    if len(sys.argv)>1: check_shapes_Aug13b()
+    else: check_shapes_Aug13a()
+#     check_shapes_Aug13a()
+#     check_shapes_Aug13b()
 
 if __name__ == '__main__':
 #     test()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
-from hv_calc import get_Vd, checkConfig3, checkConfig3b 
+#from hv_calc import get_Vd, checkConfig3, checkConfig3b
+from hv_calc import *
 from iseg_control import simpleSetHV
 from picoammeter_control import run_quasicontinious_recording
 import time
@@ -15,7 +16,7 @@ def checkPointC(HV, rawHV, mode=0, out_dir='/data/TMS_data/raw/Jul24a/', tag='HV
     if mode == 1: return 1
 
     ### run picoammber to 
-    run_quasicontinious_recording(out_dir+f'{tag}_IsegFd{HV:.0f}.dat',extraStr=f" {HV:.0f} {v1:.0f}", nrps=1000, nRead=1)
+    run_quasicontinious_recording(out_dir+f'{tag}_IsegFd{HV:.0f}.dat',extraStr=f" {HV:.0f} {v1:.0f}", nrps=1000, nRead=5)
     if mode == 1: return 1
 
     return 0
@@ -98,7 +99,41 @@ def scan_Aug01b():
 
     simpleSetHV('OFF')
 
-def show_results(in_dir='/data/TMS_data/raw/Jul24a/', summary_file = 'temp1.ttl', isDebug=False):
+def scan_Aug10():
+    #for p in [800,1200,1600,1800,2000,2500]:
+    #for p in [1800,2500,2700,3000,3500]:
+    for p in [1800,2500,2900,3100,3300,3500]:
+        print(f"On HV point {p}")
+
+        ### get the raw HV value
+        v1 = checkConfig4DriftOnly(p, show=False)
+        print(f'{p}->{v1}')
+        
+        r = checkPointC(p, v1, 0, out_dir='/data/TMS_data/raw/Aug10a/', tag='Air_totalI_HVscan_set2')
+        if r != 0: break
+        time.sleep(10)
+
+    simpleSetHV('OFF')
+
+def scan_Aug12():
+    #for p in [800,1200,1600,1800,2000,2500]:
+    #for p in [1800,2500,2700,3000,3500]:
+    #for p in [500,1000,1500,2000,2500,3000]:
+    for p in [1500]:
+        print(f"On HV point {p}")
+
+        ### get the raw HV value
+        v1 = checkConfig4DriftOnlyAug12(p, show=False)
+        print(f'{p}->{v1}')
+
+        r = checkPointC(p, v1, 0, out_dir='/data/TMS_data/raw/Aug12a/', tag='Air_totalI_HVscan_set2')
+        if r != 0: break
+        time.sleep(10)
+
+    simpleSetHV('OFF')
+
+
+def show_results(in_dir='/data/TMS_data/raw/Jul24a/', pattern=r'Air_totalI_HVscan_IsegFd(\d+).dat', summary_file = 'temp1.ttl', isDebug=False):
     from run_step_fit import fit_ds
     from glob import glob
     import re,os
@@ -122,7 +157,8 @@ def show_results(in_dir='/data/TMS_data/raw/Jul24a/', summary_file = 'temp1.ttl'
     #'/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd1300_HVscan.dat'
     for fname in fs:
 #         m = re.match(r'Ar_totalI_IsegFd(\d+)_HVscan.dat', os.path.basename(fname))
-        m = re.match(r'Air_totalI_HVscan_IsegFd(\d+).dat', os.path.basename(fname))
+#         m = re.match(r'Air_totalI_HVscan_IsegFd(\d+).dat', os.path.basename(fname))
+        m = re.match(pattern, os.path.basename(fname))
 #         m = re.match(r'Ar_totalI_IsegFd(\d+)_HVscan.*.dat', os.path.basename(fname))
         if m is None:
             print(fname)
@@ -161,7 +197,9 @@ def show_results(in_dir='/data/TMS_data/raw/Jul24a/', summary_file = 'temp1.ttl'
 
         ### save results to database
         with open(summary_file,modex) as fout1:
-            if modex == 'w': fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F:HV/I')
+            if modex == 'w':
+                fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F:HV/I')
+                modex == 'a'
 
             for aa in results:
                 fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]} {aa[5]}')
@@ -169,9 +207,10 @@ def show_results(in_dir='/data/TMS_data/raw/Jul24a/', summary_file = 'temp1.ttl'
 #         return
 
 
-def showScan(fname='temp1.ttl'):
+def showScan(fname='temp1.ttl', infoS=None):
     '''This does not work in python....'''
-    from ROOT import TTree, TGraphErrors, gStyle, gPad
+    from ROOT import TTree, TGraphErrors, gStyle, gPad, TLatex
+    from rootUtil3 import waitRootCmdX
     gStyle.SetOptTitle(0)
 
     t1 = TTree()
@@ -184,13 +223,23 @@ def showScan(fname='temp1.ttl'):
     v4 = t1.GetV4()
 
     g1 = TGraphErrors(n, v3, v1, v4, v2)
+    g1.SetLineColor(2)
+    g1.SetMarkerColor(2)
     g1.Draw('AP')
+
     h1 = g1.GetHistogram()
     h1.GetXaxis().SetTitle("Drift HV [V]")
     h1.GetYaxis().SetTitle("Current [pA]")
+
+    if infoS:
+        lt = TLatex()
+        lt.DrawLatexNDC(0.2, 0.8, infoS)
+
+    gPad.SetGridx()
+    gPad.SetGridy()
     gPad.Update()
 
-    a = input("tt")
+    waitRootCmdX()
 
 def test():
     HV = int(sys.argv[1])
@@ -201,6 +250,9 @@ if __name__ == '__main__':
 #     scan()
 #     scan_Aug01()
 #     scan_Aug01b()
+#       scan_Aug10()
+    scan_Aug12()
 #     show_results(True)
 #     show_results(in_dir='/data/TMS_data/raw/Aug01a/',summary_file='/data/TMS_data/Processed/Aug01a/HVscan_summary.ttl', isDebug=False)
-    showScan('/data/TMS_data/Processed/Aug01a/HVscan_summary.ttl')
+#    show_results(in_dir='/data/TMS_data/raw/Aug10a/',pattern=r'Air_totalI_HVscan_set2_IsegFd(\d+).dat', summary_file='/data/TMS_data/Processed/Aug10a/HVscan_summary2.ttl', isDebug=True)
+#   showScan('/data/TMS_data/Processed/Aug10a/HVscan_summary2.ttl',"In air")
