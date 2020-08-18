@@ -127,6 +127,7 @@ class WaveformGeter:
         cpeaks = peaks[proms3==xx]
         print(f"Find {yy} events with A={xx}")
         i0 = cpeaks[ith]
+        print(i0)
 
         x0 = wav1[i0+ishift1]
         thr = 0.1*xx

@@ -561,7 +561,14 @@ def main():
 #    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug16NOON_gasturnon_speed40_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
 #    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug16NOON_gasturnon_speedmin_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
 #    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug16NOON_gasturnon_speed40_set1_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
-    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug16NOON_gasalreadyoffwithspark_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug16NOON_gasalreadyoffwithspark_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug17NOON_gasalreadyoff_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug17NOON_gasalreadyoff_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug1718O_gasalreadyoff_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug1720O_gasalreadyoff_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug1810d5_gasalreadyoff_IsegFd1500_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug1811d5_gasalreadyoff_DongwenFd1500_IsegFd1500_pulse80mV1Hz_')
+    os1.run_project(N=-1, dirx='Aug13a_tek', tag='filtered_HV_alphaOn_C4_setAug181750_gasalreadyoff_IsegFd1500_pulse80mV1Hz_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
