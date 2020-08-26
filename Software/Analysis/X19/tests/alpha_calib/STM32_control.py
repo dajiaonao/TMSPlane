@@ -5,6 +5,7 @@ Find the manual here: http://10.149.10.106/twiki-plac/bin/view/PixelLab/SMT32Mic
 # from __future__ import print_function
 import serial, time, os, sys
 from datetime import datetime, timedelta
+from multiprocessing import Process, Lock
 import logging
 
 dSuffix = 'project_'
@@ -23,6 +24,11 @@ def listPorts():
 class STM32:
     def __init__(self):
         self.ser = None
+        self.T_dt = 5
+        self.M_dt = 33.2
+        self.T_outfname = 'temp_testT.dat'
+        self.ON = True
+        self.debug = False
 
     def connect(self, portx="/dev/ttyUSB1"):
         portx=portx
@@ -34,8 +40,7 @@ class STM32:
         print("disconnecting...")
         self.ser.close()
 
-    def send(self, msg, log_cmd=True):
-        if log_cmd: logging.info(msg.rstrip())
+    def send(self, msg):
         if msg[-2:] != '\r\n': msg+='\r\n'
         return self.ser.write(msg.encode("UTF-8"))
 
@@ -60,6 +65,10 @@ class STM32:
         time.sleep(1)
         if self.ser.in_waiting:
             data = self.ser.read(self.ser.in_waiting).decode('gbk')
+
+        fs = data.split('\r\n')
+        if len(fs)>1:
+            data = fs[-1]
         return data
 
     def set_M(self, v=0):
@@ -68,6 +77,79 @@ class STM32:
 
     def test(self):
         print(self.get_T())
+
+def run_mode3(outTname='tempT.dat'):
+    is1 = STM32()
+    is1.connect()
+
+    ### configurations
+    is1.T_dt = 5
+    is1.M_dt = 33.2
+    is1.T_outfname = outTname
+
+    ### start the process
+    lock = Lock()
+    p1 = Process(target=measure_T, args=(lock, is1))
+    p2 = Process(target=run_motor, args=(lock, is1))
+    
+    p1.start()
+    p2.start()
+
+    while p1.is_alive() or p2.is_alive():
+        try:
+            if p1.is_alive(): p1.join()
+            if p2.is_alive(): p2.join()
+        except KeyboardInterrupt:
+            is1.ON = False
+
+    ### done
+    is1.disconnect()
+
+def run_motor(l, clt):
+    degree1=0
+    degree2=90
+    command=degree1
+    try:
+        while clt.ON:
+            print(f"M->{command}")
+            l.acquire()
+            try:
+                clt.set_M(int(command))
+            finally:
+                l.release()
+
+            if command==degree1: command=degree2
+            elif command==degree2: command=degree1
+            time.sleep(clt.M_dt)
+
+    except KeyboardInterrupt:
+        pass
+        
+def measure_T(l, clt):
+    with open(clt.T_outfname,'w') as fout1:
+        fout1.write("idx/I:time/C:T/F")
+        idx = 0
+
+        try:
+            while clt.ON:
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+
+                l.acquire()
+                try:
+                    T = clt.get_T()
+                finally:
+                    l.release()
+
+                info = f"{idx:d} {t0} {T}"
+                print(info)
+                fout1.write('\n'+info)
+                time.sleep(clt.T_dt)
+
+                idx += 1
+                if idx%10 == 9: fout1.flush()
+
+        except KeyboardInterrupt:
+            pass
 
 def test():
     is1 = STM32()
@@ -93,7 +175,6 @@ def record_T(outfname='test_T.dat'):
             except KeyboardInterrupt:
                 break
     is1.disconnect()
-
 
 def loopAlpha():
     is1 = STM32()
@@ -127,4 +208,5 @@ if __name__ == '__main__':
 #     listPorts()
 #     main()
 #     record_T()
-   loopAlpha()
+#    loopAlpha()
+   run_mode3()
