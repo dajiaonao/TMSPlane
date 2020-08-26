@@ -24,7 +24,7 @@ class STM32:
     def __init__(self):
         self.ser = None
 
-    def connect(self, protx="/dev/ttyUSB1"):
+    def connect(self, portx="/dev/ttyUSB1"):
         portx=portx
         bps=9600
         timex=5
@@ -45,9 +45,9 @@ class STM32:
 
         if sys.argv[1] == '1':
             self.set_M(int(sys.argv[2]))
-        elif sys.argv[2] == '2':
+        elif sys.argv[1] == '2':
             T = self.get_T()
-            print("T: {T}")
+            print(f"T: {T}")
         else:
             print("Unknown option!!!!")
             print(usage_str)
@@ -94,6 +94,26 @@ def record_T(outfname='test_T.dat'):
                 break
     is1.disconnect()
 
+
+def loopAlpha():
+    is1 = STM32()
+    is1.connect()
+    degree1=0
+    degree2=90
+    sleeptime=33.2
+    command=degree1
+    while True:
+        try:
+            is1.set_M(int(command))
+            print(command)
+            if command==degree1: command=degree2
+            elif command==degree2: command=degree1
+            time.sleep(sleeptime)
+        except KeyboardInterrupt:
+            break
+    is1.disconnect()
+
+
 def main():
     if len(sys.argv)<3:
         print(usage_str)
@@ -104,6 +124,7 @@ def main():
     return
 
 if __name__ == '__main__':
-    listPorts()
+#     listPorts()
 #     main()
-    record_T()
+#     record_T()
+   loopAlpha()

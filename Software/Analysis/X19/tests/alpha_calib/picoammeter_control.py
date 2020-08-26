@@ -57,7 +57,7 @@ class Picoammeter:
         self.hiddenCmdFile = '.hidden_pm'
         self.hiddenCmdT = time.time()
 
-    def connect(self, portx="/dev/ttyUSB1"): #USB Serial Converter
+    def connect(self, portx="/dev/ttyUSB2"): #USB Serial Converter
 #         portx="/dev/ttyUSB0" ##
 #         portx="/dev/ttyUSB1"
         bps=57600
@@ -1527,12 +1527,16 @@ def Aug13_test():
 #    run_quasicontinious_recording('/data/TMS_data/raw/Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
     run_quasicontinious_recording('/data/TMS_data/raw/Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
 
+def Aug26_test():
+   run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirOut_totalI_check.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#
 if __name__ == '__main__':
 #     Aug01_test()
 #    Aug10b_test()
 #    Aug12_test()
 #     Aug13_test()
-    listPorts()
+    Aug26_test()
+#     listPorts()
 #     run_tests()
 #     run_HV_checkI()
 #     run_zero_check()
