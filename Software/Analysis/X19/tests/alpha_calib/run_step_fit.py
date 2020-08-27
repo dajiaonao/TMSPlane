@@ -482,8 +482,9 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
 
         if HVtripFix: v = remove_outlier3(v)
 
+        #notice!!!
         fr = fit_ds(v, show=False, check=False)
-#         fr = fit_ds(v, show=True, check=True)
+#        fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
             results.append((k, tList_end[k], -999, -999, -900))
@@ -686,7 +687,8 @@ if __name__ == '__main__':
 #     process_ds(dir1+'Aug13b/Ar_I_DonwenFd1500_IsegFc2000.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_DonwenFd1500_IsegFc20002.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Air_totalI_set1_IsegFc1500.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.ttl', show='all')
-    process_ds(dir1+'Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.dat.2', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.ttl.2', show='all')
+#    process_ds(dir1+'Aug26b/AirOut_totalI_check.dat',  excludeDS=[], summary_file=dir3+'Aug26b/AirOut_totalI_check.ttl', show='all')
+    process_ds(dir1+'Aug26b/AirIn_totalI_check_night.dat',  excludeDS=[], summary_file=dir3+'Aug26b/AirIn_totalI_check_night.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500.dat', HVtripFix=True, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500_HVtripFixed1.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])

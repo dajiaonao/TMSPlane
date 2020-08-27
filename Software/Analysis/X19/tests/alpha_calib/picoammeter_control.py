@@ -1100,6 +1100,127 @@ def HV_out_scan(vlist, dT):
         except KeyboardInterrupt:
             break
 
+def run_quasicontinious_recording_withT(filename, nRead=-1, tLast=None, extraStr='', nrps=100, U=None, optT=True):
+    '''
+    nspt: n readings per sample
+    '''
+    rCode = 0
+    pm1 = Picoammeter()
+    pm1.connect()
+    pm1.send('*RST')
+    print(pm1.query('*IDN?'))
+    pm1.send('SYST:ZCH OFF')
+    pm1.send('SYST:AZER ON')
+
+    ### confiugration
+    pm1.send("FUNC 'CURR'")
+    pm1.send('FORM:ELEM READ,TIME,VSO')
+
+    pm1.send('TRIG:DEL 0')
+    pm1.send('NPLC 1')
+
+    pm1.send('RANGE:AUTO ON')
+
+    ### filter control
+    pm1.send('CURRent:DAMPing:STATe ON')
+    print(pm1.query('CURRent:DAMPing:STATe?'))
+    pm1.send('MED:RANK 5') ## give the median of the 2*RANK+1 readings, 1 to 5
+    pm1.send('MED OFF') ## disable median
+    pm1.send('AVER:COUN 20') ## number of reading used to calculat the average, 2 to 100
+    pm1.send('AVER:TCON MOV') ### Type of the average: MOV or REPeat
+    pm1.send('AVER OFF') ### disable average
+
+    if U is not None:
+        ### HV
+        uRange = min([x for x in [5,10,100,500] if abs(U)<x])
+        pm1.send(f'SOUR:VOLT:RANG {uRange}') #Select 10V source range.
+        pm1.send(f'SOUR:VOLT {U}') #  Set voltage source output to 10V.
+        pm1.send('SOUR:VOLT:ILIM 2.5e-4') #  Set current limit to 0.25mA.
+        pm1.send('SOUR:VOLT:STAT ON') # Put voltage source in operate.
+
+    tEnd = None
+    if tLast is not None:
+        dT = timedelta(seconds=tLast)
+        tEnd = datetime.now() + dT
+
+
+    ### create output direcotry if it does not exist
+    project_dir = os.path.dirname(filename)
+    if not os.path.exists(project_dir): os.makedirs(project_dir)
+
+    ### check if the filename already exist. If so, add a number suffix.
+    if os.path.exists(filename):
+        print(f"{filename} already exist!!!!!")
+        exist_files = glob.glob(filename+'.*')
+        maxn = 1
+        for f in exist_files:
+            lastF = f.split('.')[-1]
+            try:
+                n = int(lastF)
+            except ValueError as e:
+                continue
+            if n>=maxn: maxn = n+1
+        filename += f'.{maxn}'
+        print(f"Saving to file {filename}")
+
+
+    ### setup T
+    is1 = None
+#     M_pattern = [(10, 90), (40, 0), (10, 90), (30, 0), (10,90), (20,0)] ### wait 10s and move motor to 90 degree and then wait 40s to move motor to 0 degree again
+    M_pattern = [(80, 90), (50, 0)] ### wait 10s and move motor to 90 degree and then wait 40s to move motor to 0 degree again
+    if optT:
+        from STM32_control import STM32, action1
+        is1 = STM32()
+        is1.connect()
+
+    ### start taking data
+    iGood = 0
+    iData = 0
+    T = -999
+    with open(filename,'w') as fout1:
+        while True:
+
+            ### check time requirement.
+            if tEnd and datetime.now() > tEnd: break
+            if iData == nRead: break
+
+            try:
+                pm1.send(f'TRIG:COUN {nrps}', False)
+                
+                t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time()))
+                pm1.send('INIT', False)
+
+                if is1: T = action1(is1, M_pattern)
+
+                q2 = pm1.query('READ?')
+                data = list(zip(*[iter(q2.split(','))]*3))
+
+                isGood = 0 
+                if isGoodData(data):
+                    isGood = 1
+                    iGood += 1
+                    print(f"Number of good dataset: {iGood}")
+
+                ## pass the values to outx 
+                outx = ''
+                for d in data: outx += ' '.join([t0,d[0],d[1],d[2],str(isGood),str(iGood),str(iData), T]) + extraStr +'\n'
+
+                ## write out outx
+                fout1.write(outx)
+                fout1.flush()
+                iData += 1
+            except KeyboardInterrupt:
+                rCode = 1
+                break
+
+            ### allow hidden command break
+            if pm1.checkCmd() == 'q': break
+
+    ### finish
+    pm1.disconnect()
+    if is1: is1.disconnect()
+    return rCode
+
 def run_quasicontinious_recording(filename, nRead=-1, tLast=None, extraStr='', nrps=100, U=None):
     '''
     nspt: n readings per sample
@@ -1528,7 +1649,11 @@ def Aug13_test():
     run_quasicontinious_recording('/data/TMS_data/raw/Aug13b/Ar_I_setgasoffafterCSAgoingdown_DonwenFd1500_IsegFc1500.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
 
 def Aug26_test():
-   run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirOut_totalI_check.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirOut_totalI_check.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirIn_totalI_check.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirIn_totalI_check_night.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug26b/AirIn_totalI_check_debug1.dat',extraStr=" 1500 1784", nrps=1000, nRead=5)
+   run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27a/AirIn_totalI_check_noon.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
 #
 if __name__ == '__main__':
 #     Aug01_test()
@@ -1541,80 +1666,6 @@ if __name__ == '__main__':
 #     run_HV_checkI()
 #     run_zero_check()
 #     run_HV_checkI_Dongwen()
-#     run_interactively_HV_checkI_Dongwen('/data/TMS_data/raw/May31a/Jun10_DongwenHV/current.dat')
-#     run_quasicontinious_recording('DongwenHV8000/DongwenHV8000_long1.dat',extraStr=" 8000 8000")
-#     run_quasicontinious_recording('A_TestMay22/HV1000_air_long1.dat',extraStr=" 1000 1000")
-#     run_quasicontinious_recording('HVscan_May27a/Ar_0V.dat',extraStr=" 0 0")
-#     run_quasicontinious_recording('HVtest_May30a/Air_6000V_c.dat',extraStr=" 6000 6000")
-#     run_quasicontinious_recording('/data/TMS_data/raw/May31a/Ar_alphaOn_scan_1000V_from_0_c1.dat',extraStr=" 1000")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun01a/Air_alphaOn_check_3000V_from0V_0.dat',extraStr=" 3000")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun05a/Air_alphaOn_5000V.dat',extraStr=" 5000")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun11a/Air_acceptanceCheck_outter.dat',extraStr=" -1")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc500V.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc750V.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun16a/Air_acceptanceMeasure_FocusOff_Uc870V.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasure_FocusOff_Uc2000V.dat',extraStr=" -1")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc1000V_read1000.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc2000V_read1000b.dat',extraStr=" -1")
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun19a/Air_acceptanceMeasureD3mm_FocusOn_Uc2000V.dat',extraStr=" -1")
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun19a/Air_leakCurrentCheck.dat',extraStr=" -1", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun17a/Air_acceptanceMeasureD4mm_FocusOn_Uc1500V.dat',extraStr=" -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun23a/Air_systemCheck_FocusOn_Uc500.dat',extraStr=" 1000 500", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun24a/Air_systemCheckIn.dat',extraStr=" 1000 0", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI.dat',extraStr=" 2000 0", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1000.dat',extraStr=" 1000 1140", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2500.dat',extraStr=" 2500 2850", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd2000_Fc1000.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun25a/Argon_totalI_Fd1500_Fc1000.dat',extraStr=" 1500 2570 1000 2500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_totalI.dat',extraStr=" 2000 2280", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_Fc1000_close.dat',extraStr=" 2000 3100 1000 2420", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Fd2000_close.dat',extraStr=" 2000 2280", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun26a/Air_I_Noise_check.dat',extraStr="", nrps=1000)
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jun28a/Air_HV_check_nrps1000.dat',extraStr="", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_HV_check_nrps100.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_HV_alphaOn_outside.dat',extraStr="", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_Fd4000_Fc4000_outside.dat',extraStr="", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_Fd4000_Fc4000_outside_100.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_Fd3500.dat',extraStr="3500 4390 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_Fd3500_noiseCheck.dat.3',extraStr="3500 4390 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_totalI_Fd1500.dat',extraStr="1500 1880 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_totalI_Fd4500.dat',extraStr="4500 5640 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun29a/Air_totalI_Fd2500.dat',extraStr="2500 3133 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Air_totalI_Fd2000.dat',extraStr="2000 2510 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Air_I_Fd2000_Fc1000.dat',extraStr="2000 3110 1000 1520", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Air_I_Fd2000_Fc800.dat',extraStr="2000 2910 800 1150", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Air_I_Fd2000_Fc2500.dat',extraStr="2000 4610 2500 4320", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_totalI_Fd2000.dat',extraStr="2000 2510 -1 -1", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc2000.dat',extraStr="1500 3580 2000 3470", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd2000_Fc2000.dat',extraStr="2000 4110 2000 3390", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc1500.dat',extraStr="1500 3080 1500 2540", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jun30a/Ar_I_Fd1500_Fc2300.dat',extraStr="1500 3880 2300 4033", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul1a/drift_check.dat',extraStr="", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul31a/Mixed_I_Fd1500_Fc2000.dat',extraStr="1500 3580 2000 3470", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul06a/R500M_check.dat',extraStr="", nrps=1000, U=0.1)
-#    run_quasicontinious_recording('/data/TMS_data/raw/Jul06a/R500M_1V_check.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul07a/R500M_2.5Vpp_25Hz_check.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_check.dat',extraStr="", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_1p1PLC_check.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_0p9PLC_check.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_10mVpp_100mHz_1PLC_check_b.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_T6msPulse5mVDc5mVpp1over3_1PLC_DampingOff.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul08a/R500M_T6msPulse5mVDc5mVpp1over3_1PLC_DampingOn.dat',extraStr="", nrps=100)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul14a/Air_Fd1500_Fc1500_check.dat',extraStr=" 1500 1900 1500 3000", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Fd1500_Dongweng_check.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_calib3mV.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_calib3mV_after.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul16a/Ar_I_Iseg_rawFd1500_check_calib13mV_after.dat',extraStr=" 1500", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib13mV_2.dat',extraStr=" 2500", nRead=2, nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib25mV_2.dat',extraStr=" 2500", nRead=2, nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_calib3mV_3.dat',extraStr=" 2500", nRead=2, nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd650_HVscan.dat',extraStr=" 650 858", nrps=1000, nRead=1)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul24a/Ar_totalI_IsegFd2000_drift.dat',extraStr=" 2000 2640", nrps=1000)
-#     run_quasicontinious_recording('/data/TMS_data/raw/Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat',extraStr=" 2500", nrps=1000)
 #     test2()
 #     setIsegV(0.2)
 #     time.sleep(10)

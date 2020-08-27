@@ -62,7 +62,7 @@ class STM32:
     def get_T(self):
         data = '-999'
         self.send('2010')
-        time.sleep(1)
+        time.sleep(0.1)
         if self.ser.in_waiting:
             data = self.ser.read(self.ser.in_waiting).decode('gbk')
 
@@ -78,12 +78,29 @@ class STM32:
     def test(self):
         print(self.get_T())
 
+
+def action1(is0, M_pattern):
+    '''This function does this:
+        1) perform a measurement of temperature; 
+        2) start a thread to operate the motor; 
+        3) return the temperature;
+        
+    The input is the STM32 instance, and motor time parameters is taken from STM32 instance'''
+    T = is0.get_T()
+
+    ## Start the instance
+    p2 = Process(target=run_motor_pattern, args=(is0, M_pattern))
+    p2.start()
+
+    return T
+
+
 def run_mode3(outTname='tempT.dat'):
     is1 = STM32()
     is1.connect()
 
     ### configurations
-    is1.T_dt = 5
+    is1.T_dt = 150
     is1.M_dt = 33.2
     is1.T_outfname = outTname
 
@@ -105,6 +122,12 @@ def run_mode3(outTname='tempT.dat'):
     ### done
     is1.disconnect()
 
+def run_motor_pattern(clt, M_pattern):
+    for p in M_pattern:
+        if p[0]>0: time.sleep(p[0])
+        print(f"M-->{p[1]}")
+        clt.set_M(p[1])
+ 
 def run_motor(l, clt):
     degree1=0
     degree2=90
@@ -206,7 +229,7 @@ def main():
 
 if __name__ == '__main__':
 #     listPorts()
-#     main()
+#      main()
 #     record_T()
 #    loopAlpha()
-   run_mode3()
+  run_mode3("T_Aug26_night1.dat")
