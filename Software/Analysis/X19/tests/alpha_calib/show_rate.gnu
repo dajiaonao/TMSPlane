@@ -14,7 +14,8 @@ set grid xtics lt 0 lw 1 lc rgb "#bbbbbb"
 set timefmt "%Y-%m-%d_%H:%M:%S"
 #if (!exists("projname")) projname='/data/TMS_data/Processed/May27a/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Jun30a_p1/'
-if (!exists("projname")) projname='/data/TMS_data/Processed/Jul30a_p1/'
+#if (!exists("projname")) projname='/data/TMS_data/Processed/Jul30a_p1/'
+if (!exists("projname")) projname='/data/TMS_data/Processed/Aug27b_p0/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Jul17a_p1/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/May31a_cut20/'
 #if (!exists("projname2")) projname2='h_May31a_r1/'
@@ -36,7 +37,7 @@ set y2label "prom [cnt]"
 #plot projname."current.dat" using 1:($2<1?$2*1e12:1/0) with lines axis x1y1, projname."current.dat" using 1:4 axis x1y2
 #plot "h_May26a/summary.txt" using 2:($3/$4)
 #plot projname."summary.txt" using 2:11 axis x1y1, projname."summary.txt" using 2:10 axis x1y2
-plot projname."summary.txt" using 2:14 axis x1y1 title "Rate", projname."summary.txt" using 2:13 axis x1y2 title "Prom3"
+plot projname."summary.txt" every ::1 using 3:15 axis x1y1 title "Rate", projname."summary.txt" every ::1 using 3:14 axis x1y2 title "Prom3"
 #plot projname."summary.txt" using 2:5 axis x1y1, projname."summary.txt" using 2:10 axis x1y2
 #plot projname."summary.txt" using 2:5 axis x1y1, projname."summary.txt" using 2:10 axis x1y2, projname2."summary.txt" using 2:5 axis x1y1, projname2."summary.txt" using 2:10 axis x1y2
 #plot projname."summary.txt" using 2:5 axis x1y1, projname."summary.txt" using 2:7 axis x1y2

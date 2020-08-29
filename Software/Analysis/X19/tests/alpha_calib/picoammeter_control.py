@@ -1172,6 +1172,7 @@ def run_quasicontinious_recording_withT(filename, nRead=-1, tLast=None, extraStr
         from STM32_control import STM32, action1
         is1 = STM32()
         is1.connect()
+        is1.set_M(0) ### set the start state
 
     ### start taking data
     iGood = 0
@@ -1653,8 +1654,30 @@ def Aug26_test():
 #    run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirIn_totalI_check.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
 #    run_quasicontinious_recording('/data/TMS_data/raw/Aug26b/AirIn_totalI_check_night.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
 #    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug26b/AirIn_totalI_check_debug1.dat',extraStr=" 1500 1784", nrps=1000, nRead=5)
-   run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27a/AirIn_totalI_check_noon.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
-#
+#    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27a/AirIn_totalI_check_noon.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27a/AirIn_totalI_check_noon.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc1500.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc1200.dat',extraStr=" 1500 2780 1200 1980", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc1800.dat',extraStr=" 1500 3380 1200 3100", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc1000.dat',extraStr=" 1500 2580 1000 1607", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc2000.dat',extraStr=" 1500 3580 2000 3473", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27b/AirIn_I_DonwenFd1500_IsegFc2500.dat',extraStr=" 1500 4080 2500 4407", nrps=1000, nRead=5)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272058.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug272115.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272154.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug272322.dat',extraStr=" 1500 1784", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug280928.dat',extraStr=" 1500 3080 1500 2540", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug281107.dat',extraStr=" 1500 1784 -9999 -9999 0.979 -9999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug280928.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug281214.dat',extraStr=" 1500 1784 -9999 -9999 0.971 -9999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281417.dat',extraStr=" 1500 3080 1500 2540 0.975 0.495", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug281715.dat',extraStr=" 1500 1784 -9999 -9999 0.978 0.0354", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281840.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
+    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27d/Ar_I_IsegFc4000_gasMin_Aug291705.dat',extraStr=" 4000 4757 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
+
+
 if __name__ == '__main__':
 #     Aug01_test()
 #    Aug10b_test()

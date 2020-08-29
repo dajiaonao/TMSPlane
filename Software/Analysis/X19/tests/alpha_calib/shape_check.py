@@ -314,8 +314,8 @@ def check_shapes_Jun30a():
     a = input("Press any key to exit")
 
 def getFn(dir1,i, ith=0):
-    fs = glob.glob(dir1+f'*{i}.isf')
-    print(dir1+f'*{i}.isf')
+    fs = glob.glob(dir1+f'*_{i}.isf')
+    print(dir1+f'*_{i}.isf')
 
     if fs:
         if len(fs)>0: print(fs)
@@ -397,6 +397,39 @@ def check_shapes_Aug13b():
 
     a = input("Press any key to exit")
 
+def check_shapes(dir2):
+    dir1 = f'/data/TMS_data/raw/{dir2}/'
+
+    xs = [0.5*x for x in range(-200, 1200)]
+    wg1 = WaveformGeter()
+
+    evtx  = 1
+    for x in sys.argv[1:]:
+        ax = x.split(':')
+        filex = int(ax[0])
+        if len(ax)>1: evtx = int(ax[1])
+        plt.figure(1)
+        plt.plot(xs, wg1.get_auto(getFn(dir1,filex), evtx), label=f'{filex}:{evtx}')
+        plt.figure(2)
+        plt.bar(wg1.histData[1][:-1],wg1.histData[0],width=1, alpha=0.6, label=f'{filex}')
+
+    plt.figure(1)
+    plt.xlabel(r"t [$\mu$s]")
+    plt.ylabel("U [mV]")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.figure(2)
+    plt.xlabel(r"Counts")
+    plt.ylabel("Entries")
+    plt.legend(loc='best')
+    plt.tight_layout()
+
+    plt.ion()
+    plt.show()
+
+    a = input("Press any key to exit")
+
 
 
 def run():
@@ -407,10 +440,11 @@ def run():
 #     check_shapes_Jun30a_Fc1500V_samefile()
 #     check_shapes_Aug10a_drift()
 #     check_shapes_Aug10a()
-    if len(sys.argv)>1: check_shapes_Aug13b()
-    else: check_shapes_Aug13a()
+#     if len(sys.argv)>1: check_shapes_Aug13b()
+#     else: check_shapes_Aug13a()
 #     check_shapes_Aug13a()
 #     check_shapes_Aug13b()
+    check_shapes(dir2='Aug27b_tek')
 
 if __name__ == '__main__':
 #     test()

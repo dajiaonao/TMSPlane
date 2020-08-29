@@ -180,6 +180,19 @@ def measureHV():
 
 
 
+def simpleMeasure():
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
+
+    vs1 = is1.getV()
+    print(f"measured V {vs1}")
+
+    vs1 = is1.getI()
+    print(f"measured I {vs1}")
+
+    is1.disconnect()
+
 def simpleSetHV(vs):
 #     print(f"setting {vs}")
     is1 = isegHV()
@@ -200,6 +213,7 @@ def simpleSetHV(vs):
         is1.setV(vs)
         time.sleep(10)
 
+        print('-'*5+' Meausrued values '+'-'*5)
         vs1 = is1.getV()
         print(f"measured V {vs1}")
 
@@ -210,6 +224,11 @@ def simpleSetHV(vs):
 
 def main():
     usage_str = f"Usage: {sys.argv[0]} go VALUE|OFF|ON"
+
+    if len(sys.argv)>1 and sys.argv[1] == 'measure':
+        simpleMeasure()
+        return
+
     if len(sys.argv)<3 or sys.argv[1]!='go':
         print(usage_str)
         return

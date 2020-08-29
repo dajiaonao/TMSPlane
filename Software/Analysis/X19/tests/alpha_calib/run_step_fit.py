@@ -426,6 +426,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
     dList = {}
     tList_start = {}
     tList_end = {}
+    T_List = {}
     with open(fname,'r') as fin1:
         lines = fin1.readlines()
 
@@ -440,6 +441,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
             tList_start[fs[0]] = float(fs[2])
 
         tList_end[fs[0]] = float(fs[2])
+        T_List[fs[0]] =  float(fs[7])
 
 #     print(dList.keys())
 
@@ -447,7 +449,7 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
     results = []
 
     ### check the database
-    get_values = lambda fs: (fs[0], float(fs[1]), float(fs[2]), float(fs[3]), float(fs[4]))
+    get_values = lambda fs: (fs[0], float(fs[1]), float(fs[2]), float(fs[3]), float(fs[4]), float(fs[5]))
     modex = 'w'
     if os.path.exists(summary_file):
         modex = 'a'
@@ -484,10 +486,10 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
 
         #notice!!!
         fr = fit_ds(v, show=False, check=False)
-#        fr = fit_ds(v, show=True, check=True)
+#         fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
-            results.append((k, tList_end[k], -999, -999, -900))
+            results.append((k, tList_end[k], -999, -999, -900, T_List[k]))
             continue
 
         print(k, len(v), fr)
@@ -496,16 +498,16 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         for r in fr: 
             if isnan(r): bad = True
         if bad:
-            results.append((k, tList_end[k], -999, -999, -800))
+            results.append((k, tList_end[k], -999, -999, -800, T_List[k]))
             continue
-        results.append((k, tList_end[k], fr[0], fr[1], fr[2]))
+        results.append((k, tList_end[k], fr[0], fr[1], fr[2], T_List[k]))
 
     ### save results to database
     with open(summary_file,modex) as fout1:
-        if modex == 'w': fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F')
+        if modex == 'w': fout1.write('timeId/C:tEnd/F:mean/F:error/F:fitQ/F:T/F')
 
         for aa in results:
-            fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]}')
+            fout1.write(f'\n{aa[0]} {aa[1]} {aa[2]} {aa[3]} {aa[4]} {aa[5]}')
 
     if show is not None:
         results_new = [r for r in results if r[4]>=0 and r[3]>0]
@@ -688,7 +690,28 @@ if __name__ == '__main__':
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', startIdx=25200, excludeDS=[], summary_file=dir3+'Aug13b/Air_totalI_set1_IsegFc1500.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_DonwenFd1500_IsegFc1500_contOvernight.ttl', show='all')
 #    process_ds(dir1+'Aug26b/AirOut_totalI_check.dat',  excludeDS=[], summary_file=dir3+'Aug26b/AirOut_totalI_check.ttl', show='all')
-    process_ds(dir1+'Aug26b/AirIn_totalI_check_night.dat',  excludeDS=[], summary_file=dir3+'Aug26b/AirIn_totalI_check_night.ttl', show='all')
+#     process_ds(dir1+'Aug26b/AirIn_totalI_check_night.dat',  excludeDS=[], summary_file=dir3+'Aug26b/AirIn_totalI_check_night.ttl', show='all')
+#     process_ds(dir1+'Aug27a/AirIn_totalI_check_noon.dat',  excludeDS=[], summary_file=dir3+'Aug27a/AirIn_totalI_check_noon.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1500.dat',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1500.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1200.dat',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1200.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1800.dat',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1800.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1000.dat',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc1000.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc2000.dat.1',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc2000.ttl', show='all')
+#     process_ds(dir1+'Aug27b/AirIn_I_DonwenFd1500_IsegFc2500.dat',  excludeDS=[], summary_file=dir3+'Aug27b/AirIn_I_DonwenFd1500_IsegFc2500.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug272115.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug272322.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug281107.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug281214.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug281715.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_IsegFc1500_gasMin_Aug271950.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272058.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272154.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug280928.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281154.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281417.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+    process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281840.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27a/AirIn_totalI_check_noon.dat',  excludeDS=[], summary_file=dir3+'Aug27a/AirIn_totalI_check_noon1.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500.dat', HVtripFix=True, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500_HVtripFixed1.ttl', show='all')
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc800.dat', excludeDS=[])

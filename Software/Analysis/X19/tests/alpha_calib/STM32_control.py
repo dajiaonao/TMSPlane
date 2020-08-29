@@ -229,7 +229,7 @@ def main():
 
 if __name__ == '__main__':
 #     listPorts()
-#      main()
-#     record_T()
+     main()
+#     record_T("T_Aug27a_1920.dat")
 #    loopAlpha()
-  run_mode3("T_Aug26_night1.dat")
+#   run_mode3("T_Aug26_night1.dat")

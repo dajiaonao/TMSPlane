@@ -22,7 +22,9 @@ class TPCSystem:
         self.dU_RCFilter_R = 8 # MOhm
         self.cU_RCFilter_R = 16 # MOhm
         self.dU_R = 150 # MOhm
+        self.dU_mR = 0.0976 # MOhm, ~ 100k
         self.cU_R = 30  # MOhm
+        self.cU_mR = 0.0098 # MOhm, ~ 10k
         self.driftOnly = False
         self.mr2s = None
         self.ms2r = None
@@ -101,10 +103,11 @@ class TPCSystem:
             print(f"Focus HV: {cU:.0f}")
 
             print('-'*10)
-            print(f"[{self.dEProvider.name}]   [{self.cEProvider.name}]")
-            print(f"Drift        Focus")
-            print(f"{mo[0][0]:.0f}         {mo[1][0]:.0f}  V")
-            print(f"{current_D:.2g}      {current_C:.2g}    uA")
+            print(f"[{self.dEProvider.name: >10}]     [{self.cEProvider.name: >10}]")
+            print(f"Drift             Focus")
+            print(f"{mo[0][0]: >10.0f}     {mo[1][0]: >10.0f}     V")
+            print(f"{current_D: >10.3g}     {current_C: >10.3g}    uA")
+            print(f"{dU/self.dU_R*self.dU_mR: >10.3g}     {cU/self.cU_R*self.cU_mR: >10.3g}     V")
 
             print('\n'+"- "*10 + "Safe ramp" + '- '*10)
 #             print(f"{self.cU_R/(self.cU_R+self.cEProvider.R+self.cU_RCFilter_R):.2f} < Ud[{self.dEProvider.name}]/Uc[{self.cEProvider.name}] < {(self.cU_R+self.dEProvider.R+self.dU_RCFilter_R+self.dU_R)/self.cU_R:.2f}")
@@ -597,7 +600,7 @@ if __name__ == '__main__':
 #      checkConfig4DriftOnly()
      checkConfig4DriftOnlyAug12()
 #     checkConfig4DriftOnlyAug13()
-#    checkConfig4Aug12()
+# --   checkConfig4Aug12()
 #     checkConfig3b()
 #     specialConfigA()
 #     checkConfig2()
