@@ -30,7 +30,7 @@ class STM32:
         self.ON = True
         self.debug = False
 
-    def connect(self, portx="/dev/ttyUSB1"):
+    def connect(self, portx="/dev/ttyUSB2"):
         portx=portx
         bps=9600
         timex=5

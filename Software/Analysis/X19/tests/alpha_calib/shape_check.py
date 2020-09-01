@@ -407,11 +407,14 @@ def check_shapes(dir2):
     for x in sys.argv[1:]:
         ax = x.split(':')
         filex = int(ax[0])
-        if len(ax)>1: evtx = int(ax[1])
+
+        if len(ax)>1 and ax[1]!='': evtx = int(ax[1])
+        tag = ax[2]+'/' if len(ax)>2 else ''
+
         plt.figure(1)
-        plt.plot(xs, wg1.get_auto(getFn(dir1,filex), evtx), label=f'{filex}:{evtx}')
+        plt.plot(xs, wg1.get_auto(getFn(dir1,filex), evtx), label=f'{tag}{filex}:{evtx}')
         plt.figure(2)
-        plt.bar(wg1.histData[1][:-1],wg1.histData[0],width=1, alpha=0.6, label=f'{filex}')
+        plt.bar(wg1.histData[1][:-1],wg1.histData[0],width=1, alpha=0.6, label=f'{tag}{filex}')
 
     plt.figure(1)
     plt.xlabel(r"t [$\mu$s]")
@@ -444,7 +447,8 @@ def run():
 #     else: check_shapes_Aug13a()
 #     check_shapes_Aug13a()
 #     check_shapes_Aug13b()
-    check_shapes(dir2='Aug27b_tek')
+#     check_shapes(dir2='Aug27a_tek')
+    check_shapes(dir2='Aug31a_tek')
 
 if __name__ == '__main__':
 #     test()

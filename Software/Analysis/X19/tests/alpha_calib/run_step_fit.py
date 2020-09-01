@@ -485,8 +485,8 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         if HVtripFix: v = remove_outlier3(v)
 
         #notice!!!
-        fr = fit_ds(v, show=False, check=False)
-#         fr = fit_ds(v, show=True, check=True)
+#         fr = fit_ds(v, show=False, check=False)
+        fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
             results.append((k, tList_end[k], -999, -999, -900, T_List[k]))
@@ -710,7 +710,12 @@ if __name__ == '__main__':
 #     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug280928.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
 #     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281154.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
 #     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281417.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
-    process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281840.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+#     process_ds(dir1+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281840.dat', startIdx=72970, excludeDS=[], summary_file=dir3+'Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug272015.ttl', show='all')
+    #process_ds(dir1+'Aug27d/Ar_I_IsegFc4000_gasMin_Aug291705.dat', startIdx=1450, excludeDS=[], summary_file=dir3+'Aug27d/Ar_I_IsegFc4000_gasMin.ttl', show='all')
+#     process_ds(dir1+'Aug27d/Ar_I_IsegFc1500_gasMin_Aug291705.dat', startIdx=1450, excludeDS=[], summary_file=dir3+'Aug27d/Ar_I_IsegFc1500_gasMin_Aug291705.ttl', show='all')
+#     process_ds(dir1+'Aug31a/Air_inside_I_DonwenFd1500_IsegFc1500_gasMin_Aug311926.dat', excludeDS=[], summary_file=dir3+'Aug31a/Air_inside_I_DonwenFd1500_IsegFc1500_gasMin_Aug311926.ttl', show='all')
+#     process_ds(dir1+'Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasramp_Aug312014.dat', excludeDS=[], summary_file=dir3+'Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasramp_Aug312014.ttl', show='all')
+    process_ds(dir1+'Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug312052.dat', excludeDS=[], summary_file=dir3+'Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasMin.ttl', show='all')
 #     process_ds(dir1+'Aug27a/AirIn_totalI_check_noon.dat',  excludeDS=[], summary_file=dir3+'Aug27a/AirIn_totalI_check_noon1.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.dat', excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_set4in1_IsegFd1500_morning.ttl', show='all')
 #    process_ds(dir1+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500.dat', HVtripFix=True, excludeDS=[], summary_file=dir3+'Aug13b/Ar_I_setelevenO_DonwenFd1500_IsegFc1500_HVtripFixed1.ttl', show='all')

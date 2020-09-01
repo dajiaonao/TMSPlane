@@ -58,8 +58,8 @@ class Picoammeter:
         self.hiddenCmdT = time.time()
 
     def connect(self, portx="/dev/ttyUSB2"): #USB Serial Converter
-#         portx="/dev/ttyUSB0" ##
-#         portx="/dev/ttyUSB1"
+        portx="/dev/ttyUSB0" ##
+#        portx="/dev/ttyUSB1"
         bps=57600
         timex=5
         self.ser=serial.Serial(portx,bps,timeout=timex)
@@ -1168,10 +1168,12 @@ def run_quasicontinious_recording_withT(filename, nRead=-1, tLast=None, extraStr
     is1 = None
 #     M_pattern = [(10, 90), (40, 0), (10, 90), (30, 0), (10,90), (20,0)] ### wait 10s and move motor to 90 degree and then wait 40s to move motor to 0 degree again
     M_pattern = [(80, 90), (50, 0)] ### wait 10s and move motor to 90 degree and then wait 40s to move motor to 0 degree again
+#    M_pattern = [(70, 90), (16, 0),(16,90),(16,0),(16,90),(16,0)] ### wait 10s and move motor to 90 degree and then wait 40s to move motor to 0 degree again
     if optT:
         from STM32_control import STM32, action1
         is1 = STM32()
         is1.connect()
+        time.sleep(0.5)
         is1.set_M(0) ### set the start state
 
     ### start taking data
@@ -1675,8 +1677,11 @@ def Aug26_test():
 #     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281417.dat',extraStr=" 1500 3080 1500 2540 0.975 0.495", nrps=1000, nRead=-1)
 #     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_IsegFc1500_gasMin_Aug281715.dat',extraStr=" 1500 1784 -9999 -9999 0.978 0.0354", nrps=1000, nRead=-1)
 #     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27c/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug281840.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
-    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27d/Ar_I_IsegFc4000_gasMin_Aug291705.dat',extraStr=" 4000 4757 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
-
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27d/Ar_I_IsegFc4000_gasMin_Aug291705.dat',extraStr=" 4000 4757 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
+#    run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug27d/Ar_I_IsegFd1500_gasMin_intervalsmallerrun_quasicontinious_recording_withT_Aug292027.dat',extraStr=" 1500 1784 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug31a/Air_inside_I_DonwenFd1500_IsegFc1500_gasMin_Aug311926.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
+#      run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasramp_Aug312014.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
+     run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasMin_Aug312052.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
 
 if __name__ == '__main__':
 #     Aug01_test()

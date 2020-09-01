@@ -35,7 +35,7 @@ class isegHV:
     def __init__(self):
         self.ser = None
     def connect(self):
-        portx="/dev/ttyUSB0"
+        portx="/dev/ttyUSB1"
 #         portx="/dev/ttyUSB0"
         bps=9600
         timex=5

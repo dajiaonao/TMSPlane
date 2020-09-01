@@ -243,7 +243,7 @@ class Oscilloscope:
             time.sleep(0.2)
             x = self.query("*ESR?")
 #
-    def run_project(self, N=1, dirx='temp', tag='test_'):
+    def run_project(self, N=1, dirx='temp', tag='test_', sleepT=None):
         '''DAQ from ethernet, so we can analysis as soon as it's done.'''
         self.connect()
         self.setup_default_mode()
@@ -277,6 +277,7 @@ class Oscilloscope:
 
             ### allow hidden command break
             if self.checkCmd() == 'q': sys.exit()
+            if sleepT is not None: time.sleep(sleepT)
 
         ### done
         self.disconnect()
@@ -583,7 +584,9 @@ def main():
 #     os1.run_project(N=-1, dirx='Aug27a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasMin_Aug281929_pulse80mV1Hz_')
 #     os1.run_project(N=-1, dirx='Aug27a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasX5PSI_Aug282038_pulse80mV1Hz_')
 #     os1.run_project(N=-1, dirx='Aug27a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasX10PSI_Aug282101_pulse80mV1Hz_')
-    os1.run_project(N=-1, dirx='Aug27b_tek', tag='filtered_alphaOn_IsegFd4000_gas40_Aug291636_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1800_gasramp_Aug311505_pulse80mV1Hz_')
+#     os1.run_project(N=10, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gason_Aug312229_pulse80mV1Hz_')
+    os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gasOff_Aug312254_overnight_pulse80mV1Hz_', sleepT=120)
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')

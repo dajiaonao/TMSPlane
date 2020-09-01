@@ -258,6 +258,20 @@ def checkConfig4Aug12(Ud=None, Uc=None, show=True):
 
     return printInfo(tpc, Ud, Uc, show)
 
+def checkConfig4Aug12b(Ud=None, Uc=None, show=True):
+    '''Used in HV spark check'''
+    DongwenHV = HVDevice("Dongwen")
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=DongwenHV, collectionEProvider=IsegHV)
+    tpc.version = 'Config-4b'
+    tpc.dU_RCFilter_R = 0
+    tpc.cU_RCFilter_R = 0
+    tpc.dU_R = 150
+    tpc.cU_R = 30
+
+    return printInfo(tpc, Ud, Uc, show)
+
 
 
 def checkConfig4DriftOnly(Ud=None, Uc=None, cU_R=32, show=True):
@@ -598,9 +612,10 @@ if __name__ == '__main__':
 #    checkConfig4b()
 #    checkConfig4()
 #      checkConfig4DriftOnly()
-     checkConfig4DriftOnlyAug12()
+#     checkConfig4DriftOnlyAug12() #drift only default
 #     checkConfig4DriftOnlyAug13()
-# --   checkConfig4Aug12()
+     checkConfig4Aug12() # HV default
+#     checkConfig4Aug12b() # HV glass default
 #     checkConfig3b()
 #     specialConfigA()
 #     checkConfig2()
