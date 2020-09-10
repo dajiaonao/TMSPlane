@@ -78,6 +78,39 @@ class STM32:
     def test(self):
         print(self.get_T())
 
+class TemperatureMonitor:
+    def __init__(self, savename, on=140, off=0):
+        self.savename = savename
+        self.instr = STM32()
+        self.instr.connect()
+        self.OnPosition = on
+        self.OffPosition = off
+
+        self.fout1 = open(self.savename,'w')
+        self.fout1.write("idx/I:time/C:T/F")
+        self.idx = 0
+
+    def measure(self, timestamp=None):
+        ### run the moter to the correct position
+        self.instr.set_M(self.OnPosition)
+        time.sleep(1)
+
+        ### perofrom the measurement
+        t0 = time.strftime('%Y-%m-%d_%H:%M:%S', time.localtime(time.time())) if timestamp is None else timestamp
+        T = self.instr.get_T()
+        info = f"\n{self.idx:d} {t0} {T}"
+        print(info)
+        self.fout1.write(info)
+
+        self.idx += 1
+        if self.idx%10 == 9: self.fout1.flush()
+
+        ### move moter back
+        self.instr.set_M(self.OffPosition)
+
+    def close():
+        self.fout1.close()
+        self.instr.disconnect()
 
 def action1(is0, M_pattern):
     '''This function does this:

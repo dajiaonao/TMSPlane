@@ -5,7 +5,7 @@ Take data from oscilloscope
 import time
 import os,sys
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import socket
 import numpy as np
 from Rigol import Rigol
@@ -283,6 +283,62 @@ class Oscilloscope:
 
         ### done
         self.disconnect()
+
+    def run_project_withT(self, N=1, dirx='temp', tag='test_', sleepT=None, TInterval=120):
+        '''DAQ from ethernet, so we can analysis as soon as it's done.'''
+        self.connect()
+        self.setup_default_mode()
+        self.ss.settimeout(None)
+
+        ### check the output directory
+        dirx = dirx.strip()
+        if len(dirx)==0 or dirx[0]!='/': dirx = self.dir0+dirx ## one should give absolute path if use the non-default directory
+        if not os.path.exists(dirx): os.makedirs(dirx)
+        if dirx[-1]!='/': dirx += '/'
+        print(f"Data directory: {dirx}, tag:{tag}")
+        self.dirx, self.tag = dirx, tag ### save these values to the class
+
+        ### find the start index
+        ifdx = getMaxIndex(glob(dirx+'*.isf'),'.*_(\d+).isf')
+        if ifdx is None: ifdx = 0
+        else: ifdx += 1
+
+        ### prepare for temperature measurement 
+        from STM32_control import TemperatureMonitor
+        tm1 = TemperatureMonitor(f"{self.dirx}{self.tag}T.ttl")
+        dT = timedelta(seconds=TInterval)
+        tT = datetime.now()
+
+        ### start taking data
+        n = 0
+        while True:
+            print('='*20,ifdx,'='*20)
+            t0 = datetime.now()
+            self.take_data(mode=1, saveName=f"{self.dirx}{self.tag}{ifdx}.isf")
+            t1 = datetime.now()
+            print(t0, t1-t0)
+
+            ### if time for measure T
+            if t1>tT:
+                ### perform the measurement
+                tm1.measure()
+
+                ### set the time for next measurement
+                tT = t1 + dT
+
+            ifdx += 1
+            n += 1
+            if n == N: break
+
+            ### allow hidden command break
+            if self.checkCmd() == 'q': sys.exit()
+            if sleepT is not None: 
+                time.sleep(sleepT)
+                if self.checkCmd() == 'q': sys.exit()
+
+        ### done
+        self.disconnect()
+        tm1.close()
 
     def test3(self):
         self.run_project(N=10, dirx='Jan15a', tag='test3_')
@@ -609,7 +665,8 @@ def main():
 #     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gas20PSI_Sep031832_pulse120mV1Hz_scale3p5mV_')
 #     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_Sep031922_pulse120mV1Hz_scale3p5mV_')
 #     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_overnight_Sep032345_pulse120mV1Hz_scale3p5mV_', sleepT=120)
-    os1.run_project(N=2, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_test1_Sep032345_pulse120mV1Hz_scale3p5mV_')
+#     os1.run_project(N=2, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_test1_Sep032345_pulse120mV1Hz_scale3p5mV_')
+    os1.run_project_withT(N=-1, dirx='test_tek', tag='just_test', TInterval=30)
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
