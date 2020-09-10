@@ -277,7 +277,9 @@ class Oscilloscope:
 
             ### allow hidden command break
             if self.checkCmd() == 'q': sys.exit()
-            if sleepT is not None: time.sleep(sleepT)
+            if sleepT is not None: 
+                time.sleep(sleepT)
+                if self.checkCmd() == 'q': sys.exit()
 
         ### done
         self.disconnect()
@@ -586,7 +588,28 @@ def main():
 #     os1.run_project(N=-1, dirx='Aug27a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasX10PSI_Aug282101_pulse80mV1Hz_')
 #    os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1800_gasramp_Aug311505_pulse80mV1Hz_')
 #     os1.run_project(N=10, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gason_Aug312229_pulse80mV1Hz_')
-    os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gasOff_Aug312254_overnight_pulse80mV1Hz_', sleepT=120)
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gasOff_Aug312254_overnight_pulse80mV1Hz_', sleepT=120)
+#    os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gas20PSI_Sep1355_pulse80mV1Hz_')
+#    os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gasoff_Sep1522_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='nofiltered_alphaOn_DonwenFd1000_IsegFc1000_gas40PSI_Sep012040_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_IsegFd1500_gas40PSI_Sep012058_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gas40PSI_Sep012105_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_IsegFd1500_gas40PSI_Sep012139_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_IsegFd1500_gasOff_Sep012149_pulse80mV1Hz_')
+#     os1.run_project(N=3, dirx='Aug27a_tek', tag='filtered_pulse80mV500Hz_')
+#     os1.run_project(N=3, dirx='Aug27a_tek', tag='filtered_pulse60mV500Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasOff_Sep021137_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc350_gasOff_Sep021204_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd300_IsegFc1500_gasOff_Sep021211_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd500_IsegFc1500_gasOff_Sep021212_pulse80mV1Hz_')
+#     os1.run_project(N=-1, dirx='Aug31a_tek', tag='filtered_alphaOn_DonwenFd1500_IsegFc1500_gasOff_Sep021215_pulse80mV1Hz_')
+#     os1.run_project(N=3, dirx='Sep03a_tek', tag='filtered_pulse70mV500Hz_')
+#     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_IsegFd1500_gasRamp_Sep031651_pulse120mV1Hz_scale3p5mV_')
+#     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasMin_Sep031808_pulse120mV1Hz_scale3p5mV_')
+#     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gas20PSI_Sep031832_pulse120mV1Hz_scale3p5mV_')
+#     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_Sep031922_pulse120mV1Hz_scale3p5mV_')
+#     os1.run_project(N=-1, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_overnight_Sep032345_pulse120mV1Hz_scale3p5mV_', sleepT=120)
+    os1.run_project(N=2, dirx='Sep03a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOff_test1_Sep032345_pulse120mV1Hz_scale3p5mV_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')

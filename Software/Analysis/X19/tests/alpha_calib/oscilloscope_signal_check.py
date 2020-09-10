@@ -154,12 +154,12 @@ class findrate(object):
         '''Based on the default processinput function, but will only count the peaks pass a cut on prom3. This will remove more background and give a correct dt distribution for the rate estimation.'''
         print("using processinput_v1") # for debug
 
-        W = 300
+        W = 500
         basename = os.path.basename(self.filename)
         if N>0: self.inputarray = self.inputarray[:N]
         arwav2 = self.inputarray
-#         peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
-        peaks, properties = find_peaks(arwav2, height=None, width=(20,300), wlen=W, prominence=2, distance=160) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+#         peaks, properties = find_peaks(arwav2, height=None, width=(20,300), wlen=W, prominence=2, distance=160) 
         if self.isDebug: print(len(peaks),peaks)
 
         promsall = peak_prominences(arwav2, peaks, wlen=W)
@@ -213,7 +213,7 @@ class findrate(object):
             fig0, ax0 = plt.subplots(num="diffpeak_"+basename)
 
             num_bins = 50
-#             bins = range(0,256)
+            bins = range(0,256)
             # the histogram of the data
             n, bins, patches = ax0.hist(np.diff(peaks), num_bins)
 
@@ -223,7 +223,7 @@ class findrate(object):
 
             fig2, ax2 = plt.subplots(num="peakprom3_"+basename)
             #plt.plot(proms)
-            ax2.hist(proms3, num_bins)
+            ax2.hist(proms3, bins=range(0,256))
 
             plt.ion()
             plt.show()

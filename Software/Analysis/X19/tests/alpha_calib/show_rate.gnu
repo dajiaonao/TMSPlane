@@ -16,7 +16,7 @@ set timefmt "%Y-%m-%d_%H:%M:%S"
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Jun30a_p1/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Jul30a_p1/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Aug27a_p0/'
-if (!exists("projname")) projname='/data/TMS_data/Processed/Aug31a_p0/'
+if (!exists("projname")) projname='/data/TMS_data/Processed/Sep03a_p2/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/Jul17a_p1/'
 #if (!exists("projname")) projname='/data/TMS_data/Processed/May31a_cut20/'
 #if (!exists("projname2")) projname2='h_May31a_r1/'

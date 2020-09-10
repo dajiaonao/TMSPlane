@@ -178,7 +178,27 @@ def measureHV():
 
     is1.disconnect()
 
+def interactiveSetup():
+    is1 = isegHV()
+    is1.connect()
+    print(is1.query(':READ:IDNT?'))
 
+    while True:
+        a = input("CMD:")
+        if a in ['exit', 'quit', 'Exit', 'q', 'Q']:
+            break
+        
+        cmds = a.split()
+        if a[0] == 'go':
+            if a[1] in ['ON', 'OFF']:
+                print(is1.send(f':VOLTage {vs}'))
+            else:
+                print("Setting voltage to {0}".format(vs))
+                is1.send(':VOLTage {0}'.format(v))
+        else:
+            print("CMD: go XXXX")
+
+    is1.disconnect()
 
 def simpleMeasure():
     is1 = isegHV()
@@ -227,6 +247,9 @@ def main():
 
     if len(sys.argv)>1 and sys.argv[1] == 'measure':
         simpleMeasure()
+        return
+    if len(sys.argv)>1 and sys.argv[1] == 'interactive':
+        interactiveSetup()
         return
 
     if len(sys.argv)<3 or sys.argv[1]!='go':
