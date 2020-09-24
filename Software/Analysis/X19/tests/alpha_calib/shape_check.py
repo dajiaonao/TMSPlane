@@ -48,7 +48,7 @@ class WaveformGeter:
         self.A = None
         self.W = 500
         self.width = (2,600)
-        self.proms3Cut = 35
+        self.proms3Cut = 25
         self.histData = None
         
     def get_auto(self, filename, ith=1, AA=None):
@@ -457,7 +457,8 @@ def run():
 #    check_shapes(dir2='Aug13a_tek')
 #     check_shapes(dir2='Aug27a_tek')
 #     check_shapes(dir2='Aug27b_tek')
-     check_shapes(dir2='Aug31a_tek')
+#     check_shapes(dir2='Sep20a_tek')
+     check_shapes(dir2='Sep24a_tek')
 #      check_shapes(dir2='Sep03a_tek')
 
 if __name__ == '__main__':

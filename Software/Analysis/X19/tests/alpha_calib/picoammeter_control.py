@@ -1686,7 +1686,10 @@ def Aug26_test():
 #      run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug31a/Ar_I_DonwenFd1500_IsegFc1500_gasOff_Sep021226.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
 #      run_quasicontinious_recording_withT('/data/TMS_data/raw/Aug31a/Ar_I_IsegFd1500_gasOff_Sep021429.dat',extraStr=" 1500 3080 1500 2540 0.976 0.494", nrps=1000, nRead=-1)
 #      run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep03a/Ar_I_IsegFd1500_gasMin_Sep031724.dat',extraStr=" 1500 1784 -999 -999 -999 -999", nrps=1000, nRead=-1)
-     run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep03a/Ar_I_DongwenFd1500_IsegFc1500_gasMin_Sep031753.dat',extraStr=" 1500 3080 1500 2540 -999 -999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep03a/Ar_I_DongwenFd1500_IsegFc1500_gasMin_Sep031753.dat',extraStr=" 1500 3080 1500 2540 -999 -999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep22a/Ar_I_DongwenFd1500_IsegFc1500_gasOFF_Pressurefrom15PSI_Sep222133.dat',extraStr=" 1500 3080 1500 2540 -999 -999", nrps=1000, nRead=-1)
+#     run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep22a/Ar_I_IsegFd1500_gasOFF_Pressurefrom10PSI_Sep232259.dat',extraStr=" 1500 1784 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
+     run_quasicontinious_recording_withT('/data/TMS_data/raw/Sep24a/Ar_I_IsegFd1500_gasOFF_Pressurefrom28PSI_Sep241645.dat',extraStr=" 1500 1784 -9999 -9999 -999 -999", nrps=1000, nRead=-1)
 
 if __name__ == '__main__':
 #     Aug01_test()

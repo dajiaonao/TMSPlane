@@ -65,8 +65,11 @@ class STM32:
         time.sleep(0.1)
         if self.ser.in_waiting:
             data = self.ser.read(self.ser.in_waiting).decode('gbk')
+        else:
+            print(self.ser.in_waiting)
 
         fs = data.split('\r\n')
+        print(fs)
         if len(fs)>1:
             data = fs[-1]
         return data
@@ -79,7 +82,7 @@ class STM32:
         print(self.get_T())
 
 class TemperatureMonitor:
-    def __init__(self, savename, on=140, off=0):
+    def __init__(self, savename, on=180, off=10):
         self.savename = savename
         self.instr = STM32()
         self.instr.connect()
@@ -89,6 +92,7 @@ class TemperatureMonitor:
         self.fout1 = open(self.savename,'w')
         self.fout1.write("idx/I:time/C:T/F")
         self.idx = 0
+        self.instr.set_M(self.OffPosition)
 
     def measure(self, timestamp=None):
         ### run the moter to the correct position
@@ -108,7 +112,7 @@ class TemperatureMonitor:
         ### move moter back
         self.instr.set_M(self.OffPosition)
 
-    def close():
+    def close(self):
         self.fout1.close()
         self.instr.disconnect()
 
@@ -120,7 +124,7 @@ def action1(is0, M_pattern):
         
     The input is the STM32 instance, and motor time parameters is taken from STM32 instance'''
     T = is0.get_T()
-
+    print(f'T: {T}')
     ## Start the instance
     p2 = Process(target=run_motor_pattern, args=(is0, M_pattern))
     p2.start()
@@ -260,9 +264,15 @@ def main():
     is1.run()
     return
 
+def test_measureT():
+    tm1 = TemperatureMonitor('tt.1')
+    tm1.measure()
+    tm1.close()
+
 if __name__ == '__main__':
-#     listPorts()
+     listPorts()
      main()
+#     test_measureT()
 #     record_T("T_Aug27a_1920.dat")
 #    loopAlpha()
 #   run_mode3("T_Aug26_night1.dat")
