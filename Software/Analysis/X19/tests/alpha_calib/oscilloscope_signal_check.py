@@ -48,6 +48,7 @@ class findrate(object):
         self.prominence3Cut=20
         self.promsCut = 10
         self.pulseVeto = (-1,999)
+        self.vmode = 0
 
 #         self.process_fun = self.processinput
         self.process_fun = self.processinput_v1
@@ -141,6 +142,9 @@ class findrate(object):
             self.timelap *=10
             self.date = pars[b':DATE'].decode("utf-8").strip('"')
             self.time = pars[b':TIME'].decode("utf-8").strip('"')
+
+            if self.vmode>0:
+                print(pars)
     
             wav = pars[b':CURVE'][10:]
             wav += f1.read()[:-1]
@@ -549,6 +553,7 @@ def main1():
     parser.add_option("-N", "--NFiles",  dest="NFiles", default=-1,   help="number of files to be processed")
     parser.add_option("-o", "--outdir",  dest="outDir", default=None,   help="output directory")
     parser.add_option("-a", "--auto",    dest="auto", default=False, action="store_true", help="use default dir")
+    parser.add_option("-v", "--verbose", dest="verbose", default=False, action="store_true", help="verbose mode -- to be implemented")
     parser.add_option("-i", "--interactive",    dest="interactive", default=False, action="store_true", help="use default dir")
 
     (options, args) = parser.parse_args()

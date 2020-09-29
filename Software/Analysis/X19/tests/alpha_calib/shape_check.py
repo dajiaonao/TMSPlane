@@ -123,14 +123,15 @@ class WaveformGeter:
             xx = results[0]
         yy = arr[xx]
 
+        xxv = xx[-1]
         ### find the one gives max
-        cpeaks = peaks[proms3==xx]
-        print(f"Find {yy} events with A={xx}")
+        cpeaks = peaks[proms3==xxv]
+        print(f"Find {yy} events with A={xxv}")
         i0 = cpeaks[ith]
         print(i0)
 
         x0 = wav1[i0+ishift1]
-        thr = 0.1*xx
+        thr = 0.1*xxv
         while wav1[i0]-x0>thr: i0 -= 1
 
         iFrom = i0+ishift1
@@ -458,7 +459,7 @@ def run():
 #     check_shapes(dir2='Aug27a_tek')
 #     check_shapes(dir2='Aug27b_tek')
 #     check_shapes(dir2='Sep20a_tek')
-     check_shapes(dir2='Sep24a_tek')
+     check_shapes(dir2='Sep29a_tek')
 #      check_shapes(dir2='Sep03a_tek')
 
 if __name__ == '__main__':

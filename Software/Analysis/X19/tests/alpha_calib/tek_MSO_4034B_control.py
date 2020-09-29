@@ -716,7 +716,16 @@ def main():
 #    os1.run_project(N=-1, dirx='Sep20a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOFF_Sep212029_pulse80mV1Hz_scale3p5mV_')
 #    os1.run_project(N=-1, dirx='Sep20a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOFF_Sep221102_pulse80mV1Hz_scale3p5mV_')
 #    os1.run_project(N=-1, dirx='Sep24a_tek', tag='filtered_alphaOn_IsegFd1500_gas10PSI_withoutFocusingPlane_Sep241543_pulse80mV1Hz_scale3p5mV_')
-    os1.run_project(N=-1, dirx='Sep24a_tek', tag='filtered_alphaOn_IsegFd1500_gasOFFfrom30PSI_withoutFocusingPlane_Sep241620_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=-1, dirx='Sep24a_tek', tag='filtered_alphaOn_IsegFd1500_gasOFFfrom30PSI_withoutFocusingPlane_Sep241620_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=5, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFdOFF_IsegFcOFF_gasOFF_Sep291144_pulse80mV500Hz_scale3p5mV_')
+#    os1.run_project(N=5, dirx='Sep29a_tek', tag='nofiltered_alphaOn_DongwenFdOFF_IsegFcOFF_gasOFF_Sep291144_pulse80mV500Hz_scale10mV_')
+#    os1.run_project(N=5, dirx='Sep29a_tek', tag='nofiltered_alphaOn_DongwenFdOFF_IsegFcOFF_gasOFF_Sep291144_pulse80mV500Hz_scale6mV_')
+#    os1.run_project(N=-1, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasramp10PSI_Sep291210_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=5, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasrampOFF_Sep291229_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=-1, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOFFfrom21PSI_Sep291231_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=-1, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOFFPreDecreasingfrom21PSIto1atm_Sep291427_pulse80mV1Hz_scale3p5mV_')
+#     os1.run_project(N=-1, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gas10PSI_Sep291753_pulse80mV1Hz_scale3p5mV_')
+    os1.run_project(N=-1, dirx='Sep29a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_gasOFF_Sep291847_pulse80mV1Hz_scale3p5mV_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')
