@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 '''The script is used to check the filter. And it should work in two modes:
     1. Real time mode. It take data and run the filter to see the effect.
     2. Offline mode.
@@ -48,7 +48,7 @@ class filterChecker:
         f1 = TFile(fname,'read')
         tree1 = f1.Get('tree1')
         tree1.SetBranchAddress('adc',data1)
-        tree1.SetBranchAddress('ret',ret1)
+#         tree1.SetBranchAddress('ret',ret1)
         tree1.Show(0)
 
 #         return
@@ -88,6 +88,7 @@ class filterChecker:
             ax2.clear()
             vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
             vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+            print(vo[:20])
             ax1.plot(vo, label='Raw', color='b')
             ax2.plot(vx, label='Filtered', color='r')
 
@@ -127,7 +128,7 @@ class filterChecker:
         '''Decide the next entry interactively'''
 
         while True:
-            x = raw_input("Next:")
+            x = input("Next:")
             if x=='q': sys.exit()
             elif len(x)>0 and x[0] == 's':
                 for name in x.split()[1:]:

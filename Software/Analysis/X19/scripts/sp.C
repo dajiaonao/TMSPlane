@@ -53,6 +53,7 @@ int filters_trapezoidal(size_t wavLen, const AWBT *inWav, AWBT *outWav,
             s = s + dkl;
         }
         outWav[i] = s / (fabs(M) * (double)k);
+//         cout << i << " " << outWav[i] << " " << inWav[i] << " " << s / (fabs(M) * (double)k) << " " << k << " " << l << " " << M << endl;
     }
     return 0;
 }

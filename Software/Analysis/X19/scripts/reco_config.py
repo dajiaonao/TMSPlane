@@ -318,7 +318,7 @@ def apply_config(sp1, config_code='default'):
 
         ### we are done
         return "Li7/d" ### anything after slash is a development tag, frozen configurations does not have a slash
-     elif config_code == 'default':
+    elif config_code == 'default':
         apply_config('Lithium/c')
 
     elif config_code == 'TEST1':
