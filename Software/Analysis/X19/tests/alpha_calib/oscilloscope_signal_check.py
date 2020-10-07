@@ -158,11 +158,11 @@ class findrate(object):
         '''Based on the default processinput function, but will only count the peaks pass a cut on prom3. This will remove more background and give a correct dt distribution for the rate estimation.'''
         print("using processinput_v1") # for debug
 
-        W = 500
+        W = 800
         basename = os.path.basename(self.filename)
         if N>0: self.inputarray = self.inputarray[:N]
         arwav2 = self.inputarray
-        peaks, properties = find_peaks(arwav2, height=None, width=(100,500), wlen=W, prominence=2, distance=160) 
+        peaks, properties = find_peaks(arwav2, height=None, width=(100,800), wlen=W, prominence=2, distance=160) 
 #         peaks, properties = find_peaks(arwav2, height=None, width=(20,300), wlen=W, prominence=2, distance=160) 
         if self.isDebug: print(len(peaks),peaks)
 

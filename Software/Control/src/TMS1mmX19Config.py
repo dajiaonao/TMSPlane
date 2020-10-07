@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 ## @package TMS1mmX19Config
@@ -135,8 +135,10 @@ class LTC2990(object):
         if nbytes > 1:
             d1 = data[1]
         mode = nbytes
-        cmdStr  = ""
-        cmdStr += cmd.write_register(self.modeRegAddr, mode)
+        cmdStr  = bytes()
+        k = cmd.write_register(self.modeRegAddr, mode)
+        cmdStr += k 
+#         cmdStr += cmd.write_register(self.modeRegAddr, mode)
         cmdStr += cmd.write_register(self.addrRegAddr, 0x7fff & ((slaveAddr << 8) | regAddr))
         cmdStr += cmd.write_register(self.wrDataRegAddr, d0 << 8 | d1)
         cmdStr += cmd.send_pulse(1<<self.pulseAddr)
@@ -150,7 +152,7 @@ class LTC2990(object):
         mode = 0
         if nbytes > 0:
             mode = nbytes - 1
-        cmdStr  = ""
+        cmdStr  = bytes()
         cmdStr += cmd.write_register(self.modeRegAddr, mode)
         cmdStr += cmd.write_register(self.addrRegAddr, 0x8000 | (slaveAddr << 8))
         cmdStr += cmd.send_pulse(1<<self.pulseAddr)
@@ -159,7 +161,8 @@ class LTC2990(object):
         cmdStr = cmd.read_status(self.rdDataRegAddr)
         s.sendall(cmdStr)
         ret = s.recv(4, socket.MSG_WAITALL)
-        return [ord(c) for c in ret[2:]]
+#         return [ord(c) for c in ret[2:]]
+        return ret[2:]
 
     def read_all_registers(self, s):
         ret = []

@@ -38,7 +38,7 @@
 #include "common.h"
 #include "sigproc.h"
 
-typedef int ssize_t;
+// typedef int ssize_t;
 
 int sigproc_demux_fifodata(const char *fData, size_t bytesPerSample, size_t nSamples, size_t adcSdmCycRatio,
                            ANALYSIS_WAVEFORM_BASE_TYPE *adcData, size_t nAdcCh, char *sdmData, size_t nSdmCh, double adcVoffset, double adcLSB)

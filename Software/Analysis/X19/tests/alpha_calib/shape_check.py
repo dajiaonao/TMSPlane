@@ -46,9 +46,9 @@ class WaveformGeter:
         self.ishift2 = ishift2
         self.debug = debug
         self.A = None
-        self.W = 500
-        self.width = (2,600)
-        self.proms3Cut = 25
+        self.W = 800
+        self.width = (100,800)
+        self.proms3Cut = 10 #default 25
         self.histData = None
         
     def get_auto(self, filename, ith=1, AA=None):
@@ -134,7 +134,7 @@ class WaveformGeter:
         thr = 0.1*xxv
         while wav1[i0]-x0>thr: i0 -= 1
 
-        iFrom = i0+ishift1
+        iFrom = i0 + ishift1
         iEnd = i0 + ishift2
 
         x0 = wav1[iFrom]
@@ -459,7 +459,8 @@ def run():
 #     check_shapes(dir2='Aug27a_tek')
 #     check_shapes(dir2='Aug27b_tek')
 #     check_shapes(dir2='Sep20a_tek')
-     check_shapes(dir2='Sep29a_tek')
+#     check_shapes(dir2='Sep30a_tek')
+     check_shapes(dir2='Oct05a_tek')
 #      check_shapes(dir2='Sep03a_tek')
 
 if __name__ == '__main__':
