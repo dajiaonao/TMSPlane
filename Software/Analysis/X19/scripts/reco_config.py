@@ -268,10 +268,11 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_uSize = -100
         sp1.CF_dSize = 100
 
-        sp1.CF_trig_ch = 3
+        sp1.CF_trig_ch = 5
         ## threshold
         thre = [0.001]*sp1.nAdcCh
         thre[4] = 0.002
+        thre[5] = 0.005
 #         thre[19] = 0.02
 
         sp1.ch_thre.clear()
@@ -296,7 +297,8 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_decayC[2] = 6000
         sp1.CF_decayC[3] = 410
         sp1.CF_decayC[4] = 2000
-        sp1.CF_decayC[5] = 410
+#         sp1.CF_decayC[5] = 410
+        sp1.CF_decayC[5] = -1
         sp1.CF_decayC[6] = 2300
         sp1.CF_decayC[7] = 2200
         sp1.CF_decayC[8] = 2200
