@@ -95,7 +95,8 @@ def process_event(argX, runPattern='.*_data_(\d+).root'):
     run = get_number(runPattern, inRoot)
 
     sp1 = SignalProcessor()
-    apply_config(sp1, 'Lithium/d')
+    #apply_config(sp1, 'Lithium/d')
+    apply_config(sp1, 'Lithium/C7_shortA')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -1082,7 +1083,7 @@ if __name__ == '__main__':
 #     process_all_matchX(process_data, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p1a_', False, nThread)
 #     process_all_matchX(process_pulse, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p3a_', False, nThread)
 #     process_all_matchX(process_event, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/trigCh4c_', False, nThread)
-    process_all_matchX(process_event, dataDir+'Oct08_TMS/test_*.root', '/data/TMS_data/Processed/Oct08_TMS/trig5thre0d005_', False, nThread)
+    process_all_matchX(process_event, dataDir+'Oct19_TMS/*.root', '/data/TMS_data/Processed/Oct19_TMS/trig16thre0d00001_C7_shortA_', False, nThread)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')

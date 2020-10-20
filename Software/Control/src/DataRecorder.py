@@ -136,12 +136,12 @@ def take_dataR(sTag, n=5000, N=-1, dirx=None,nm=1000, dVList=[], HV=-1):
         if status: break
         nSample += 1
 
-def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000, dV=None):
+def take_data(sTag, n=5000, N=-1, dirx=None,nm=1000, dV=None, dir1='/data/TMS_data/raw/'):
     sc1 = DataRecorder()
     sc1.dV = dV
 #     sc1.control_ip_port = "localhost:1024"
 #     dir1 = 'data/fpgaLin/'
-    dir1 = '/data/TMS_data/raw/'
+#     dir1 = '/data/TMS_data/raw/'
 
     ### put in a dedicated direcotry
     if dirx is not None:
@@ -222,7 +222,17 @@ if __name__ == '__main__':
 #      take_data(sTag='test_DC50_PP500_DIS1p28',n=1000, N=1, dirx='Oct09_TMS',nm=100)
 #      take_data(sTag='test_DC50_PP500_DIS1p23',n=1000, N=1, dirx='Oct09_TMS',nm=100)
 #      take_data(sTag='test_DC50_PP500_DIS1p18',n=1000, N=1, dirx='Oct09_TMS',nm=100)
-      take_data(sTag='test_DC50_PP500_DIS1p0',n=1000, N=1, dirx='Oct09_TMS',nm=100)
+#      take_data(sTag='test_DC50_PP500_DIS1p0',n=1000, N=1, dirx='Oct09_TMS',nm=100)
+#       take_data(sTag='Alhpa_ramp_DC50_PP200_OCT142040',n=10000, N=-1, dirx='Oct14_TMS',nm=100)
+#      take_data(sTag='P10_check_DC50_PP200_OCT142130',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='P10_check_DC50_PP200_OCT151026',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='P10_check_DC50_PP200_OCT151030_note1026noHV',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='P10_ramp20PSI_check_DC50_PP200_OCT151035_HV1920',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='P10_pressuretoandfrom30PSI_check_DC50_PP200_OCT151042_HV1920',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#       take_data(sTag='P10_pressuretoandfrom30PSI_check_DC50_PP200_OCT151105_HV1920',n=1000, N=-1, dirx='Oct14_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='C1_Pulse500Hz1Vpp',n=50, N=1, dirx='Oct17_TMS',nm=100, dir1='/data/TMS_data/raw/')
+#      take_data(sTag='C7_Argon_Pulse100Hz100mVpp',n=1000, N=-1, dirx='Oct19_TMS',nm=100, dir1='/data/TMS_data/raw/')
+      take_data(sTag='C7_addedsource_Argon30PSI_Pulse100Hz100mVpp_driftV3p8kV',n=1000, N=-1, dirx='Oct20_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
 #     take_calibration()
