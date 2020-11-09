@@ -349,7 +349,11 @@ def apply_config(sp1, config_code='default'):
 
         ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
 #         sp1.CF_decayC[0] = 5000
-        sp1.CF_decayC[0] = 700
+        #sp1.CF_decayC[0] = 320 # Nov09_TMS 20-24 25-29
+        #sp1.CF_decayC[0] = 380 # Nov09_TMS 30-34
+        #sp1.CF_decayC[0] = 430 # Nov09_TMS 0-4 slow drifting from 430 to 280... !!
+        sp1.CF_decayC[0] = 280 # Nov09_TMS 3-4 5-9
+        #sp1.CF_decayC[0] = 1500 # Nov09_TMS 10-14
         sp1.CF_decayC[1] = 6000
         sp1.CF_decayC[2] = 6000
         sp1.CF_decayC[3] = 410
