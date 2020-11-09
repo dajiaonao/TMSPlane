@@ -86,6 +86,22 @@ def process_pulse(argX, runPattern='.*_data_(\d+).root'):
     tup1.Write()
     fout1.Close()
 
+def skim_file():
+    '''Test the filterFile function'''
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Lithium/C7_shortA')
+    sp1.CF_trig_ch_list.clear()
+    sp1.CF_trig_ch_list.push_back(0)
+    sp1.CF_trig_ch_list.push_back(17)
+    sp1.ch_thre[0] = 0.004
+#     sp1.ch_thre[17] = 0.001
+
+
+    ifile = '/data/Samples/TMSPlane/raw/Nov03_TMS/C7Ch0_gamma_P10_22PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov031257_data_1000.root'
+    ofile = '/tmp/'+os.path.basename(ifile)[:-5]+'_skimmed.root'
+    sp1.filterFile(ifile,ofile)
+
+
 def process_event(argX, runPattern='.*_data_(\d+).root'):
     '''Based on 5b and process_pulse, using new '''
     inRoot, oTag, oDir = parse_args(argX)
@@ -1094,12 +1110,13 @@ if __name__ == '__main__':
 #     process_all_matchX(process_event, dataDir+'Oct27_TMS/*.root', '/data/TMS_data/Processed/Oct27_TMS/trig5thre0d00001_C7_shortA_', True, nThread)
 #     process_all_matchX(process_event, dataDir+'Nov02_TMS/*.root', '/data/TMS_data/Processed/Nov02_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #    process_all_matchX(process_event, dataDir+'Nov02_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov02_TMS/trig0thre0d002_C7_shortA_', True, 3)
-    process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
+#     process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
+    skim_file()
 
 #     pList = []
 #     pList.append((1489, 'tp3_'))
