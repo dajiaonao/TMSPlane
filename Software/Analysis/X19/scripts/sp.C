@@ -136,6 +136,7 @@ class SignalProcessor{
   int CF_trig_ch{19};
   int CF_dSize{200};
   int CF_uSize{-50};
+  vector< int > CF_trig_ch_list;
 
  public:
   void test(){
@@ -163,6 +164,7 @@ class SignalProcessor{
 //   void testReco(TTree& treeIn, size_t ievt);
   void show_events();
   TFile* processFile(TTree& treeIn, TTree* treeOut=nullptr, string outfilename="temp.root", int run=-1);
+  void filterFile(string infilename, string outfilename, int excludeIdxStart=0, int excludeIdxEnd=2000);
   void measure_multiple(const AWBT *adcData, size_t N);
   void measure_multipleX(const AWBT *adcData, size_t N, float* values);
 
@@ -966,6 +968,58 @@ void Filter_ibl::apply(const AWBT *inWav){
 //   return;
 // }
 
+void SignalProcessor::filterFile(string infilename, string outfilename, int excludeIdxStart/*=0*/, int excludeIdxEnd/*=2000*/){
+  /// this function will check trigs in CF_trig_ch_list, and save the event if any signal pass threshold and not in the excluded window
+  /// currently it could only process one file
+
+  //// set branch address for the input tree
+  IO_adcData = (AWBT*)calloc(nAdcCh * nSamples, sizeof(AWBT));
+  UInt_t dataT;
+  Int_t dataV;
+  Int_t dataHV;
+
+  const int NRANDOM = 100;
+
+  TFile inFile(infilename.c_str(), "read");
+  auto treeIn = (TTree*)inFile.Get("tree1");
+  treeIn->SetBranchAddress("adc", IO_adcData);
+
+  TFile* outfile(nullptr);
+  TTree* treeOut(nullptr);
+
+  //// loop over the events
+  size_t NEVT = treeIn->GetEntries();
+  for(size_t ievt=0; ievt<NEVT; ++ievt){
+    treeIn->GetEntry(ievt);
+
+    for(auto iCh: CF_trig_ch_list){
+      //// process channel
+      filter_channel_0(iCh, IO_adcData);
+      int n1 = find_sigs(iCh, excludeIdxEnd);
+//       cout << iCh << " " << n1 << endl;
+//       if(excludeIdxStart>0 && find_sigs(iCh, 0, excludeIdxStart)) cout << "----" << excludeIdxStart << endl;
+      if(ievt%NRANDOM!=0 && (find_sigs(iCh, excludeIdxEnd)==0 || (excludeIdxStart>0 && find_sigs(iCh, 0, excludeIdxStart)))) continue;
+//       if(n1==0 || (excludeIdxStart>0 && find_sigs(iCh, 0, excludeIdxStart))) continue;
+
+      //// save event if this channel has signal
+      if(!outfile){
+        outfile =  new TFile(outfilename.c_str(), "recreate");
+        treeOut = treeIn->CloneTree(0);
+       }
+
+      treeOut->Fill();
+      break;
+     }
+   }
+
+  if(treeOut) treeOut->Write();
+  if(outfile) outfile->Close();
+
+  free(IO_adcData);
+  IO_adcData = nullptr;
+
+  return;
+}
 
 TFile* SignalProcessor::processFile(TTree& treeIn, TTree* treeOut, string outfilename, int run){
   //// set branch address for the input tree
