@@ -55,6 +55,8 @@ int sigproc_demux_fifodata(const char *fData, size_t bytesPerSample, size_t nSam
             /* convert to actual volts */
             adcData[j*nSamples + i] = v * adcLSB + adcVoffset;
         }
+//         if(!sdmData) continue;
+
         b0 = nAdcCh*2;
         for(j=0; j<adcSdmCycRatio*nSdmCh*2; j++) {
             bi = bytesPerSample - 1 - b0 - (ssize_t)(j / 8);

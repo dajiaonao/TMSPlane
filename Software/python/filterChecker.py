@@ -21,6 +21,7 @@ from ROOT import *
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
 from reco_config import apply_config
+from datetime import datetime
 
 
 class filterChecker:
@@ -43,11 +44,13 @@ class filterChecker:
         s1 = SigProc(nSamples, self.nAdcCh, self.nCh, 5) 
         data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
         ret1  = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nAdcCh)()
+        dataT = array.array('i',[0])
 
         
         f1 = TFile(fname,'read')
         tree1 = f1.Get('tree1')
         tree1.SetBranchAddress('adc',data1)
+        tree1.SetBranchAddress('T',dataT)
 #         tree1.SetBranchAddress('ret',ret1)
         tree1.Show(0)
 
@@ -59,13 +62,7 @@ class filterChecker:
 #         fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
         fig, ax1 = plt.subplots(1, 1, figsize=(11, 6))
     #     fig.set_size_inches(11,8)
-        ax1.set_xlabel('time index')
-        ax1.set_ylabel('U [V]', color='b')
-        ax1.tick_params('y', colors='b')
         ax2 = ax1.twinx()
-        ax2.set_ylabel('U [V]', color='r')
-        ax2.tick_params('y', colors='r')
-
 
         W = self.filterPars[2]
         ## run the filter
@@ -78,6 +75,7 @@ class filterChecker:
 
         ### start checking
         entry = 0
+        dataInfo = None
         while entry>=0:
             ich = self.chan
             tree1.GetEntry(entry)
@@ -106,23 +104,131 @@ class filterChecker:
             ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
             print(x1, y1)
 
-            if a1<5000: a1 += 4000
-            if a1>10000: a1 -= 4000
-            dW = int(W/3)
-            a2 = a1-dW if sp1.scrAry[a1-dW]>sp1.scrAry[a1+dW] else a1+dW
-            x2 = [a2]
-            y2 = [sp1.scrAry[a] for a in x2]
-            ax2.scatter(x2,y2, c="y", marker='x', s=220, label='Analysis2')
-            print(x2, y2)
+#             if a1<5000: a1 += 4000
+#             if a1>10000: a1 -= 4000
+#             dW = int(W/3)
+#             a2 = a1-dW if sp1.scrAry[a1-dW]>sp1.scrAry[a1+dW] else a1+dW
+#             x2 = [a2]
+#             y2 = [sp1.scrAry[a] for a in x2]
+#             ax2.scatter(x2,y2, c="y", marker='x', s=220, label='Analysis2')
+#             print(x2, y2)
+            lines, labels = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            plt.legend(lines + lines2, labels + labels2, loc=(0.07,0.13))
+
 
 
             fig.tight_layout()
+            ax1.set_xlabel('time / 0.2 us')
+            ax1.set_ylabel('U [V]', color='b')
+            ax1.tick_params('y', colors='b')
+            ax2.set_ylabel('U [V]', color='r')
+            ax2.tick_params('y', colors='r')
+
+            irun = -1
+            try:
+                irun = int(fname.rstrip('.root').split('_')[-1])
+            except:
+                pass
+            ievt1 = entry
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
+            if dataInfo is None:
+                dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
+            else: dataInfo.set_text(dataInfoText)
+
+
             plt.legend()
             plt.grid(True)
             plt.draw()
 
             ### decide the next entry
             entry = self.next(entry)
+
+    def offline_check_event(self, fname, evts=[]):
+        nSamples = 16384
+
+        s1 = SigProc(nSamples, self.nAdcCh, self.nCh, 5) 
+        data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
+        ret1  = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * s1.nAdcCh)()
+        dataT = array.array('i',[0])
+        
+        f1 = TFile(fname,'read')
+        tree1 = f1.Get('tree1')
+        tree1.SetBranchAddress('adc',data1)
+        tree1.SetBranchAddress('T',dataT)
+
+        ## plotting
+        plt.ion()
+        plt.show()
+        fig, ax1 = plt.subplots(1, 1, figsize=(11, 6))
+        ax2 = ax1.twinx()
+
+        W = self.filterPars[2]
+        ## run the filter
+        NVAL = 4
+        t_values = array.array('f',[0]*(s1.nAdcCh*NVAL))
+        sp1 = SignalProcessor()
+        if self.recoCfg is not None: apply_config(sp1, self.recoCfg)
+
+        ### start checking
+        entry = 0
+        dataInfo = None
+        for entry in evts:
+            ich = self.chan
+            tree1.GetEntry(entry)
+            print("ret:", ret1[ich])
+            sp1.filter_channel(ich, data1)
+
+            ax1.clear()
+            ax2.clear()
+            vx = np.array([sp1.scrAry[i] for i in range(sp1.nSamples)])
+            vo = data1[ich*sp1.nSamples:(ich+1)*sp1.nSamples]
+            print(vo[:20])
+            ax1.plot(vo, label='Raw', color='b')
+            ax2.plot(vx, label='Filtered', color='r')
+
+            ylim1 = ax1.get_ylim()
+            ylim2 = ax2.get_ylim()
+            x1 = min(ylim1[0], ylim2[0]+vo[0])
+            x2 = max(ylim1[1], ylim2[1]+vo[0])
+            ax1.set_xlim(0,nSamples)
+            ax1.set_ylim(x1,x2)
+            ax2.set_ylim(x1-vo[0],x2-vo[0])
+
+            a1 = np.argmax(vx)
+            x1 = [a1]
+            y1 = [sp1.scrAry[a] for a in x1]
+            ax2.scatter(x1,y1, c="g", marker='o', s=220, label='Analysis')
+            print(x1, y1)
+
+            lines, labels = ax1.get_legend_handles_labels()
+            lines2, labels2 = ax2.get_legend_handles_labels()
+            plt.legend(lines + lines2, labels + labels2, loc=(0.07,0.13))
+
+            fig.tight_layout()
+            ax1.set_xlabel('time / 0.2 us')
+            ax1.set_ylabel('U [V]', color='b')
+            ax1.tick_params('y', colors='b')
+            ax2.set_ylabel('U [V]', color='r')
+            ax2.tick_params('y', colors='r')
+
+            irun = -1
+            try:
+                irun = int(fname.rstrip('.root').split('_')[-1])
+            except:
+                pass
+            ievt1 = entry
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
+            if dataInfo is None:
+                dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
+            else: dataInfo.set_text(dataInfoText)
+
+
+            plt.legend()
+            plt.grid(True)
+            plt.draw()
+
+            x = input("Next:")
 
     def next(self, ievt):
         '''Decide the next entry interactively'''
@@ -201,11 +307,11 @@ class filterChecker:
         plt.show()
         fig, ax1 = plt.subplots(1, 1, figsize=(28, 10))
     #     fig.set_size_inches(11,8)
-        ax1.set_xlabel('time index')
+        ax1.set_xlabel('time / 0.2 us')
         ax1.set_ylabel('U [V]', color='b')
         ax1.tick_params('y', colors='b')
         ax2 = ax1.twinx()
-        ax2.set_ylabel('U [V]', color='r')
+        ax2.set_ylabel('Filtered U [V]', color='r')
         ax2.tick_params('y', colors='r')
 
         
@@ -235,6 +341,10 @@ class filterChecker:
         y2 = [sp1.scrAry[a] for a in x2]
         ax2.scatter(x2,y2, c="y", marker='x', s=220, label='Analysis2')
         print(x2, y2)
+
+        lines, labels = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax2.legend(lines + lines2, labels + labels2, loc=(0.07,0.13))
 
         fig.tight_layout()
         plt.legend()

@@ -1015,6 +1015,11 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
         print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
+    ## create directory
+    outdir = os.path.dirname(oTag)
+    if not os.path.exists(outdir): os.makedirs(outdir)
+
+    ## start processing
     p = Pool(nThread)
     p.map(funX, [f+';'+oTag for f in files])
 
@@ -1031,7 +1036,7 @@ def process_all_matchY(funX, pattern, oTag, skipExist=True):
 
 
 if __name__ == '__main__':
-    nThread = 6 if socket.gethostname() == 'eastlake' else 3
+    nThread = 4 if socket.gethostname() == 'eastlake' else 3
 #     readSignal4(argX='data/fpgaLin/Feb27a_data_40.root;test_')
 #     testJ()
 #     testK()
@@ -1083,7 +1088,13 @@ if __name__ == '__main__':
 #     process_all_matchX(process_data, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p1a_', False, nThread)
 #     process_all_matchX(process_pulse, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/p3a_', False, nThread)
 #     process_all_matchX(process_event, dataDir+'Dec05b/Dec05b_data_*.root*', 'temp1_out/trigCh4c_', False, nThread)
-    process_all_matchX(process_event, dataDir+'Oct19_TMS/*.root', '/data/TMS_data/Processed/Oct19_TMS/trig16thre0d00001_C7_shortA_', False, nThread)
+#    process_all_matchX(process_event, dataDir+'Oct20_TMS/C7_addedsource_P10to30PSI_Pulse100Hz100mVpp_driftV3p8kV_data_*.root', '/data/TMS_data/Processed/Oct20_TMS/trig0thre0d00001_C7_shortA_', False, nThread)
+#    process_all_matchX(process_event, dataDir+'Oct20_TMS/C7_addedsource_Argon30PSI_Pulse100Hz100mVpp_driftV3p8kV_data_*.root', '/data/TMS_data/Processed/Oct20_TMS/trig18thre0d00001_C7_shortA_', False, nThread)
+#    process_all_matchX(process_event, dataDir+'Oct26_TMS/*.root', '/data/TMS_data/Processed/Oct26_TMS/trig5thre0d00001_C7_shortA_', True, nThread)
+#     process_all_matchX(process_event, dataDir+'Oct27_TMS/*.root', '/data/TMS_data/Processed/Oct27_TMS/trig5thre0d00001_C7_shortA_', True, nThread)
+#     process_all_matchX(process_event, dataDir+'Nov02_TMS/*.root', '/data/TMS_data/Processed/Nov02_TMS/trig0thre0d002_C7_shortA_', True, 3)
+#    process_all_matchX(process_event, dataDir+'Nov02_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov02_TMS/trig0thre0d002_C7_shortA_', True, 3)
+    process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')

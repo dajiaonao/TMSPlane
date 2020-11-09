@@ -244,6 +244,20 @@ def checkConfig4(Ud=None, Uc=None, show=True):
 
     return printInfo(tpc, Ud, Uc, show)
 
+def checkConfig4Battery(Ud=None, Uc=None, show=True):
+    '''Using battery for focusing and Iseg for drift'''
+    Battery = HVDevice("Battery",0)
+    IsegHV = HVDevice("Iseg", 10)
+
+    tpc = TPCSystem("tpc1", driftEProvider=IsegHV, collectionEProvider=Battery)
+    tpc.version = 'Battery_1'
+    tpc.dU_RCFilter_R = 8
+    tpc.cU_RCFilter_R = 0
+    tpc.dU_R = 150 
+    tpc.cU_R = 30
+
+    return printInfo(tpc, Ud, Uc, show)
+
 def checkConfig4Aug12(Ud=None, Uc=None, show=True):
     '''Used in HV spark check'''
     DongwenHV = HVDevice("Dongwen")
@@ -611,10 +625,11 @@ if __name__ == '__main__':
 #     checkConfig4a()
 #    checkConfig4b()
 #    checkConfig4()
-     checkConfig4DriftOnly()
+#     checkConfig4DriftOnly()
 #     checkConfig4DriftOnlyAug12() #drift only default
 #     checkConfig4DriftOnlyAug13()
-#     checkConfig4Aug12() # HV default
+      checkConfig4Aug12() # HV default
+#     checkConfig4Battery() # HV default
 #     checkConfig4Aug12b() # HV glass default
 #     checkConfig3b()
 #     specialConfigA()

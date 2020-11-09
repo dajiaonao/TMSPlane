@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from check_decay import FilterConfig
 from math import sqrt
 
@@ -326,12 +326,10 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_uSize = -100
         sp1.CF_dSize = 100
 
-        sp1.CF_trig_ch = 16
+        sp1.CF_trig_ch = 0 #5 # 7 18 0
         ## threshold
-        thre = [0.00001]*sp1.nAdcCh
-        thre[4] = 0.002
-        thre[5] = 0.005
-#         thre[19] = 0.02
+#         thre = [0.00001]*sp1.nAdcCh
+        thre = [0.002]*sp1.nAdcCh
 
         sp1.ch_thre.clear()
         for x in thre: sp1.ch_thre.push_back(x)
@@ -350,15 +348,16 @@ def apply_config(sp1, config_code='default'):
             sp1.IO_mAvg.push_back(0.)
 
         ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
-        sp1.CF_decayC[0] = 450
+#         sp1.CF_decayC[0] = 5000
+        sp1.CF_decayC[0] = 700
         sp1.CF_decayC[1] = 6000
         sp1.CF_decayC[2] = 6000
         sp1.CF_decayC[3] = 410
         sp1.CF_decayC[4] = 2000
-#         sp1.CF_decayC[5] = 410
-        sp1.CF_decayC[5] = -1
+        sp1.CF_decayC[5] = 450 # 
+#         sp1.CF_decayC[5] = 20 # 
         sp1.CF_decayC[6] = 2300
-        sp1.CF_decayC[7] = 2200
+        sp1.CF_decayC[7] = 150
         sp1.CF_decayC[8] = 2200
         sp1.CF_decayC[9] = 2200
         sp1.CF_decayC[10] = 3900
@@ -369,11 +368,14 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_decayC[15] = 2000
         sp1.CF_decayC[16] = 400
         sp1.CF_decayC[17] = 1200
-        sp1.CF_decayC[18] = 3200
+        sp1.CF_decayC[18] = 250
         sp1.CF_decayC[19] = -1
 
         for i in range(sp1.nAdcCh):
-            sp1.CF_fltParams[i].setV(100, 100,300,500)
+            #sp1.CF_fltParams[i].setV(100, 100,300,500)
+            sp1.CF_fltParams[i].setV(50, 100,200,sp1.CF_decayC[i]) # Oct22 processing
+            #sp1.CF_fltParams[i].setV(, 100,200,50)
+            #sp1.CF_fltParams[i].setV(50, 200,250,sp1.CF_decayC[i])
 
         ### we are done
         return "Li7/C7_shortA" ### anything after slash is a development tag, frozen configurations does not have a slash
@@ -396,5 +398,24 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_decayC[10] = sqrt(2)/0.001348;
 
         return 'TEST1a'
+    elif config_code == 'TEST2':
+        print(f"Using configuration {config_code}")
+        ## enable channels
+        sp1.ch_thre.clear()
+        sp1.CF_chan_en.clear()
+        for i in range(20):
+            sp1.CF_chan_en.push_back(1)
+            sp1.ch_thre.push_back(0.0001)
+
+        sp1.fltParam.clear()
+        flt = [50, 550, 1000, -1] # dp01a
+        for x in flt: sp1.fltParam.push_back(x)
+
+#         sp1.CF_decayC[5] = -1;
+        sp1.CF_fltParams[5].setV(50, 250,500,450)
+
+
+        return 'TEST2a'
+
 
     return 0
