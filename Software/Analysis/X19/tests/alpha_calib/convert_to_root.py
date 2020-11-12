@@ -166,6 +166,9 @@ def sortDir(pattern,outDir, tag='s', prallel=True):
         except KeyError:
             dic1[m.group(1)] = [(f, int(m.group(2)))]
 
+    if outDir[-1] != '/': outDir+='/'
+    if not os.path.exists(outDir): os.makedirs(outDir) 
+
     jobList = []
     for k in dic1:
 #         print(k, len(dic1[k]), sorted(dic1[k], key=lambda x: x[1]))
@@ -204,4 +207,9 @@ if __name__ == '__main__':
 #     processJan19()
 #     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15d/*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
 #     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15b/TPCHVoff_PHVvary_*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 't')
-    sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15a/TPC*_air*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 'n')
+#     sortDir("/home/dzhang/work/repos/TMSPlane/data/raw2/Jan15a/TPC*_air*.isf", "/data/Samples/TMSPlane/merged/Jan15a/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug13a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug13a_tek/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep03a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Sep03a_tek/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug27a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug27a_tek/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep29a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Sep29a_tek/", 'n')
+    sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug13a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug13a_tek/", 'n')

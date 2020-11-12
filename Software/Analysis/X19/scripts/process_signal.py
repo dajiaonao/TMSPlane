@@ -86,7 +86,7 @@ def process_pulse(argX, runPattern='.*_data_(\d+).root'):
     tup1.Write()
     fout1.Close()
 
-def skim_file():
+def skim_file_test():
     '''Test the filterFile function'''
     sp1 = SignalProcessor()
     apply_config(sp1, 'Lithium/C7_shortA')
@@ -101,6 +101,24 @@ def skim_file():
     ofile = '/tmp/'+os.path.basename(ifile)[:-5]+'_skimmed.root'
     sp1.filterFile(ifile,ofile)
 
+def skim_file(argx):
+    '''Test the filterFile function'''
+    sp1 = SignalProcessor()
+    apply_config(sp1, 'Lithium/C7_shortA')
+    sp1.CF_trig_ch_list.clear()
+    sp1.CF_trig_ch_list.push_back(0)
+    sp1.CF_trig_ch_list.push_back(7)
+    sp1.CF_trig_ch_list.push_back(11)
+    sp1.CF_trig_ch_list.push_back(15)
+    sp1.ch_thre[0] = 0.0016
+    sp1.ch_thre[7] = 0.004
+    sp1.ch_thre[11] = 0.004
+    sp1.ch_thre[15] = 0.004
+
+    args = argx.split(';')
+    ifile = args[0]
+    print(f"skimming {ifile}")
+    sp1.filterFile(ifile,args[1]+os.path.basename(ifile))
 
 def process_event(argX, runPattern='.*_data_(\d+).root'):
     '''Based on 5b and process_pulse, using new '''
@@ -1039,6 +1057,23 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
     p = Pool(nThread)
     p.map(funX, [f+';'+oTag for f in files])
 
+def skim_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
+    files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(oTag+os.path.basename(f))))], key=lambda f:os.path.getmtime(f))
+    if len(files)==0:
+        print("No files matchs.... Aborting...")
+        return
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+        print(("dropping the latest file, which probably is still being written:", files[-1]))
+        files.pop()
+
+    ## create directory
+    outdir = os.path.dirname(oTag)
+    if not os.path.exists(outdir): os.makedirs(outdir)
+
+    ## start processing
+    p = Pool(nThread)
+    p.map(funX, [f+';'+oTag for f in files])
+
 def process_all_matchY(funX, pattern, oTag, skipExist=True):
     files = sorted([f for f in glob(pattern) if ((not skipExist) or (not os.path.exists(f.replace('/Nov','/'+oTag+'Nov'))))], key=lambda f:os.path.getmtime(f))
     if len(files)==0:
@@ -1113,15 +1148,18 @@ if __name__ == '__main__':
 #    process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_2[0-9].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_1[0-4].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
-    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_[3-9].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
+#     process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_[3-9].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_3[0-4].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
+    process_all_matchX(process_event, dataDir+'Nov11_TMS/C7Ch0*.root', '/data/TMS_data/Processed/Nov11_TMS_new/trig7thre0d002_C7_shortA_', True, 5)
 #     process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')
 #     readSignal4b('data/fpgaLin/Mar08D1a/Mar08D1a_data_70.root;tpx01a_')
 
 #     test3(pList=[(0, 'tp09a_')], pTag='Feb26a')
-#     skim_file()
+#     skim_file_test()
+    #skim_all_matchX(skim_file, dataDir+'Nov03_TMS/C7Ch0_*_data_*.root', dataDir+'skimmed/Nov03_TMS_S0/skimmed_', True, 5)
+    #skim_all_matchX(skim_file, dataDir+'Nov11_TMS/C7Ch0*_data_*.root', dataDir+'skimmed/Nov11_TMS_S0/skimmed_', True, 5)
 
 #     pList = []
 #     pList.append((1489, 'tp3_'))

@@ -326,7 +326,8 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_uSize = -100
         sp1.CF_dSize = 100
 
-        sp1.CF_trig_ch = 0 #5 # 7 18 0
+        #sp1.CF_trig_ch = 0 #5 # 7 18 0
+        sp1.CF_trig_ch = 7 # Nov11 0,7,11,15
         ## threshold
 #         thre = [0.00001]*sp1.nAdcCh
         thre = [0.002]*sp1.nAdcCh
@@ -348,12 +349,15 @@ def apply_config(sp1, config_code='default'):
             sp1.IO_mAvg.push_back(0.)
 
         ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
-#         sp1.CF_decayC[0] = 5000
+        #sp1.CF_decayC[0] = 5000
+        #sp1.CF_decayC[0] = 500 # Nov03?
         #sp1.CF_decayC[0] = 320 # Nov09_TMS 20-24 25-29
         #sp1.CF_decayC[0] = 380 # Nov09_TMS 30-34
         #sp1.CF_decayC[0] = 430 # Nov09_TMS 0-4 slow drifting from 430 to 280... !!
-        sp1.CF_decayC[0] = 280 # Nov09_TMS 3-4 5-9
+        #sp1.CF_decayC[0] = 280 # Nov09_TMS 3-4 5-9
         #sp1.CF_decayC[0] = 1500 # Nov09_TMS 10-14
+        #sp1.CF_decayC[0] = 1600 # Nov11 <269
+        sp1.CF_decayC[0] = 3000 # Nov11 
         sp1.CF_decayC[1] = 6000
         sp1.CF_decayC[2] = 6000
         sp1.CF_decayC[3] = 410
@@ -361,15 +365,18 @@ def apply_config(sp1, config_code='default'):
         sp1.CF_decayC[5] = 450 # 
 #         sp1.CF_decayC[5] = 20 # 
         sp1.CF_decayC[6] = 2300
-        sp1.CF_decayC[7] = 150
+        #sp1.CF_decayC[7] = 150
+        sp1.CF_decayC[7] = 1500 #Nov11
         sp1.CF_decayC[8] = 2200
         sp1.CF_decayC[9] = 2200
         sp1.CF_decayC[10] = 3900
-        sp1.CF_decayC[11] = 2000
+        #sp1.CF_decayC[11] = 2000
+        sp1.CF_decayC[11] = 1800 #Nov11
         sp1.CF_decayC[12] = 1800
         sp1.CF_decayC[13] = 1400
         sp1.CF_decayC[14] = 1400
-        sp1.CF_decayC[15] = 2000
+        #sp1.CF_decayC[15] = 2000
+        sp1.CF_decayC[15] = 1000 #Nov11
         sp1.CF_decayC[16] = 400
         sp1.CF_decayC[17] = 1200
         sp1.CF_decayC[18] = 250
@@ -377,7 +384,7 @@ def apply_config(sp1, config_code='default'):
 
         for i in range(sp1.nAdcCh):
             #sp1.CF_fltParams[i].setV(100, 100,300,500)
-            sp1.CF_fltParams[i].setV(50, 100,200,sp1.CF_decayC[i]) # Oct22 processing
+            sp1.CF_fltParams[i].setV(50, 200,400,sp1.CF_decayC[i]) # Oct22 processing
             #sp1.CF_fltParams[i].setV(, 100,200,50)
             #sp1.CF_fltParams[i].setV(50, 200,250,sp1.CF_decayC[i])
 
