@@ -131,7 +131,7 @@ class filterChecker:
             except:
                 pass
             ievt1 = entry
-            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), 'Ch '+str(ich), str(datetime.fromtimestamp(dataT[0]))])
             if dataInfo is None:
                 dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
             else: dataInfo.set_text(dataInfoText)
@@ -218,7 +218,7 @@ class filterChecker:
             except:
                 pass
             ievt1 = entry
-            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), 'Ch '+str(ich), str(datetime.fromtimestamp(dataT[0]))])
             if dataInfo is None:
                 dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
             else: dataInfo.set_text(dataInfoText)

@@ -3,7 +3,7 @@ from filterChecker import filterChecker
 
 fc1 = filterChecker()
 #fc1.filterPars = [100,100,300,300]
-fc1.recoCfg = 'Lithium/C7_shortA'
+fc1.recoCfg = 'Lithium/C7_Nov11Gamma'
 #fc1.recoCfg = 'TEST2'
 fc1.chan = 15
 # fc1.offline_check('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_0.root')
@@ -36,7 +36,9 @@ fc1.chan = 15
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_8.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_245.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_867.root')
-fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_1215.root')
+fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_4365.root')
+#fc1.offline_check('/data/TMS_data/raw3/Nov11_TMS_archive3/Nov11_TMS_1400_1449/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_1431.root')
 #fc1.offline_check('/data/TMS_data/raw/skimmed/Nov11_TMS_S0/skimmed_C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_245.root')
+#fc1.offline_check('/data/TMS_data/raw/Nov16_TMS/C7Ch071115_alpha_15LongDecay_P10_0PSI_Pulse100Hz500mV_fc1800_fd1800_Nov161609_data_259.root')
 #fc1.online_check()
 

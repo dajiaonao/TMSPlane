@@ -195,7 +195,7 @@ def sortDir(pattern,outDir, tag='s', prallel=True):
 
     ### submit jobs 
     if jobList:
-        p = Pool(6)
+        p = Pool(3)
         ret = p.map(to_root_single_arg, jobList)
  
 if __name__ == '__main__':
@@ -212,4 +212,12 @@ if __name__ == '__main__':
 #     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep03a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Sep03a_tek/", 'n')
 #     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug27a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug27a_tek/", 'n')
 #     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep29a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Sep29a_tek/", 'n')
-    sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug13a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug13a_tek/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug13a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Aug13a_tek/", 'n')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Aug31a_tek/*.isf", "/run/media/TMSTest/TMSDisk3/raw3/merged3/Aug31a_tek/", '')
+#     sortDir("/data/TMS_data/raw2/Jul16a_tek/*.isf", "/run/media/TMSTest/TMSDisk3/raw3/merged3/Jul16a_tek/", '')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep10a_tek/*.isf", "/run/media/TMSTest/TMSdisk2/raw2/merged/Sep10a_tek/", '')
+#     sortDir("/run/media/TMSTest/TMSdisk2/raw2/Sep20a_tek/*.isf", "/run/media/TMSTest/TMSDisk3/raw3/merged3/Sep20a_tek/", '')
+#     for d in ['Aug10a_tek','Aug27b_tek','Jul13a_tek','Jul16b_tek','Jul16c_tek','Jul16d_tek','Jul16e_tek','Jul17a_tek','Jul21a_tek','Jul22a_tek','Jul23a_tek','Jul24a_tek','Jul30a_tek','Jun24a_tek','Jun30a_tek','Sep24a_tek','Sep30a_tek']:
+#         sortDir(f"/run/media/TMSTest/TMSdisk2/raw2/{d}/*.isf", f"/run/media/TMSTest/TMSdisk2/raw2/merged/{d}/", '')
+    for d in ['Aug13a_tek','Oct05a_tek']:
+        sortDir(f"/data/TMS_data/raw3/{d}/*.isf", f"/run/media/TMSTest/TMSdisk2/raw2/merged/{d}/", '')

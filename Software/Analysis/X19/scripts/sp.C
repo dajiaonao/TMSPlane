@@ -432,7 +432,7 @@ int SignalProcessor::reco(){
     }
 
     for(size_t iCh=0; iCh<nAdcCh; iCh++) {
-      if(iCh == trig_ch) continue;
+      if(iCh == trig_ch || CF_chan_en[iCh] == 0) continue;
       find_sigs(iCh, s.im+CF_uSize, s.im+CF_dSize);
 
       if(signals[iCh]->size()>1){
