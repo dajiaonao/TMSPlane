@@ -253,6 +253,12 @@ def fit_ds(ds, show=False, check=False):
 
         plt.plot(data1)
         plt.plot(reco1)
+
+        plt.xlabel("Measurement Index")
+        plt.ylabel("Current [pA]")
+
+
+
         plt.show()
 
 
@@ -485,8 +491,8 @@ def process_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=No
         if HVtripFix: v = remove_outlier3(v)
 
         #notice!!!
-        fr = fit_ds(v, show=False, check=False)
-#        fr = fit_ds(v, show=True, check=True)
+#         fr = fit_ds(v, show=False, check=False)
+        fr = fit_ds(v, show=True, check=True)
 
         if fr is None:
             results.append((k, tList_end[k], -999, -999, -900, T_List[k]))
@@ -590,9 +596,9 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 #             plt.show()
 #
 #         fr = fit_ds(v, show=True)
-#         fr = fit_ds(v, show=True, check=True)
+        fr = fit_ds(v, show=True, check=True)
 #         fr = fit_ds(v, show=False, check=True)
-        fr = fit_ds(v, show=False, check=False)
+#         fr = fit_ds(v, show=False, check=False)
         if fr is None: continue
 
         print(k, len(v), fr)
@@ -635,7 +641,7 @@ def check_ds(fname = '/data/TMS_data/raw/Jun25a/Argon_totalI.dat', startIdx=None
 
 
 if __name__ == '__main__':
-    dir1 = '/data/TMS_data/raw/'
+    dir1 = '/data/TMS_data/raw2/'
     dir3 = '/data/TMS_data/Processed/'
     dir2 = '/home/TMSTest/dz/'
 #     test()
@@ -668,7 +674,7 @@ if __name__ == '__main__':
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc2000.dat', excludeDS=[])
 #     check_ds(dir1+'Jun30a/Air_I_Fd2000_Fc1000.dat', excludeDS=[])
 #     check_ds(dir1+'Jul31a/Mixed_I_Fd1500_Fc2000.dat.1', excludeDS=[])
-#     check_ds(dir1+'Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat', excludeDS=[])
+    check_ds(dir1+'Jul16a/Ar_I_Iseg_rawFd1500_check_alpha.dat', excludeDS=[])
 #     check_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300)
 #     process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_1.dat', excludeDS=['2020-07-17_14:47:20','2020-07-17_14:44:56','2020-07-17_14:59:18', '2020-07-17_16:44:43'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')
 #     process_ds(dir1+'Jul17a/Ar_I_Dongwen_rawFd2500_check_alpha_2.dat', excludeDS=['2020-07-17_21:28:12'], startIdx=23300, summary_file=dir3+'Jul17a/summary.ttl', show='all')

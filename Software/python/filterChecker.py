@@ -32,6 +32,7 @@ class filterChecker:
         self.recoCfg = recoCfg
         self.nCh = 19
         self.nAdcCh = 20
+        self.waitTime = 10
 
     def connect(self):
         self.IsConnected = True
@@ -131,7 +132,7 @@ class filterChecker:
             except:
                 pass
             ievt1 = entry
-            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), 'Ch '+str(ich), str(datetime.fromtimestamp(dataT[0]))])
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
             if dataInfo is None:
                 dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
             else: dataInfo.set_text(dataInfoText)
@@ -218,7 +219,7 @@ class filterChecker:
             except:
                 pass
             ievt1 = entry
-            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), 'Ch '+str(ich), str(datetime.fromtimestamp(dataT[0]))])
+            dataInfoText = ', '.join(['Run '+str(irun), 'Event '+str(ievt1), str(datetime.fromtimestamp(dataT[0]))])
             if dataInfo is None:
                 dataInfo = fig.text(0.02, 0.01, dataInfoText, ha='left', va='bottom', color='m', transform=fig.transFigure)
             else: dataInfo.set_text(dataInfoText)
@@ -228,9 +229,10 @@ class filterChecker:
             plt.grid(True)
             plt.draw()
 
-            x = input("Next:")
+#             x = input("Next:")
+            entry = self.next(entry)
 
-    def next(self, ievt):
+    def next(self, ievt, alter_evt=0):
         '''Decide the next entry interactively'''
 
         while True:
@@ -252,6 +254,8 @@ class filterChecker:
                     break
                 except ValueError:
                     continue
+            elif x=='n':
+                ievt = alter_evt if alter_evt is not None else ievt+1
             else:
                 try:
                     ievt = int(x)
@@ -350,7 +354,10 @@ class filterChecker:
         plt.legend()
         plt.grid(True)
         plt.draw()
-        plt.pause(10)
+        if self.waitTime>0:
+            plt.pause(self.waitTime)
+        else:
+            plt.show()
 
 def test1():
     fc1 = filterChecker()

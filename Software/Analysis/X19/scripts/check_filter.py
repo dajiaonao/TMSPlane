@@ -3,9 +3,10 @@ from filterChecker import filterChecker
 
 fc1 = filterChecker()
 #fc1.filterPars = [100,100,300,300]
-fc1.recoCfg = 'Lithium/C7_Nov11Gamma'
+fc1.recoCfg = 'Lithium/C4_Nov24'
 #fc1.recoCfg = 'TEST2'
-fc1.chan = 15
+fc1.chan = 7
+fc1.waitTime = 1000
 # fc1.offline_check('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_0.root')
 # fc1.offline_check('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_40mV_data_0.root')
 # fc1.offline_check('/home/TMSTest/PlacTests/TMSPlane/Software/Control/src/data/fpgaLin/Oct07_TMS/test1_data_30.root')
@@ -26,7 +27,7 @@ fc1.chan = 15
 #fc1.offline_check('/data/TMS_data/raw/Nov03_TMS/C7Ch0_gamma_P10_22PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov031257_data_29.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov03_TMS/C7Ch0_gamma_P10_26PSI_Pulse100Hz100mV_fc1800_fd1800_Nov041809_data_1581.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_26PSI_Pulse100Hz1000mV_fc900_fd900_Nov091638_data_20.root')
-#fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_26PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov091651_data_25.root')
+# fc1.offline_check('/data/TMS_data/raw2/Nov09_TMS/C7Ch0_alpha_P10_26PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov091651_data_25.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_26PSI_Pulse100Hz1000mV_fc600_fd600_Nov091701_data_31.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_0PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov091600_data_0.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_0PSI_Pulse100Hz1000mV_fc600_fd600_Nov091616_data_14.root')
@@ -34,11 +35,13 @@ fc1.chan = 15
 #fc1.offline_check('/data/TMS_data/raw/Nov09_TMS/C7Ch0_alpha_P10_0PSI_Pulse100Hz1000mV_fc900_fd900_Nov091609_data_5.root')
 #fc1.offline_check('/data/TMS_data/raw/skimmed/Nov03_TMS_S0/skimmed_C7Ch0_gamma_P10_22PSI_Pulse100Hz1000mV_fc1800_fd1800_Nov031257_data_40.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_8.root')
+#fc1.offline_check('/data/TMS_data/raw/Nov16_TMS/C7Ch071115_alpha_P10_0PSI_Pulse100Hz500mV_fc1800_fd1800_Nov161026_data_84.root')
+# fc1.offline_check('/data/TMS_data/raw/Nov20_TMS/C7_alpha_P10_30PSIdown_Pulse100Hz100mV_fc1200_fd1300_Nov201434_data_8.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_245.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_867.root')
-fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_4365.root')
+# fc1.offline_check('/data/TMS_data/raw/Nov11_TMS/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_4365.root')
 #fc1.offline_check('/data/TMS_data/raw3/Nov11_TMS_archive3/Nov11_TMS_1400_1449/C7Ch071115_gamma_P10_28PSI_Pulse100Hz50mV_fc1800_fd1800_Nov121550_data_1431.root')
 #fc1.offline_check('/data/TMS_data/raw/skimmed/Nov11_TMS_S0/skimmed_C7Ch071115_gamma_P10_28PSI_Pulse100Hz100mV_fc1800_fd1800_Nov111534_data_245.root')
 #fc1.offline_check('/data/TMS_data/raw/Nov16_TMS/C7Ch071115_alpha_15LongDecay_P10_0PSI_Pulse100Hz500mV_fc1800_fd1800_Nov161609_data_259.root')
-#fc1.online_check()
+fc1.online_check()
 
