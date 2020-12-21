@@ -751,7 +751,12 @@ def main():
 #    os1.run_project(N=5, dirx='Sep30a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc2000_P10OFF_Sep301806_pulse80mV1Hz_scale3p5mV_')
 #    os1.run_project(N=5, dirx='Sep30a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_P10OFF_Sep301806_pulse80mV1Hz_scale3p5mV_')
 #    os1.run_project(N=5, dirx='Oct05a_tek', tag='filtered_alphaOn_IsegFd1500_P10OFF_Oct051532_pulse80mV1Hz_scale3p5mV_')
-    os1.run_project(N=5, dirx='Oct05a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_P10OFF_Oct051542_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=5, dirx='Oct05a_tek', tag='filtered_alphaOn_DongwenFd1500_IsegFc1500_P10OFF_Oct051542_pulse80mV1Hz_scale3p5mV_')
+#    os1.run_project(N=5, dirx='Dec09_tek', tag='filtered_alphaOn_DongwenFd500_IsegFc500_P10ramp_Dec092227_pulse80mV1Hz_scale3p5mV_')
+#     os1.run_project(N=5, dirx='Dec10_tek', tag='filtered_alphaOn_DongwenFd600_IsegFc600_P10minimum_Dec102141_pulse80mV1Hz_scale3p5mV_')
+#     os1.run_project(N=5, dirx='Dec14_tek', tag='filtered_alphaOn_DongwenFd500_IsegFc500_P10minimum_3MOhm_Dec142253_pulse50mV1Hz_scale2p5mV_')
+#     os1.run_project(N=5, dirx='Dec14_tek', tag='filtered_alphaOn_DongwenFd500_IsegFc500_P10minimum_4MOhm_Dec142257_pulse50mV1Hz_scale2p5mV_')
+    os1.run_project(N=5, dirx='Dec16_tek', tag='filtered_alphaOn_DongwenFd500_IsegFc500_P10minimum1MOhm_Dec161646_pulse50mV1Hz_scale2p5mV_')
 
 def test():
     os1 = Oscilloscope(name='Tektronix MSO 4034B', addr='192.168.2.17:4000')

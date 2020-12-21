@@ -130,7 +130,9 @@ def process_event(argX, runPattern='.*_data_(\d+).root'):
 
     sp1 = SignalProcessor()
     #apply_config(sp1, 'Lithium/d')
-    apply_config(sp1, 'Lithium/C7_Nov20')
+    #apply_config(sp1, 'Lithium/C7_Nov20')
+    #apply_config(sp1, 'Lithium/C8_Dec14')
+    apply_config(sp1, 'Lithium/C8_Dec18a')
 
     fin1 = TFile(inRoot,'read')
     tree1 = fin1.Get('tree1')
@@ -1150,7 +1152,9 @@ if __name__ == '__main__':
 #    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_1[0-4].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_[3-9].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #    process_all_matchX(process_event, dataDir+'Nov09_TMS/C7Ch0_*_3[0-4].root', '/data/TMS_data/Processed/Nov09_TMS/trig0thre0d002_C7_shortA_', True, 3)
-    process_all_matchX(process_event, dataDir+'Nov20_TMS/C7Ch0*.root', '/data/TMS_data/Processed/Nov20_TMS/trig0thre0d002_C7_shortA_', True, 5)
+#    process_all_matchX(process_event, dataDir+'Nov20_TMS/C7Ch0*.root', '/data/TMS_data/Processed/Nov20_TMS/trig0thre0d002_C7_shortA_', True, 5)
+   # process_all_matchX(process_event, dataDir+'Dec14_TMS/C8_alpha_P10Min*.root', '/data/TMS_data/Processed/Dec14_TMS/trig0thre0d002_C8_Dec14_', True, 5)
+    process_all_matchX(process_event, dataDir+'Dec18_TMS/C8_alpha_P10Min*.root', '/data/TMS_data/Processed/Dec18_TMS/trig0thre0d002_C8_Dec18_', True, 5)
 #     process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')

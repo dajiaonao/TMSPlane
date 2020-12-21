@@ -73,7 +73,7 @@ class CommonData(object):
         self.atCalled = 0
         #self.atBounds = [(1.3, 1.4), (1.5, 1.6), (1.45, 1.6), (1.1, 1.35), (1.1, 1.6), (2.4, 2.5)]
 #         self.atBounds = [(0.8, 1.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (2.2, 2.8)]
-        self.atBounds = [(0.4, 2.0), (0.4, 2.1), (0.4, 2.1), (0.4, 2.1), (0.8, 2.0), (1.5, 2.8)]
+        self.atBounds = [(0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (0.8, 2.0), (1.1, 1.8), (2.0, 2.8)]
 #         self.atBounds = [(0.5, 1.5), (0.5, 1.8), (0.5, 1.8), (0.5, 2.0), (0.8, 2.4), (1.8, 2.8)]
         #self.atBounds = [(1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8), (1.0, 1.8)]
 #         self.atTbounds = (3000, 3500) # time of pulse bounds
@@ -558,6 +558,7 @@ class SensorConfig(threading.Thread):
         self.s.sendall(self.dac8568.set_voltage(2, 1.65))
         time.sleep(0.001)
         for c,l in self.tms1mmX19chainSensors.items():
+#             if c<4: continue
             self.update_sensor(l[0])
         time.sleep(0.001)
 

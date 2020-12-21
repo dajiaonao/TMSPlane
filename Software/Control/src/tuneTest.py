@@ -15,7 +15,7 @@ import json
 from ROOT import gROOT, TTree, TFile
 gROOT.LoadMacro("sp.C+")
 from ROOT import SignalProcessor
-from reco_config import apply_config
+# from reco_config import apply_config
 from Rigol import tuneTestRigo
 import logging
 logging.basicConfig(filename='tune_test_C7_v0.log', level=logging.INFO)
@@ -82,7 +82,8 @@ class Train(threading.Thread):
 
         self.sp = SignalProcessor()
         self.sp.fltParam.clear()
-        for p in [100,100,200,500]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+#         for p in [100,100,200,500]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+        for p in [100,100,150,1000]: self.sp.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
 #         apply_config(self.sp, 'Helium')
 
         self.NVAL = 4
@@ -748,6 +749,40 @@ def test7():
 #     elist[15] = 2
 #     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
 
+def test8():
+    '''used to tune C8'''
+    tuneTestRigo()
+
+    tc1 = TestClass(config_file='config/C8.json')
+    tc1.muteList = []
+    tuneTag = 'C8_tt1'
+
+    ### stepID: 0->tune; 1->recheck
+    stepID = 0
+
+    if stepID == 0:
+        tc1.prepare_train()
+        tc1.train.pltN = 1
+        tc1.train.bestConfigFile = 'C8_best1.json'
+        tc1.test_tune(tuneTag+'.root')
+    elif stepID == 1:
+        tryID = '2'
+        tc1.recheck(tuneTag+'.root', tuneTag+'_valid'+tryID+'.root')
+    elif stepID == 2:
+        elist = getListFromFile('C8_tt1/tune_test_C8_v0.log')
+        tc1.save_config_by_rank(elist,'new_C8a_config1.json',fcName='C8_tt1.root')
+    
+#     if True:
+#     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
+#     elist = getListFromFile('tune_test_C07a.log')
+#     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
+#     elist = [0]*tc1.nCh
+#     elist = [0]*tc1.nCh
+#     elist[6] = 6
+#     elist[11] = 2
+#     elist[15] = 2
+#     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
+
 
 
 def FOM_check():
@@ -793,6 +828,7 @@ def FOM_check():
 if __name__ == '__main__':
 #     test1()
 #     test0()
-    test7()
+#     test7()
+    test8()
 #     getListFromFile('tune_test.log')
 #     FOM_check()

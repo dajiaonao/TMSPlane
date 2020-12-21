@@ -565,6 +565,128 @@ def apply_config(sp1, config_code='default'):
         ### we are done
         return "Li7/C7_Nov20" ### anything after slash is a development tag, frozen configurations does not have a slash
 
+
+    elif config_code == 'Lithium/C8_Dec14':
+        ## chip 7, for Nov11 data analysis
+        ### search window
+        sp1.CF_uSize = -100
+        sp1.CF_dSize = 100
+
+        #sp1.CF_trig_ch = 0 #5 # 7 18 0
+        sp1.CF_trig_ch = 0 # Nov11 0,7,11,15
+        ## threshold
+#         thre = [0.0015]*sp1.nAdcCh
+        thre = [0.002]*sp1.nAdcCh
+
+        sp1.ch_thre.clear()
+        for x in thre: sp1.ch_thre.push_back(x)
+
+        ### filter configuration
+        fltParam = [100,100,120,80]
+        sp1.fltParam.clear()
+        for p in fltParam: sp1.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+
+        ## channelwise configuration
+        sp1.CF_chan_en.clear()
+        sp1.IO_mAvg.clear()
+        for i in range(sp1.nAdcCh):
+            sp1.CF_chan_en.push_back(1)
+            sp1.IO_mAvg.push_back(0.)
+        sp1.CF_chan_en[2] = 0
+        sp1.CF_chan_en[8] = 0
+        sp1.CF_chan_en[19] = 0
+
+        ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
+        sp1.CF_decayC[0] = 600
+        sp1.CF_decayC[1] = 8000
+        sp1.CF_decayC[2] = 1001
+        sp1.CF_decayC[3] = 2000
+        sp1.CF_decayC[4] = 2000
+        sp1.CF_decayC[5] = 1000 
+        sp1.CF_decayC[6] = 300
+        sp1.CF_decayC[7] = 500
+        sp1.CF_decayC[8] = 1001
+        sp1.CF_decayC[9] = 900
+        sp1.CF_decayC[10] = 1000
+        sp1.CF_decayC[11] = 400
+        sp1.CF_decayC[12] = 1800
+        sp1.CF_decayC[13] = 400
+        sp1.CF_decayC[14] = 250
+        sp1.CF_decayC[15] = 2000
+        sp1.CF_decayC[16] = 800
+        sp1.CF_decayC[17] = 6000
+        sp1.CF_decayC[18] = 1500
+        sp1.CF_decayC[19] = 1001
+
+        for i in range(sp1.nAdcCh):
+            sp1.CF_fltParams[i].setV(50, 100,120,sp1.CF_decayC[i]) # Oct22 processing
+
+        ### we are done
+        return "Li/C8_Dec14" ### anything after slash is a development tag, frozen configurations does not have a slash
+
+    elif config_code == 'Lithium/C8_Dec18a':
+        ## chip 7, for Nov11 data analysis
+        ### search window
+        sp1.CF_uSize = -100
+        sp1.CF_dSize = 100
+
+        #sp1.CF_trig_ch = 0 #5 # 7 18 0
+        sp1.CF_trig_ch = 0 # Nov11 0,7,11,15
+        ## threshold
+#         thre = [0.0015]*sp1.nAdcCh
+        thre = [0.002]*sp1.nAdcCh
+
+        sp1.ch_thre.clear()
+        for x in thre: sp1.ch_thre.push_back(x)
+
+        ### filter configuration
+        fltParam = [100,100,120,80]
+        sp1.fltParam.clear()
+        for p in fltParam: sp1.fltParam.push_back(p) ## decay constant 500, means decay as e^{-i/500}
+
+        ## channelwise configuration
+        sp1.CF_chan_en.clear()
+        sp1.IO_mAvg.clear()
+        for i in range(sp1.nAdcCh):
+            sp1.CF_chan_en.push_back(1)
+            sp1.IO_mAvg.push_back(0.)
+        sp1.CF_chan_en[2] = 0
+        sp1.CF_chan_en[8] = 0
+        sp1.CF_chan_en[19] = 0
+
+        ## from /media/dzhang/dzhang/tms_data/Nov13b/Nov13b_HV0p5b_data_0.root.1.1
+        sp1.CF_decayC[0] = 600
+        sp1.CF_decayC[1] = 400
+        sp1.CF_decayC[2] = 1400
+        sp1.CF_decayC[3] = 5000
+        sp1.CF_decayC[4] = 2000
+        sp1.CF_decayC[5] = 1000
+        sp1.CF_decayC[6] = 1111
+        sp1.CF_decayC[7] = 1111
+        sp1.CF_decayC[8] = 1111
+        sp1.CF_decayC[9] = 1300
+        sp1.CF_decayC[10] = 1111
+        sp1.CF_decayC[11] = 1111
+        sp1.CF_decayC[12] = 1800
+        sp1.CF_decayC[13] = 900
+        sp1.CF_decayC[14] = 700
+        sp1.CF_decayC[15] = 2500
+        sp1.CF_decayC[16] = 2500
+        sp1.CF_decayC[17] = 6500
+        sp1.CF_decayC[18] = 150
+        sp1.CF_decayC[19] = 1111
+
+        for i in range(sp1.nAdcCh):
+            sp1.CF_fltParams[i].setV(50, 100,150,sp1.CF_decayC[i]) # Oct22 processing
+
+
+
+        ### we are done
+        return "Li/C8_Dec18a" ### anything after slash is a development tag, frozen configurations does not have a slash
+
+
+
+
     elif config_code == 'default':
         apply_config('Lithium/c')
 

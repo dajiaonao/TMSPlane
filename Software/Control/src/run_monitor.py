@@ -162,7 +162,7 @@ class DataUpdater(threading.Thread):
         try:
             self.irun = int(self.currentFile.rstrip('.1').rstrip('.root').split('_')[-1])
 #             self.irun = int(self.currentFile.rstrip('.root').split('_')[-1])
-        except TypeError:
+        except (TypeError, ValueError):
             self.irun = -1
         self.tree.SetBranchAddress('adc',self.cd.adcData)
         self.tree.SetBranchAddress('T',self.dataT)
@@ -182,12 +182,13 @@ class DataUpdater(threading.Thread):
                 if n==0:
                     print("0 Entry, waiting....")
                     continue
-                self.tree.GetEntry(n-1)
-                print('Event', n-1)
 
+                print('Event', n-1)
                 if n != n_old:
+                    self.tree.GetEntry(n-1)
                     self.dataPanel.dataInfoText = ', '.join(['Run '+str(self.irun), 'Event '+str(n-1), str(datetime.fromtimestamp(self.dataT[0]))])
                     self.dataPanel.plot_data()
+                    n_old = n
              
                 ### to get notified from the data pannel
                 self.cd.cv.acquire()

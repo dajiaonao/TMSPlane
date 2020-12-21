@@ -460,7 +460,8 @@ def run():
 #     check_shapes(dir2='Aug27b_tek')
 #     check_shapes(dir2='Sep20a_tek')
 #     check_shapes(dir2='Sep30a_tek')
-     check_shapes(dir2='Oct05a_tek')
+#      check_shapes(dir2='Oct05a_tek')
+     check_shapes(dir2='Dec09_tek')
 #      check_shapes(dir2='Sep03a_tek')
 
 if __name__ == '__main__':
