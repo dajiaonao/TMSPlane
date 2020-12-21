@@ -448,7 +448,8 @@ class TestClass:
 
         ### bad chans
         ievt_b = 0
-        badChs = [1]
+#         badChs = [1]
+        badChs = []
 
         ### loop over the parameters
         tr1 = self.prepare_train()
@@ -758,7 +759,7 @@ def test8():
     tuneTag = 'C8_tt1'
 
     ### stepID: 0->tune; 1->recheck
-    stepID = 0
+    stepID = 12
 
     if stepID == 0:
         tc1.prepare_train()
@@ -769,19 +770,20 @@ def test8():
         tryID = '2'
         tc1.recheck(tuneTag+'.root', tuneTag+'_valid'+tryID+'.root')
     elif stepID == 2:
-        elist = getListFromFile('C8_tt1/tune_test_C8_v0.log')
+#         elist = getListFromFile('C8_tt1/tune_test_C8_v0.log')
+        elist = getListFromFile('tune_test_C7_v0.log')
         tc1.save_config_by_rank(elist,'new_C8a_config1.json',fcName='C8_tt1.root')
     
 #     if True:
 #     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
 #     elist = getListFromFile('tune_test_C07a.log')
 #     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
-#     elist = [0]*tc1.nCh
-#     elist = [0]*tc1.nCh
-#     elist[6] = 6
-#     elist[11] = 2
-#     elist[15] = 2
-#     tc1.save_config_by_rank(elist,'new_C0_config6.json',fcName='C0_tt0.root')
+    elist = [0]*tc1.nCh
+    elist = [0]*tc1.nCh
+    elist[3] = 10
+    elist[11] = 2
+    elist[15] = 2
+    tc1.save_config_by_rank(elist,'temp1.json',fcName='C8_tt1.root')
 
 
 
