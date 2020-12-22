@@ -729,7 +729,7 @@ def test7():
 
     if stepID == 0:
         tc1.prepare_train()
-        tc1.train.pltN = 1
+        tc1.train.pltN = 5000
         tc1.train.bestConfigFile = 'C7_tt2.json'
         tc1.test_tune(tuneTag+'.root')
     elif stepID == 1:
@@ -756,15 +756,15 @@ def test8():
 
     tc1 = TestClass(config_file='config/C8.json')
     tc1.muteList = []
-    tuneTag = 'C8_tt1'
+    tuneTag = 'C8_tt2'
 
     ### stepID: 0->tune; 1->recheck
-    stepID = 12
+    stepID = 0
 
     if stepID == 0:
         tc1.prepare_train()
-        tc1.train.pltN = 1
-        tc1.train.bestConfigFile = 'C8_best1.json'
+        tc1.train.pltN = 5000
+        tc1.train.bestConfigFile = f'{tuneTag}_best.json'
         tc1.test_tune(tuneTag+'.root')
     elif stepID == 1:
         tryID = '2'
@@ -778,12 +778,12 @@ def test8():
 #     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
 #     elist = getListFromFile('tune_test_C07a.log')
 #     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
-    elist = [0]*tc1.nCh
-    elist = [0]*tc1.nCh
-    elist[3] = 10
-    elist[11] = 2
-    elist[15] = 2
-    tc1.save_config_by_rank(elist,'temp1.json',fcName='C8_tt1.root')
+#     elist = [0]*tc1.nCh
+#     elist = [0]*tc1.nCh
+#     elist[3] = 10
+#     elist[11] = 2
+#     elist[15] = 2
+#     tc1.save_config_by_rank(elist,'temp1.json',fcName='C8_tt1.root')
 
 
 
