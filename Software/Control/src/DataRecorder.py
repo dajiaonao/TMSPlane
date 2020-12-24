@@ -277,7 +277,7 @@ if __name__ == '__main__':
 #         take_data(sTag='C8_alpha_P10Min_Pulse100Hz200mV_fc1000_fd600_Dec141649',n=1000, N=5, dirx='Dec14_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #        take_data(sTag='C8_alpha_P10Min_Pulse100Hz200mV_fc1000_fd1400_Dec141716',n=1000, N=5, dirx='Dec14_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #         take_data(sTag='C8_alpha_P10Min_Pulse100Hz200mV_fc500_fd500_1Mohm_Dec181840',n=1000, N=5, dirx='Dec18_TMS',nm=100, dir1='/data/TMS_data/raw/')
-        take_data(sTag='C8_alpha_pulse_test_Dec211913',n=1000, N=5, dirx='Dec21_TMS',nm=100, dir1='/data/TMS_data/raw/')
+        take_data(sTag='C8_alpha_pulse_200mV_Dec242033',n=1000, N=5, dirx='Dec24_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #       take_data(sTag='C7Ch5_alpha_Ar_12PSI_Pulse100Hz100mVpp_fc1500_fd1500_Oct271257',n=1000, N=-1, dirx='Oct27_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #       take_data(sTag='C7Ch5_gamma_Ar_12PSI_Pulse100Hz300mVpp_fc1500_fd1500_Oct271304',n=1000, N=-1, dirx='Oct27_TMS',nm=100, dir1='/data/TMS_data/raw/')
 #     take_data(sTag='vessel_open',n=10, N=1, dirx='Oct27_TMS',nm=100, dir1='/data/TMS_data/raw/')

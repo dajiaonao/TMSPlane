@@ -18,7 +18,7 @@ from ROOT import SignalProcessor
 # from reco_config import apply_config
 from Rigol import tuneTestRigo
 import logging
-logging.basicConfig(filename='tune_test_C7_v0.log', level=logging.INFO)
+logging.basicConfig(filename='C8_tt2_recheck1.log', level=logging.INFO)
 
 
 class tuner(threading.Thread):
@@ -759,7 +759,7 @@ def test8():
     tuneTag = 'C8_tt2'
 
     ### stepID: 0->tune; 1->recheck
-    stepID = 0
+    stepID = 2
 
     if stepID == 0:
         tc1.prepare_train()
@@ -767,12 +767,12 @@ def test8():
         tc1.train.bestConfigFile = f'{tuneTag}_best.json'
         tc1.test_tune(tuneTag+'.root')
     elif stepID == 1:
-        tryID = '2'
+        tryID = '1'
         tc1.recheck(tuneTag+'.root', tuneTag+'_valid'+tryID+'.root')
     elif stepID == 2:
 #         elist = getListFromFile('C8_tt1/tune_test_C8_v0.log')
-        elist = getListFromFile('tune_test_C7_v0.log')
-        tc1.save_config_by_rank(elist,'new_C8a_config1.json',fcName='C8_tt1.root')
+        elist = getListFromFile('C8_tt2_recheck1.log')
+        tc1.save_config_by_rank(elist,'new_C8b_config1.json',fcName='C8_tt2.root')
     
 #     if True:
 #     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
