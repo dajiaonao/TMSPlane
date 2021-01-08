@@ -660,8 +660,8 @@ if __name__ == '__main__':
 #     checkConfig4DriftOnlyAug12() #drift only default
 #     checkConfig4DriftOnlyAug13()
 #      checkConfig4Aug12() # HV default
-#       checkConfig4Nov19() # HV default
-      checkConfig4Dec14() # HV default
+      checkConfig4Nov19() # HV default
+#       checkConfig4Dec14() # HV default
 #     checkConfig4Battery() # HV default
 #     checkConfig4Aug12b() # HV glass default
 #     checkConfig3b()

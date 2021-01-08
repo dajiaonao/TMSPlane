@@ -56,6 +56,8 @@ class PulseChecker:
 def test():
 #     pc1 = PulseChecker('/data/TMS_data/Processed/Dec21_TMS/pulse_C8_Dec21_C8_alpha_pulse_test_Dec211913_data_*.root')
     pc1 = PulseChecker('/data/TMS_data/Processed/Dec24_TMS/pulse_C8_*_data_*.root')
+    pc1.sDir = '~/figures/'
+    pc1.sTag = 'Dec24_C8_noAntenna_'
 
     print(pc1.ch1.GetEntries())
 #     pc1.check_channel(0)
