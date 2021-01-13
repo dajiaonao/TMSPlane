@@ -274,11 +274,11 @@ def optimization(fq=1250):
     r1.setPhaseDev(300)
 #     r1.setPulseV(0.2)
 
-def tuneTestRigo(fq=1250,dV=0.2):
+def tuneTestRigo(fq=1250,dV=0.2, phase=300):
     r1 = Rigol()
     r1.connect()
     r1.calibration(fq)
-    r1.setPhaseDev(300)
+    r1.setPhaseDev(phase)
     r1.setPulseV(dV)
 
 def test1():

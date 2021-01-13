@@ -73,6 +73,9 @@ class Train(threading.Thread):
 
         ### for data taking
         self.sc = None
+        self.peakIdx = [335*5,2335*5] # used in take_data_v5, gives the location of the test pulse signal, size = self.NVAL
+        self.peakWidth = 25 # used in take_data_v5, gives the location of the test pulse signal, size = self.NVAL
+        self.idxShift = 10 # used in take_data_v5, peakIdx-idxShift gives the location for the baseline determination
 
         ### plotting
         self.axs = None
@@ -192,10 +195,43 @@ class Train(threading.Thread):
             print((i, self.ret1[i], np.mean(Values[i]), np.std(Values[i])))
 
 
+    def take_data_v5(self, NEVT=20):
+        '''In this version, we use raw data to determine the amplitude'''
+        print("-"*10,"take_data_v5","_"*10)
+        s1 = self.cd.sigproc
 
+        NV = self.NVAL
+        Values = [[0.]*(NV*NEVT) for i in range(self.cd.nAdcCh)]
 
+        for ievt in range(NEVT):
+            self.cd.dataSocket.sendall(self.cd.cmd.send_pulse(1<<2));
+            buf = self.cd.cmd.acquire_from_datafifo(self.cd.dataSocket, self.cd.nWords, self.cd.sampleBuf)
+            s1.demux_fifodata(buf, self.data1, self.cd.sdmData)
 
-    def take_data(self, NEVT=100):
+            ### let's hard-code something here for now
+            for ich in range(self.cd.nAdcCh):
+                for ipeak in range(NV):
+                    idx = self.peakIdx[ipeak]
+                    self.t_values[ich*NV+ipeak] = max(self.data1[idx:idx+self.peakWidth]) - np.mean(self.data1[idx-self.idxShift-5:idx-self.idxShift+5])
+                    Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
+#                 print(ievt, ich, self.t_values)
+                self.ret1[ich] = 999 if ievt<NEVT-1 else -np.mean(Values[ich])
+
+            ### save the events
+            self.T[0] = int(time.time())
+            self.fout1.cd()
+            self.tree1.Fill()
+            self.fout1 = self.tree1.GetCurrentFile()
+
+#         for i in range(s1.nAdcCh):
+# #             self.ret1[i] = -np.mean(Values[i])/np.std(Values[i])
+#             self.ret1[i] = -np.mean(Values[i])
+
+        if self.T[0]-self.saveT0>200:
+            self.tree1.AutoSave('SaveSelf')
+            self.saveT0 = self.T[0]
+
+    def take_data_v4(self, NEVT=100):
         '''return an array of FOM'''
         s1 = self.cd.sigproc
 
@@ -234,7 +270,8 @@ class Train(threading.Thread):
             self.tree1.AutoSave('SaveSelf')
             self.saveT0 = self.T[0]
 
-    def run(self):
+    def run_v1(self):
+        '''The optimization used before Jan 12, 2021. It taks multiple samples and calculate the average.'''
         nPar = len(self.cd.inputVs)
 
         ### save the initial values
@@ -292,6 +329,65 @@ class Train(threading.Thread):
             time.sleep(30)
             if t is not None: t.join()
 
+            self.take_data()
+            ret = self.ret1
+
+            ### return
+            needUpdate = False
+            for i,t in enumerate(self.tx_qs):
+                if self.mask[i] == 1:
+                    t.put(ret[i])
+                    self.mask[i] = 0
+
+                    ### save the values if it's the best so far
+                    if ret[i]<self.retBest[i]:
+                        print(("find better parameters for channel", i))
+                        print(('old:',self.sensorVcodes[i], self.retBest[i]))
+                        self.retBest[i] = ret[i]
+                        self.sensorVcodes[i] = [a for a in self.cd.sensorVcodes[i]]
+                        print(('new:',self.sensorVcodes[i], self.retBest[i]))
+                        needUpdate = True
+#                     print("--- {0:d} {1:g}".format(i, self.meas[i]))
+            if needUpdate:
+                self.sc.write_config_fileX(self.bestConfigFile, self.sensorVcodes)
+        print('Stopping the train.....')
+        plt.close('all')
+        self.tree1.Write()
+        self.fout1.Close()
+
+
+
+    def run(self):
+        '''New version of the optimzation to find the maximal amplitude'''
+        nPar = len(self.cd.inputVs)
+
+        ### save the initial values
+        for i in range(self.cd.nCh):
+            for kk in range(nPar): 
+                self.par1[i*nPar+kk] = self.cd.tms1mmReg.dac_code2volt(self.sensorVcodes[i][kk])
+
+        while self.on:
+            cnt = 0
+            ss = set()
+            for i,q in enumerate(self.rx_qs):
+                if q is None: continue
+                cnt += 1
+
+                if not q.empty():
+                    x = q.get()
+                    self.mask[i] = 1
+                    self.cd.set_sensor(i,x)
+                    for kk in range(nPar): self.par1[i*nPar+kk] = x[kk] 
+                    ss.add(self.sc.tms1mmX19chainSensors[self.sc.tms1mmX19sensorInChain[i]][0])
+
+            if cnt == 0: self.on = False # stop the train if no channel asks for optimzation
+            if len(ss) == 0: continue # continue wait
+
+            ### apply the configurations
+            for isr in ss: self.sc.update_sensor(isr,quiet=1)
+
+            ### take data
+            time.sleep(30)
             self.take_data()
             ret = self.ret1
 
@@ -773,19 +869,21 @@ def test8():
 #         elist = getListFromFile('C8_tt1/tune_test_C8_v0.log')
         elist = getListFromFile('C8_tt2_recheck1.log')
         tc1.save_config_by_rank(elist,'new_C8b_config1.json',fcName='C8_tt2.root')
-    
-#     if True:
-#     tc1.recheck(tuneTag+'.root', 'C7_tt3_valid0.root')
-#     elist = getListFromFile('tune_test_C07a.log')
-#     tc1.save_config_by_rank(elist,'new_C07a_config1.json',fcName='C7_tt2a.root')
-#     elist = [0]*tc1.nCh
-#     elist = [0]*tc1.nCh
-#     elist[3] = 10
-#     elist[11] = 2
-#     elist[15] = 2
-#     tc1.save_config_by_rank(elist,'temp1.json',fcName='C8_tt1.root')
+ 
+def tuneA():
+    '''Added on Jan 12, used to tune the parameters to get the largest amplitude'''
+#     tuneTestRigo(500,0.1,300)
 
+    tc1 = TestClass(config_file='config/C8.json')
+    tc1.muteList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,18]
+    tuneTag = 'C8_tt4'
 
+    tc1.prepare_train()
+    tc1.train.pltN = 5000
+    tc1.train.take_data = tc1.train.take_data_v5
+    tc1.train.NVAL = 2
+    tc1.train.bestConfigFile = f'{tuneTag}_best.json'
+    tc1.test_tune(tuneTag+'.root')
 
 def FOM_check():
     '''Check the figure of merit used in the tune.'''
@@ -831,6 +929,7 @@ if __name__ == '__main__':
 #     test1()
 #     test0()
 #     test7()
-    test8()
+#     test8()
+    tuneA()
 #     getListFromFile('tune_test.log')
 #     FOM_check()
