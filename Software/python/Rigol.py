@@ -150,6 +150,11 @@ class Rigol:
         ## :OUTPut[<n>][:STATe]?
         self._instr.write(":OUTPut1 ON")
         self._instr.write(":OUTPut2 ON")
+    def syncPhase(self, ph=None):
+        self._instr.write(":COUPling:CHannel:BASE CH1")
+        self._instr.write(":COUPling:PHASe ON")
+        if ph is not None:
+            self._instr.write(f":COUPling:PHASe:DEViation {ph}")
 
     def setPhaseDev(self, ph=340):
         self._instr.write(":COUPling:PHASe:DEViation {0:d}".format(ph))

@@ -94,7 +94,6 @@ class Train(threading.Thread):
         self.data1 = (s1.ANALYSIS_WAVEFORM_BASE_TYPE * (s1.nSamples * s1.nAdcCh))()
         self.ret1 = array.array('f',[0]*s1.nAdcCh)
         self.par1 = array.array('f',[0]*(self.cd.nCh*len(self.cd.inputVs)))
-        self.t_values = array.array('f',[0]*(s1.nAdcCh*self.NVAL))
         self.keepAllData = False
         self.saveT0 = -1
         self.T = array.array('i',[0])
@@ -102,6 +101,10 @@ class Train(threading.Thread):
 
     def setupOutput(self, outRootName='tt_test.root'):
         s1 = self.cd.sigproc
+        ## create the t_values here, so it will use the correct NVAL
+        self.t_values = array.array('f',[0]*(s1.nAdcCh*self.NVAL))
+
+        ## create the output objects here
         self.fout1 = TFile(outRootName,'recreate')
         self.tree1 = TTree('tree1',"tune data for {0:d} channels, {1:d} samples".format(s1.nAdcCh, s1.nSamples))
         self.tree1.Branch('tag',self.Tag,'tag/I')
@@ -211,11 +214,19 @@ class Train(threading.Thread):
             ### let's hard-code something here for now
             for ich in range(self.cd.nAdcCh):
                 for ipeak in range(NV):
-                    idx = self.peakIdx[ipeak]
+                    idx = ich*self.cd.nSamples + self.peakIdx[ipeak]
                     self.t_values[ich*NV+ipeak] = max(self.data1[idx:idx+self.peakWidth]) - np.mean(self.data1[idx-self.idxShift-5:idx-self.idxShift+5])
+#                     if ich==13:
+#                         print('---', ich, ipeak, NV, idx, idx+self.peakWidth, idx-self.idxShift-5, idx-self.idxShift+5)
+#                         print(self.data1[idx:idx+self.peakWidth], max(self.data1[idx:idx+self.peakWidth]) )
+#                         print(self.data1[idx-self.idxShift-5:idx-self.idxShift+5], np.mean(self.data1[idx-self.idxShift-5:idx-self.idxShift+5]))
                     Values[ich][ievt*NV+ipeak] = self.t_values[ich*NV+ipeak]
-#                 print(ievt, ich, self.t_values)
                 self.ret1[ich] = 999 if ievt<NEVT-1 else -np.mean(Values[ich])
+#                 if ich==13: 
+#                     print(ievt, ich, self.t_values, self.t_values[ich], Values[ich][ievt*NV], self.ret1[ich])
+# #                     plt.plot(self.data1[13])
+#                     plt.plot(self.data1[ich*self.cd.nSamples : (ich+1)*self.cd.nSamples])
+#                     plt.show()
 
             ### save the events
             self.T[0] = int(time.time())
@@ -721,6 +732,16 @@ class TestClass:
 #         better_bounds[17] = [(1.3, 1.6), (0.6, 1.6), (0.5, 2.0), (0.6, 1.7), (1.2, 1.6), (2.1, 2.5)]  #17 
 #         better_bounds[18] = [(1.2, 1.6), (0.6, 1.6), (1.5, 2.0), (0.6, 1.7), (1.0, 1.6), (2.1, 2.5)]  #18 
 
+        ### for the chip #3? the default one in LBL
+        better_bounds = [None]*self.nCh
+#         better_bounds[13] = [(0.9, 1.3), (0.5, 0.9), (1.25, 1.65), (1.2, 1.6), (0.8, 2.2), (2.3, 2.7)]
+        better_bounds[0] = [(1.06, 1.56), (1.37, 1.77), (1.24, 1.64), (1.43, 1.83), (0.8, 2.2), (2.1, 2.5)]
+        better_bounds[1] = [(1.75, 2.15), (0.89, 1.29), (1.25, 1.65), (1.16, 1.56), (0.8, 2.2), (2.3, 2.7)]
+        better_bounds[4] = [(1.08, 1.48), (1.05, 1.45), (1.40, 1.80), (1.35, 1.65), (0.8, 2.2), (2.19, 2.59)]
+        better_bounds[5] = [(1.46, 1.86), (1.16, 1.56), (1.24, 1.64), (0.97, 1.37), (0.8, 2.2), (2.26, 2.66)]
+        better_bounds[6] = [(1.00, 1.40), (1.55, 1.95), (1.46, 1.86), (1.48, 1.88), (0.8, 2.2), (2.04, 2.44)]
+        better_bounds[14] = [(1.08, 1.48), (1.34, 1.74), (1.15, 1.55), (0.78, 1.18), (0.8, 2.2), (1.88, 2.28)]
+
         for i in range(self.nCh):
             if i in self.muteList: continue
             self.tx_qs[i] = Queue()
@@ -730,7 +751,7 @@ class TestClass:
             th1.rx_qs = self.rx_qs            
             th1.atBounds = tr1.cd.atBounds
 #             th1.atBounds = better_bounds[i]
-#             th1.atBounds = better_bounds[i] if better_bounds[i] is not None else cd.atBounds
+            th1.atBounds = better_bounds[i] if better_bounds[i] is not None else tr1.cd.atBounds
             th1.atMaxIters = tr1.cd.atMaxIters
             th1.start()
         tr1.start()
@@ -875,13 +896,14 @@ def tuneA():
 #     tuneTestRigo(500,0.1,300)
 
     tc1 = TestClass(config_file='config/C8.json')
-    tc1.muteList = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,17,18]
-    tuneTag = 'C8_tt4'
+    tc1.muteList = [2,3,7,8,9,10,11,12,13,15,16,17,18]
+    tuneTag = '/data/TMS_data/raw/C8_tune7/C8_tt7'
 
     tc1.prepare_train()
     tc1.train.pltN = 5000
     tc1.train.take_data = tc1.train.take_data_v5
-    tc1.train.NVAL = 2
+    tc1.train.NVAL = 1
+    tc1.train.peakIdx = [2782]
     tc1.train.bestConfigFile = f'{tuneTag}_best.json'
     tc1.test_tune(tuneTag+'.root')
 
@@ -925,11 +947,28 @@ def FOM_check():
     for i in range(s1.nAdcCh):
         print((i, [t_values[i*NVAL+j] for j in range(NVAL)]))
 
+def dumpPar():
+#     ent = 11440
+#     ent = 6840
+#     ent = 28860
+#     ent = 4380
+#     ent = 5060
+#     ent = 25960
+#     ent = 25220
+#     ent = 14180
+    ent =15880 
+#     cList = [14840]*20
+    cList = [ent]*20
+
+    tc1 = TestClass()
+    tc1.save_config(cList, f"C8ch4_entry{ent}.json", fcName = '/data/TMS_data/raw/C8_tune7/C8_tt7.root')
+
 if __name__ == '__main__':
 #     test1()
 #     test0()
 #     test7()
 #     test8()
-    tuneA()
+#     tuneA()
+    dumpPar()
 #     getListFromFile('tune_test.log')
 #     FOM_check()

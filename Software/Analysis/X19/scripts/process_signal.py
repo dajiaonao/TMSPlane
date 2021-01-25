@@ -47,14 +47,21 @@ def process_pulse(argX, runPattern='.*_data_(\d+).root'):
 
     sp1 = SignalProcessor(16384,20)
 #     apply_config(sp1, 'Lithium/c')
-    apply_config(sp1, 'Lithium/C8_Dec25')
+    apply_config(sp1, 'Lithium/C8_Jan14')
    
     ### special configuration not given in the reco_config
     sp1.sRanges.clear()
 #     sp1.sRanges.push_back((3500, 3501))
 #     sp1.sRanges.push_back((2950, 2951))
 #    sp1.sRanges.push_back((1590, 1591))
-    sp1.sRanges.push_back((750, 751)) #Dec 24
+#     sp1.sRanges.push_back((750, 751)) #Dec 24
+#     sp1.sRanges.push_back((3250, 3251)) #Dec 24
+#     sp1.sRanges.push_back((2900, 2901)) #Dec 24
+#     sp1.sRanges.push_back((2840, 2920)) #Dec 24
+#     sp1.sRanges.push_back((2800, 3100)) #Dec 24
+#    sp1.sRanges.push_back((6600, 6601)) #Jan20
+#    sp1.sRanges.push_back((12870, 12871)) #Jan20
+    sp1.sRanges.push_back((4525, 4526)) #Jan22
 
     data1 = array('f',[0]*(sp1.nSamples*sp1.nAdcCh))
     dataT = array('i',[0])
@@ -1056,8 +1063,8 @@ def process_all_matchX(funX, pattern, oTag, skipExist=True, nThread=6):
     if len(files)==0:
         print("No files matchs.... Aborting...")
         return
-#     if time.time() - os.path.getmtime(files[-1]) < 10:
-    if time.time() - os.path.getmtime(files[-1]) < 100:
+    if time.time() - os.path.getmtime(files[-1]) < 10:
+#     if time.time() - os.path.getmtime(files[-1]) < 100:
         print(("dropping the latest file, which probably is still being written:", files[-1]))
         files.pop()
 
@@ -1173,7 +1180,13 @@ if __name__ == '__main__':
 #     process_all_matchX(process_event, dataDir+'Jan02_TMS/C8_alpha*.root', '/data/TMS_data/Processed/Jan02_TMS/trig0thre0d002_C8_Jan02_', True, 5)
 #     process_all_matchX(process_event, dataDir+'Jan06_TMS/C8_alpha*.root', '/data/TMS_data/Processed/Jan06_TMS/trig0thre0d002_C8_Jan06_', True, 5)
 #     process_all_matchX(process_event, dataDir+'Jan08_TMS/C8_alpha*.root', '/data/TMS_data/Processed/Jan08_TMS/trig0thre0d002_C8_Jan08_', True, 5)
-    process_all_matchX(process_event, dataDir+'Jan08_TMS/C8_alpha*.root', '/data/TMS_data/Processed/Jan08_TMS/trig14thre0d002_C8_Jan08_', True, 5)
+#     process_all_matchX(process_event, dataDir+'Jan08_TMS/C8_alpha*.root', '/data/TMS_data/Processed/Jan08_TMS/trig14thre0d002_C8_Jan08_', True, 5)
+#     process_all_matchX(process_pulse, dataDir+'Jan19_TMS/C8ch14*.root', '/data/TMS_data/Processed/Jan19_TMS/pulse_C8ch14_R50W250Max_', False, 5)
+#     process_all_matchX(process_pulse, dataDir+'Jan19_TMS/C8ch14*.root', '/data/TMS_data/Processed/Jan19_TMS/pulse_C8ch14_R400W500P3250_', True, 5)
+#    process_all_matchX(process_pulse, dataDir+'Jan20_TMS/C8ch4*.root', '/data/TMS_data/Processed/Jan20_TMS/pulse_C8ch4_', True, 5)
+#    process_all_matchX(process_pulse, dataDir+'Jan20_TMS/C8ch4_Ext30mV_20*.root', '/data/TMS_data/Processed/Jan20_TMS/pulse_C8ch4_', True, 5)
+#    process_all_matchX(process_pulse, dataDir+'Jan20_TMS/C8ch4_Gring*.root', '/data/TMS_data/Processed/Jan20_TMS/pulse_C8ch4_', True, 5)
+    process_all_matchX(process_pulse, dataDir+'Jan22_TMS/*.root', '/data/TMS_data/Processed/Jan22_TMS_pfilterdecay800/pulse_C8ch4_', True, 5)
 #     process_all_matchX(process_event, dataDir+'Nov03_TMS/C7Ch0_gamma_P10*.root', '/data/TMS_data/Processed/Nov03_TMS/trig0thre0d002_C7_shortA_', True, 3)
 #     process_all_matchY(readSignal4d, '/data/Samples/TMSPlane/fpgaLin/Nov13b/Nov13b_HV0p5c_*.root', 's1a_', True)
 #     readSignal2a('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_2.root;s2a_')

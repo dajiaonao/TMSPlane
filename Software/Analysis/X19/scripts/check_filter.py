@@ -10,9 +10,9 @@ fc1 = filterChecker()
 # fc1.recoCfg = 'Lithium/C8_Dec30'
 # fc1.recoCfg = 'Lithium/C8_Jan06'
 #fc1.recoCfg = 'Lithium/C8_Jan02'
-fc1.recoCfg = 'Lithium/C8_Jan08'
+fc1.recoCfg = 'Lithium/C8_Jan14'
 #fc1.recoCfg = 'TEST2'
-fc1.chan = 18
+fc1.chan = 4
 fc1.waitTime = 1000
 # fc1.offline_check('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_100mV_data_0.root')
 # fc1.offline_check('/data/Samples/TMSPlane/fpgaLin/raw/Nov04c/Nov04c_40mV_data_0.root')
@@ -55,9 +55,19 @@ fc1.waitTime = 1000
 #fc1.offline_check('/data/TMS_data/raw/Dec25_TMS/C8_alpha_23591314antenna_P10Min_Pulse100Hz200mV_fd500_fc300_Dec252116_data_9.root')
 # fc1.offline_check('/data/TMS_data/raw/Dec30_TMS/C8_alpha_23591314antenna_P10Min_Pulse100Hz200mV_fd900_fc1620_Dec301649_data_64.root')
 # fc1.offline_check('/data/TMS_data/raw/Jan06_TMS/C8_alpha_23591314hignAntenna_P10Min_Pulse100Hz200mVDC0p2V_fd500_fc850_2021Jan061715_data_41.root')
-fc1.offline_check('/data/TMS_data/raw/Jan08_TMS/C8_alpha_23591314hignAntenna_P10Min_Pulse100Hz200mVDC0p2V_fd800_fc1360_2021Jan081639_data_45.root')
+#fc1.offline_check('/data/TMS_data/raw/Jan08_TMS/C8_alpha_23591314hignAntenna_P10Min_Pulse100Hz200mVDC0p2V_fd800_fc1360_2021Jan081639_data_45.root')
 #fc1.offline_check('/data/TMS_data/raw/Dec30_TMS/C8_alpha_23591314antenna_P10Min_Pulse100Hz200mV_fd1000_fc2000_Dec301649_data_35.root')
 #fc1.offline_check('/data/TMS_data/raw/Jan02_TMS/C8_alpha_23591314antenna_P10Min_Pulse100Hz200mVDC5V_fd1000_fc1000_2021Jan021643_data_5.root')
 #fc1.offline_check('/data/TMS_data/raw/Dec21_TMS/C8_alpha_pulse_test_Dec211913_data_2.root')
+# fc1.offline_check('/data/TMS_data/raw/Jan19_TMS/C8ch14_Ext31mV_2021Jan192251_data_9.root')
+# fc1.offline_check('/data/TMS_data/raw/Jan20_TMS/C8ch4_Ext30mV_Gring990mV_2021Jan201543_data_0.root')
+# fc1.offline_check('/data/TMS_data/raw/Jan20_TMS/C8ch4_Gring924mV_2021Jan201725_data_21.root')
+#fc1.offline_check('/data/TMS_data/raw/Jan20_TMS/C8ch4_Ext30mV_2021Jan201728_data_22.root')
+#fc1.offline_check('/data/TMS_data/raw/C8_tune7/C8_tt7.root')
+#fc1.offline_check('/data/TMS_data/raw/Jan22_TMS/Ext0p5pF_A1_Gring100mV_data_0.root')
+#fc1.offline_check('/data/TMS_data/raw/Jan22_TMS/Ext0p5pF_A1_Gring200mV_data_1.root')
+#fc1.offline_check('/data/TMS_data/raw/Jan22_TMS/Ext0p5pF_A1_Gring500mV_data_2.root')
+# fc1.offline_check('/data/TMS_data/raw/Jan22_TMS/Ext0pF_A3_Gring100mV_data_83.root')
+# fc1.offline_check('/data/TMS_data/raw/Jan25_TMS/Ext5p88F20mV_A3_Gring940mV_data_4.root')
 #fc1.online_check()
-
+fc1.online_check_dev()
