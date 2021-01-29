@@ -618,6 +618,97 @@ class TestClass:
         #### if it's smaller than the next, move to next one, and keep this one recorded.
         tr1.sc.write_config_file(config_file)
 
+    def validate_tune3(self, cList, fcName='C3_tt3.root', oName='C3_tt3_valid0.root', dT_wait=50, N_data=500):
+        '''Based on validate_tune2, but only check the entries in the given list'''
+
+        ### get the best config
+        fin = TFile(fcName,'read')
+        ch = fin.Get('tree1')
+
+        tr1 = self.train
+        tr1.setupOutput(oName)
+        nPar = len(tr1.cd.inputVs)
+
+        print(cList[:10])
+        n = len(cList)
+        ### check those from tune
+        for topi in range(n):
+            inputVs = [None]*self.nCh
+
+            ## get the parameters
+            ievt = cList[topi]
+            for ich in range(self.nCh):
+                n1 = ch.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+                v1 = ch.GetV1()
+                inputVs[ich] = [v1[j] for j in range(n1)]
+                for j in range(nPar): tr1.par1[ich*nPar+j] = v1[j]
+                tr1.ret1[ich] = ch.GetV2()[0]
+
+            ## take data
+            tr1.test_update_sensor(inputVs)
+            tr1.Tag[0] = ievt
+            time.sleep(dT_wait)
+            tr1.take_data(N_data)
+
+        ## save the tree and close
+        tr1.tree1.Write()
+        tr1.fout1.Close()
+
+    def validate_tune2(self, fcName='C3_tt3.root', oName='C3_tt3_valid0.root'):
+        '''Based on validate_tune, but here we check all parameters that pass the selection cuts. And here we only check channel 4'''
+        dT_wait = 50
+        N_data = 500
+
+        ### get the best config
+        fin = TFile(fcName,'read')
+        ch = fin.Get('tree1')
+
+        cut = 'ret[4]<-0.002&&adc[4][10]<0.9'
+        n = ch.Draw("Entry$",cut,"goff")
+        v1 = ch.GetV1()
+#         cList = [int(v1[i]) for i in range(n)]
+        cList = [int(v1[i]) for i in range(n) if v1[i]>=18199]
+        print(f"{n} entries will be checked")
+
+        print(cList[:10])
+        n = len(cList)
+
+#         tr1 = self.prepare_train() ## aleady done
+        tr1 = self.train
+        tr1.setupOutput(oName)
+        nPar = len(tr1.cd.inputVs)
+
+        ### take the default one first
+        tr1.Tag[0] = -1
+        time.sleep(dT_wait)
+        for ich in range(self.nCh):
+            for j in range(nPar):
+                tr1.par1[ich*nPar+j] = tr1.cd.tms1mmReg.dac_code2volt(tr1.cd.sensorVcodes[ich][j])
+        tr1.take_data(N_data)
+
+        ### check those from tune
+        for topi in range(n):
+            inputVs = [None]*self.nCh
+
+            ## get the parameters
+            ievt = cList[topi]
+            for ich in range(self.nCh):
+                n1 = ch.Draw('par[{0:d}]:ret[{0:d}]'.format(ich),'Entry$=={0:d}'.format(ievt),'goff')
+                v1 = ch.GetV1()
+                inputVs[ich] = [v1[j] for j in range(n1)]
+                for j in range(nPar): tr1.par1[ich*nPar+j] = v1[j]
+                tr1.ret1[ich] = ch.GetV2()[0]
+
+            ## take data
+            tr1.test_update_sensor(inputVs)
+            tr1.Tag[0] = ievt
+            time.sleep(dT_wait)
+            tr1.take_data(N_data)
+
+        ## save the tree and close
+        tr1.tree1.Write()
+        tr1.fout1.Close()
+
     def validate_tune(self, fcName='C3_tt3.root', oName='C3_tt3_valid0.root'):
         '''Here will will use low frequency pulse'''
 #         fcName = 'Mar05Te_tt_test.root'
@@ -895,17 +986,23 @@ def tuneA():
     '''Added on Jan 12, used to tune the parameters to get the largest amplitude'''
 #     tuneTestRigo(500,0.1,300)
 
-    tc1 = TestClass(config_file='config/C8.json')
+    tc1 = TestClass(config_file='config/C8ch4_A3.json')
     tc1.muteList = [2,3,7,8,9,10,11,12,13,15,16,17,18]
-    tuneTag = '/data/TMS_data/raw/C8_tune7/C8_tt7'
-
+#     tuneTag = '/data/TMS_data/raw/C8_tune7/C8_tt7'
+# 
     tc1.prepare_train()
     tc1.train.pltN = 5000
     tc1.train.take_data = tc1.train.take_data_v5
     tc1.train.NVAL = 1
-    tc1.train.peakIdx = [2782]
-    tc1.train.bestConfigFile = f'{tuneTag}_best.json'
-    tc1.test_tune(tuneTag+'.root')
+#     tc1.train.peakIdx = [2782]
+#     tc1.train.bestConfigFile = f'{tuneTag}_best.json'
+#     tc1.test_tune(tuneTag+'.root')
+    tc1.train.peakIdx = [7732]
+#     tc1.validate_tune2('/data/TMS_data/raw/C8_tune7/C8_tt7.root', '/data/TMS_data/raw/C8_tune7/C8_tt7_validate0.root')
+#     tc1.validate_tune2('/data/TMS_data/raw/C8_tune7/C8_tt7.root', '/data/TMS_data/raw/C8_tune7/C8_tt7_validate1.root')
+
+    clist1 = [13939, 11779, 11379, 17199, 17119, 12459, 8939, 10199, 6039, 12859, 11079, 4739, 6699, 12299, 15159]
+    tc1.validate_tune3(clist1, '/data/TMS_data/raw/C8_tune7/C8_tt7.root', '/data/TMS_data/raw/C8_tune7/C8_tt7_validate_round2_a.root', N_data=500)
 
 def FOM_check():
     '''Check the figure of merit used in the tune.'''
@@ -958,10 +1055,14 @@ def dumpPar():
 #     ent = 14180
     ent =15880 
 #     cList = [14840]*20
-    cList = [ent]*20
 
     tc1 = TestClass()
-    tc1.save_config(cList, f"C8ch4_entry{ent}.json", fcName = '/data/TMS_data/raw/C8_tune7/C8_tt7.root')
+
+#     entList = []
+    entList = [13939, 11779, 11379, 17199, 17119, 12459, 8939, 10199, 6039, 12859, 11079, 4739, 6699, 12299, 15159]
+    for ent in entList:
+        cList = [ent]*20
+        tc1.save_config(cList, f"config/C8ch4_tune_e{ent}.json", fcName = '/data/TMS_data/raw/C8_tune7/C8_tt7.root')
 
 if __name__ == '__main__':
 #     test1()

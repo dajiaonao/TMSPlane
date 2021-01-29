@@ -662,8 +662,31 @@ class SensorConfig(threading.Thread):
         with open(fName, 'w') as fp:
             fp.write(json.dumps(config, sort_keys=True, indent=4))
 
-if __name__ == "__main__":
+def setSensor(config_file):
+    '''A simple method to set parameters'''
+    ### connection info
+    host='192.168.2.3'
+    if socket.gethostname() == 'FPGALin': host = 'localhost'
+    control_ip_port = host+":1025"
 
+    ### create link
+    ctrlIpPort = control_ip_port.split(':')
+    sC = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sC.connect((ctrlIpPort[0],int(ctrlIpPort[1])))
+
+    ### 
+    cmd = Cmd()
+    cd = CommonData(cmd, dataSocket=None, ctrlSocket=sC)
+    cd.aoutBuf = 1
+    cd.x2gain = 2
+    cd.sdmMode = 0
+    cd.bufferTest = 0
+
+    sc = SensorConfig(cd, configFName=config_file)
+    for c,l in sc.tms1mmX19chainSensors.items():
+        sc.update_sensor(l[0])
+
+def main():
     host='192.168.2.3'
     if socket.gethostname() == 'FPGALin': host = 'localhost'
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -716,3 +739,6 @@ if __name__ == "__main__":
 
     sC.close()
     sD.close()
+if __name__ == "__main__":
+    main()
+#     setSensor('config/C8ch4_A3.json')

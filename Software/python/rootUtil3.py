@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from ROOT import gROOT, gPad, TIter, gStyle
 import sys, os
 class bcolors:
@@ -360,6 +360,21 @@ def savehistory(dir1=os.environ["HOME"]):
     except IOError:
         pass
     atexit.register(readline.write_history_file, f)
+
+def getRDF(pattern, treeName=None):
+    '''Take the pattern and return a TChain and a RDataFrame'''
+    from ROOT import TChain, RDataFrame
+    import glob
+
+    if treeName is None: treeName = 'tuple0/DecayTree'
+    patterns = [pattern] if isinstance(pattern, str) else pattern
+
+    ch1 = TChain(treeName)
+    for pn in patterns:
+        for f in glob.glob(pn): ch1.Add(f)
+
+    return ch1, RDataFrame(ch1)
+
 
 if __name__ == '__main__':
     print('test')

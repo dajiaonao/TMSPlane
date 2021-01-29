@@ -218,17 +218,41 @@ def take_calibration():
 #     for dV in [0.02, 0.04, 0.06, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]:
 #     for dV in [0.1, 0.2, 0.5, 1.0, 2.0]:
 #    for dV in [0.1, 0.2, 0.5, 1.0, 1.5]:
-    Nstep = 8
-    highV = 0.98
-    lowV = 0.9
+    Nstep = 25
+    highV = 7.6
+    lowV = 7.0
     for i in range(Nstep+1):
         dV = lowV + (highV-lowV)/Nstep*i
         rg1.setPulseV(dV)
         tag1 = '_Gring{0:d}mV'.format(int(dV*1000))
 #         take_data(sTag='Ext5p88F_A3'+tag1,n=1000, N=1, dirx='Jan23_TMS',nm=200)
-        take_data(sTag='Ext5p88F20mV_A3'+tag1,n=1500, N=1, dirx='Jan25_TMS',nm=200)
-
+        take_data(sTag='Ext5d8pF20mV_A3'+tag1,n=500, N=1, dirx='Jan29_TMS_bridge',nm=200, dV=int(dV*1000))
     rg1.setPulseV(0.2)
+
+def take_calibration_A_and_V():
+    from TMS1mmX19Tuner import setSensor
+
+    rg1 = Rigol()
+    rg1.connect()
+#     rg1.syncPhase()
+#     rg1.setPhaseDev(150)
+
+    entList = [13939, 11779, 11379, 17199, 17119, 12459, 8939, 10199, 6039, 12859, 11079, 4739, 6699, 12299, 15159]
+    for ievt in entList:
+        setSensor(f'config/C8ch4_tune_e{ievt}.json')
+        print(f"Start processing {ievt}")
+        time.sleep(80)
+
+        for dV in [0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 1.0, 1.5, 2.0]:
+            rg1.setPulseV(dV)
+            dVx = int(dV*1000)
+            tag1 = 'Gring{0:d}mV'.format(dVx)
+            take_data(sTag=f'Ext5p85pF_e{ievt}_'+tag1,n=500, N=1, dirx='Jan29_TMS',nm=200, dV=dVx)
+
+    ### end the program with a usual dV
+    rg1.setPulseV(0.2)
+
+
 
 if __name__ == '__main__':
 #     useLHCbStyle()
@@ -254,6 +278,7 @@ if __name__ == '__main__':
 
 #       take_data(sTag='May13T1a',n=1000, N=-1, dirx='raw/May13T1a')
 #       take_dataT(sTag='May14T1c',n=2000, Tmin = 30, dirx='raw/May14T1c')
-    take_calibration()
-#    take_data(sTag='Ext5p88F_A3_Ext5mV',n=1000, N=1, dirx='Jan23_TMS',nm=200)
+#     take_calibration()
+    take_calibration_A_and_V()
+#     take_data(sTag='Ext5p8pF_A3_Ext20mV_Gr200mV',n=200, N=1, dirx='Jan29_TMS',nm=200)
 #     take_data(sTag='Ext5p88F_A3_Extoff_Gring100mV',n=1000, N=1, dirx='Jan23_TMS',nm=200)
