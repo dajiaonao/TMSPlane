@@ -374,7 +374,6 @@ class DataPanelGUI(object):
         if self.sensor_config is not None:
             self.sensor_config.write_config_file()
 
-
     def set_voltage_dac_code_update(self, *args):
         with self.cd.cv:
             for i in range(self.nVolts):

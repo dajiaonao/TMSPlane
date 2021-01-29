@@ -650,6 +650,7 @@ class SensorConfig(threading.Thread):
         if fName:
             self.configFName = fName
         config = {}
+        print(f"saving configuration to {self.configFName}")
         for i in range(self.cd.nCh):
             config[i] = dict(zip(self.cd.voltsNames, self.cd.sensorVcodes[i]))
         with open(self.configFName, 'w') as fp:
